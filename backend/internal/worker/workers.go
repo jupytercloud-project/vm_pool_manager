@@ -19,7 +19,7 @@ const (
 )
 
 type Job struct {
-	ID   int
+	ID   uint64
 	Name string
 	Type JobType
 	Data map[string]string
@@ -71,14 +71,16 @@ func processJob(workerID int, job Job) {
 			log.Printf("Error\n")
 			return
 		}
+		fmt.Println("Worker ", workerID, " takes the job of creating a base model VM")
 		CreateVMbase(*cfg)
+		fmt.Println("Worker ", workerID, " finished its job")
 	} else {
 		// sleep
 		time.Sleep(time.Second)
 	}
 }
 
-var jobCount int
+var jobCount uint64
 
 func CreateJob(name string, JobType JobType, data map[string]string) *Job {
 	jobCount++
@@ -97,9 +99,4 @@ func AddJob(job Job, highPriority bool) {
 	} else {
 		NormalPriorityJobs <- job
 	}
-}
-
-func CloseJobs() {
-	close(HighPriorityJobs)
-	close(NormalPriorityJobs)
 }

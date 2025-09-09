@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"PoolManagerVM/backend/utils"
 	"context"
 	"fmt"
 	"log"
@@ -22,7 +23,7 @@ func Monitor(c context.Context) {
 
 		case <-ticker.C:
 			log.Println("Checking serverpools...")
-			allServers, err := GetAllServers()
+			allServers, err := utils.GetAllServers()
 			if err != nil {
 				log.Fatalf("Error : %v", err)
 				return
@@ -57,7 +58,7 @@ func CheckAndCreate(allServers []servers.Server) {
 		missing := minVM[poolID] - active
 		if missing > 0 {
 			fmt.Printf("Serverpool %s: missing %d VM(s)\n", poolID, missing)
-			for i := 0; i < missing; i++ {
+			for range missing {
 				// go createVM(poolID, active, missing)
 			}
 		}

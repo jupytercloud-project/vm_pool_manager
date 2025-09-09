@@ -18,26 +18,29 @@ import (
 )
 
 func main() {
+
+	//starting database
 	config.Sync_DB()
 
+	//configuring gin server
 	r := gin.Default()
 	routes.UserRoutes(r)
 	routes.ServerpoolRoutes(r)
 
+	//preparing workers
 	var wg sync.WaitGroup
-
 	ctx, cancel := context.WithCancel(context.Background())
+	worker.LaunchWorkers(5, &wg, ctx)
 
-	worker.LaunchWorkers(20, &wg, ctx)
-
+	//starting goroutines
 	go internal.Backwork(ctx)
 	go internal.Monitor(ctx)
 
+	//starting server gin in go routine
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: r,
 	}
-
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)

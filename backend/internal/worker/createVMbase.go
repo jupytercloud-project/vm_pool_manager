@@ -2,10 +2,12 @@ package worker
 
 import (
 	"PoolManagerVM/backend/models"
+	"PoolManagerVM/backend/utils"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/gophercloud/utils/openstack/clientconfig"
@@ -22,7 +24,7 @@ func CreateVMbase(cfg models.Config) error {
 	}
 
 	createOpts := servers.CreateOpts{
-		Name:      cfg.Server.Name,
+		Name:      fmt.Sprintf(`%s-%s`, cfg.Server.Name, uuid.New().String()),
 		FlavorRef: cfg.Server.FlavorRef,
 		ImageRef:  cfg.Server.ImageRef,
 		Networks:  []servers.Network{{UUID: cfg.Network.NetworkID}},
@@ -44,6 +46,9 @@ func CreateVMbase(cfg models.Config) error {
 		return fmt.Errorf("failed to create VM : %w", err)
 	}
 
+	utils.PendingMu.Lock()
+	utils.PendingJobs--
+	utils.PendingMu.Unlock()
 	log.Printf("[VM] Creating server ID=%s Name=%s\n", server.ID, server.Name)
 
 	// Waiting for server to start
@@ -65,5 +70,6 @@ func CreateVMbase(cfg models.Config) error {
 		log.Printf("[VM] Waiting for server %s (status=%s)\n", current.ID, current.Status)
 		time.Sleep(3 * time.Second)
 	}
+
 	return nil
 }

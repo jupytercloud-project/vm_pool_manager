@@ -15,8 +15,8 @@ Keyname = "william"
 [metadata]
 
 serverpool-id = "PoolVMs"
-minVM = "4"
-maxVM = "6"
+minVM = "2"
+maxVM = "9"
 userID = "admin"
 pool-id = "PoolVMs"
 

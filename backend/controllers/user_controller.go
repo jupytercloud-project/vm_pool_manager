@@ -11,7 +11,7 @@ import (
 
 func GetUsers(c *gin.Context) {
 	var users []models.User
-	result := config.DB.Find(&users)
+	result := config.Database.Find(&users)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
@@ -25,6 +25,6 @@ func CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	config.DB.Create(&user)
+	config.Database.Create(&user)
 	c.JSON(http.StatusOK, user)
 }

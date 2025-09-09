@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"PoolManagerVM/backend/internal"
+	"PoolManagerVM/backend/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +9,7 @@ import (
 
 func GetServerpool(c *gin.Context) {
 
-	allServers, err := internal.GetAllServers()
+	allServers, err := utils.GetAllServers()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
