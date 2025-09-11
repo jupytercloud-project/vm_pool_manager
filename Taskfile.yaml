@@ -1,0 +1,51 @@
+version: '3'
+
+
+vars:
+  OS_CLIENT_CONFIG_FILE: '{{.HOME}}/.config/openstack/clouds.yaml'
+  OS_CLOUD: 'idcs-stage-dev@stratuslab.production.virtualdata'
+  DOTENV_PATH: '.env'
+
+tasks:
+
+  default:
+    cmds:
+    - task --list
+
+  build:
+    desc: build the binary file for the backend
+    dir: backend
+    sources:
+    - "**/*.go"
+    generates:
+    - ./bin/app .
+    cmds:
+    - echo "building app"
+    - go build -o ./bin/app .
+
+  run:
+    desc: run the binary file, build it if not existed
+    deps: [build]
+    dir: backend
+    cmds:
+    - |
+      export OS_CLIENT_CONFIG_FILE={{.OS_CLIENT_CONFIG_FILE}}
+      export OS_CLOUD={{.OS_CLOUD}}
+      export PORT=8080
+      export DOTENV_PATH={{.DOTENV_PATH}}
+      #export GIN_MODE=release
+      ./bin/app
+
+  clean:
+    desc: delete binary file
+    cmds:
+    - 
+      rm -rf ./backend/bin
+
+  cli:
+    desc: cli
+    cmds:
+    - |
+      export OS_CLIENT_CONFIG_FILE={{.OS_CLIENT_CONFIG_FILE}}
+      export OS_CLOUD={{.OS_CLOUD}}
+      pkgx openstack
