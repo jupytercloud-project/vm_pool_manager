@@ -39,5 +39,5 @@ type Server struct {
 	Metadata     JSONStringMap   `gorm:"type:text"` // Map stockée en JSON
 	ServerpoolID string          // clé étrangère vers Serverpool
 	UserID       string          // clé étrangère vers Serverpool
-	ServerPool   *Serverpoolv2   `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
+	ServerPool   *Serverpool     `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
 }

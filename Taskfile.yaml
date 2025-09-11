@@ -20,6 +20,7 @@ tasks:
     generates:
     - ./bin/app .
     cmds:
+    - go mod tidy
     - echo "building app"
     - go build -o ./bin/app .
 

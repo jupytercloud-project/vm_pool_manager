@@ -36,7 +36,7 @@ func main() {
 	worker.LaunchWorkers(5, &wg, ctx)
 
 	//starting goroutines
-	go internal.Backwork(ctx)
+	// go internal.Backwork(ctx)
 	go internal.Monitor(ctx)
 	go config.Resync_DB(ctx)
 
