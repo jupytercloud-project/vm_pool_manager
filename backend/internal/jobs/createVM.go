@@ -1,7 +1,6 @@
-package worker
+package jobs
 
 import (
-	"PoolManagerVM/backend/internal/jobs"
 	"PoolManagerVM/backend/models"
 	"fmt"
 	"log"
@@ -14,7 +13,7 @@ import (
 	"github.com/gophercloud/utils/openstack/clientconfig"
 )
 
-func CreateVMbase(cfg models.Config) error {
+func CreateVM(serv models.Server) error {
 	opts := &clientconfig.ClientOpts{
 		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
@@ -25,32 +24,25 @@ func CreateVMbase(cfg models.Config) error {
 	}
 
 	createOpts := servers.CreateOpts{
-		Name:      fmt.Sprintf(`%s-%s`, cfg.Server.Name, uuid.New().String()),
-		FlavorRef: cfg.Server.FlavorRef,
-		ImageRef:  cfg.Server.ImageRef,
-		Networks:  []servers.Network{{UUID: cfg.Network.NetworkID}},
-		Metadata: map[string]string{
-			"serverpool-id": cfg.Metadata["serverpool-id"],
-			"minVM":         cfg.Metadata["minVM"],
-			"maxVM":         cfg.Metadata["maxVm"],
-			"userID":        cfg.Metadata["userID"],
-		},
+		Name:      fmt.Sprintf(`%s - %s`, serv.Name, uuid.New().String()),
+		FlavorRef: serv.FlavorRef,
+		ImageRef:  serv.ImageRef,
+		Metadata:  serv.Metadata,
 	}
 
 	createOptsExt := keypairs.CreateOptsExt{
 		CreateOptsBuilder: createOpts,
-		KeyName:           cfg.Server.Keyname,
+		KeyName:           os.Getenv("API_KEYNAME"),
 	}
 
 	server, err := servers.Create(client, createOptsExt).Extract()
 	if err != nil {
-		return fmt.Errorf("failed to create VM : %w", err)
+		return fmt.Errorf("failed to create VM: %w", err)
 	}
 
-	jobs.DecrementPending("PoolVms", "admin")
-	log.Printf("[VM] Creating server ID=%s Name=%s\n", server.ID, server.Name)
+	DecrementPending(serv.Metadata["serverpool-id"], serv.Metadata["userID"])
+	log.Println("[VM] Creating server ID=", server.ID, " , Name=", server.Name)
 
-	// Waiting for server to start
 	for {
 		current, err := servers.Get(client, server.ID).Extract()
 		if err != nil {

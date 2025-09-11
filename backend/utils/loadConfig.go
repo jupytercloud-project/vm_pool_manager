@@ -13,3 +13,7 @@ func LoadConfig(path string) (*models.Config, error) {
 	}
 	return &cfg, nil
 }
+
+func CreateNewConfig() {
+
+}

@@ -21,8 +21,10 @@ type Server struct {
 	ID         string `gorm:"primaryKey"`
 	Name       string
 	Status     string
-	FlavorID   string
-	ImageID    string
+	FlavorRef  string
+	ImageRef   string
+	Networks   []string
 	PoolID     *uint
+	Metadata   map[string]string
 	ServerPool *ServerPool `gorm:"foreignKey:PoolID"`
 }

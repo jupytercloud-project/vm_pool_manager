@@ -1,9 +1,11 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -31,13 +33,6 @@ func Sync_DB() {
 		log.Fatalf("error connexion to openstack")
 	}
 
-	// debug
-	// for _, s := range allserv {
-	// 	data, _ := json.MarshalIndent(s, "", " ")
-	// 	fmt.Println(string(data))
-	// 	fmt.Println("-------------------------------------------------------")
-	// }
-
 	for _, s := range allserv {
 		pool := models.ServerPool{}
 
@@ -60,11 +55,11 @@ func Sync_DB() {
 		}
 
 		server := models.Server{
-			ID:       s.ID,
-			Name:     s.Name,
-			Status:   s.Status,
-			FlavorID: fmt.Sprintf("%v", s.Flavor["id"]),
-			ImageID:  fmt.Sprintf("%v", s.Image["id"]),
+			ID:        s.ID,
+			Name:      s.Name,
+			Status:    s.Status,
+			FlavorRef: fmt.Sprintf("%v", s.Flavor["id"]),
+			ImageRef:  fmt.Sprintf("%v", s.Image["id"]),
 		}
 
 		if pool.ID != 0 {
@@ -74,46 +69,41 @@ func Sync_DB() {
 	}
 }
 
-func Resync_DB() {
+func Resync_DB(ctx context.Context) {
+	for {
+		log.Println("Resync DB")
+		syncServers()
+		syncPools()
+		select {
+		case <-ctx.Done():
+			log.Println("Resync stopped")
+			return
+		case <-time.After(30 * time.Second):
+			//next cycle
+		}
+	}
+}
+
+func syncServers() {
 	allServ, err := utils.GetAllServers()
 	if err != nil {
-		log.Println("Error fetching data from OpenStack:", err)
+		log.Println("Error fetching servers from OpenStack:", err)
 		return
 	}
 
 	existingServerIDs := make(map[string]struct{})
 
 	for _, s := range allServ {
-		poolID := strings.TrimSpace(s.Metadata["serverpool-id"])
-		userID := strings.TrimSpace(s.Metadata["userID"])
-		if poolID == "" || userID == "" {
-			log.Println("Skipping server ", s.ID, ": missing poolID or userID")
-			continue
-		}
-		if err := Database.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "serverpool-id"}, {Name: "user_id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"min_vm", "max_vm"}),
-		}).Create(&models.ServerPool{
-			ServerpoolID: poolID,
-			UserID:       userID,
-			MinVM:        utils.ParseInt(s.Metadata["minVM"]),
-			MaxVM:        utils.ParseInt(s.Metadata["maxVM"]),
-			PendingJobs:  0,
-		}).Error; err != nil {
-			log.Println("Error create/update pool:", err)
-			continue
-		}
-
 		server := models.Server{
-			ID:       s.ID,
-			Name:     s.Name,
-			Status:   s.Status,
-			FlavorID: s.Flavor["id"].(string),
-			ImageID:  s.Image["id"].(string),
+			ID:        s.ID,
+			Name:      s.Name,
+			Status:    s.Status,
+			FlavorRef: s.Flavor["id"].(string),
+			ImageRef:  s.Image["id"].(string),
 		}
 
 		var linkedPool models.ServerPool
-		if err := Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).First(&linkedPool).Error; err != nil {
+		if err := Database.Where("serverpool_id = ? AND user_id = ?", strings.TrimSpace(s.Metadata["serverpool-id"]), strings.TrimSpace(s.Metadata["userID"])).First(&linkedPool).Error; err != nil {
 			server.PoolID = &linkedPool.ID
 		}
 
@@ -124,8 +114,8 @@ func Resync_DB() {
 			log.Println("Error create/update server:", err)
 			continue
 		}
-
 		existingServerIDs[s.ID] = struct{}{}
+
 	}
 	var dbServers []models.Server
 	if err := Database.Find(&dbServers).Error; err != nil {
@@ -139,5 +129,50 @@ func Resync_DB() {
 			Database.Delete(&s)
 		}
 	}
+}
 
+func syncPools() {
+	allPool, err := utils.GetAllServerPool()
+	if err != nil {
+		log.Println("Error fetching pools from OpenStack:", err)
+		return
+	}
+
+	existingPoolKeys := make(map[utils.PoolKey]struct{})
+
+	for _, p := range allPool {
+		key := utils.PoolKey{
+			UserID: strings.TrimSpace(p.UserID),
+			PoolID: strings.TrimSpace(p.ServerpoolID),
+		}
+
+		if err := Database.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}, {Name: "serverpool_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"min_vm", "max_vm", "pending_jobs"}),
+		}).Create(&p).Error; err != nil {
+			log.Println("Error create/update pool:", err)
+			continue
+		}
+
+		existingPoolKeys[key] = struct{}{}
+	}
+
+	var dbPools []models.ServerPool
+	if err := Database.Find(&dbPools).Error; err != nil {
+		log.Println("Error fetching pools from DB:", err)
+		return
+	}
+
+	for _, p := range dbPools {
+		key := utils.PoolKey{
+			UserID: strings.TrimSpace(p.UserID),
+			PoolID: strings.TrimSpace(p.ServerpoolID),
+		}
+		if _, ok := existingPoolKeys[key]; !ok {
+			log.Println("Pool", key, " not in OpenStack, delete")
+			if err := Database.Delete(&p).Error; err != nil {
+				log.Println("Error deleting pool:", err)
+			}
+		}
+	}
 }

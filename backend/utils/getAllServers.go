@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/utils/openstack/clientconfig"
@@ -25,7 +26,7 @@ import (
 
 func GetAllServers() ([]servers.Server, error) {
 	opts := &clientconfig.ClientOpts{
-		Cloud: "idcs-stage-dev@stratuslab.production.virtualdata",
+		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
 
 	client, err := clientconfig.NewServiceClient("compute", opts)

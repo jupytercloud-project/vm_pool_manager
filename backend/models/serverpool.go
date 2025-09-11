@@ -9,3 +9,21 @@ type ServerPool struct {
 	MaxVM        int
 	ListServ     []Server `gorm:"foreignKey:PoolID"`
 }
+
+// a tester
+type Serverpoolv2 struct {
+	ID           uint
+	ServerpoolID string
+	UserID       string
+	Params       []Param
+	ListServ     []Server
+}
+
+type Param struct {
+	ImageRef    string
+	FlavorRef   string
+	Networks    []string
+	MinVM       int
+	MaxVM       int
+	PendingJobs int
+}

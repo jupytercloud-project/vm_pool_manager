@@ -1,12 +1,15 @@
 package worker
 
 import (
-	"PoolManagerVM/backend/utils"
+	"PoolManagerVM/backend/internal/jobs"
+	"PoolManagerVM/backend/models"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
-	"time"
+
+	"github.com/google/uuid"
 )
 
 type JobType int
@@ -63,18 +66,33 @@ func worker(id int, wg *sync.WaitGroup, ctx context.Context) {
 }
 
 func processJob(workerID int, job Job) {
-	if job.Type == CreateVMAdmin {
-		cfg, err := utils.LoadConfig("config.toml")
-		if err != nil {
-			log.Printf("Error\n")
-			return
+	// if job.Type == CreateVMAdmin {
+	// 	cfg, err := utils.LoadConfig("config.toml")
+	// 	if err != nil {
+	// 		log.Printf("Error\n")
+	// 		return
+	// 	}
+	// 	fmt.Println("Worker ", workerID, " takes the job of creating a base model VM")
+	// 	CreateVMbase(*cfg)
+	// 	fmt.Println("Worker ", workerID, " finished its job")
+	// } else {
+	// 	// sleep
+	// 	time.Sleep(time.Second)
+	// }
+	switch job.Type {
+	case CreateVM:
+		metadata := map[string]string{}
+		if metaStr, ok := job.Data["Metadata"]; ok && metaStr != "" {
+			if err := json.Unmarshal([]byte(metaStr), &metadata); err != nil {
+				log.Println("Error unmarshall metadata: ", err)
+			}
 		}
-		fmt.Println("Worker ", workerID, " takes the job of creating a base model VM")
-		CreateVMbase(*cfg)
-		fmt.Println("Worker ", workerID, " finished its job")
-	} else {
-		// sleep
-		time.Sleep(time.Second)
+		jobs.CreateVM(models.Server{
+			Name:      fmt.Sprintf(`%s-%s`, job.Data["Name"], uuid.New().String()),
+			FlavorRef: job.Data["FlavorRef"],
+			ImageRef:  job.Data["ImageRef"],
+			Metadata:  metadata,
+		})
 	}
 }
 

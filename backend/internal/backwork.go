@@ -7,7 +7,7 @@ import (
 	"PoolManagerVM/backend/utils"
 	"context"
 	"log"
-	"strconv"
+	"os"
 	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -38,48 +38,19 @@ func Backwork(ctx context.Context) {
 
 		var minVM int
 		if len(myPool) == 0 {
-			// if no VMs, create some with config file
-			cfg, err := utils.LoadConfig("config.toml")
-			if err != nil {
-				log.Printf("Error")
-				return
-			}
-			minVM, err = strconv.Atoi(cfg.Metadata["minVM"])
-			if err != nil {
-				log.Printf("Error : %v", err)
-			}
+			minVM = utils.ParseInt(os.Getenv("METADATA_MIN_VM"))
 		} else {
-			minVM, err = strconv.Atoi(myPool[0].Metadata["minVM"])
-			if err != nil {
-				log.Printf("Error : %v", err)
-			}
-		}
-
-		cfg, err := utils.LoadConfig("config.toml")
-		if err != nil {
-			log.Printf("Error")
-			return
+			minVM = utils.ParseInt(myPool[0].Metadata["minVM"])
 		}
 
 		// adding PendingJobs on current serverpool to not create duplicate
 		err = config.Database.Transaction(func(tx *gorm.DB) error {
-			// var pool models.ServerPool
-			// if err := tx.Where("serverpool_id = ? AND user_id = ?", "PoolVMs", "admin").FirstOrCreate(&pool, models.ServerPool{
-			// 	ServerpoolID: "PoolVms",
-			// 	UserID:       "admin",
-			// 	PendingJobs:  0,
-			// 	MinVM:        utils.ParseInt(cfg.Metadata["minVM"]),
-			// 	MaxVM:        utils.ParseInt(cfg.Metadata["maxVM"]),
-			// }).Error; err != nil {
-			// 	return err
-			// }
-
 			pool := models.ServerPool{
 				ServerpoolID: "PoolVms",
 				UserID:       "admin",
 				PendingJobs:  0,
-				MinVM:        utils.ParseInt(cfg.Metadata["minVM"]),
-				MaxVM:        utils.ParseInt(cfg.Metadata["maxVM"]),
+				MinVM:        utils.ParseInt(os.Getenv("METADATA_MIN_VM")),
+				MaxVM:        utils.ParseInt(os.Getenv("METADATA_MAX_VM")),
 			}
 
 			// Insert ou update si la combinaison serverpool_id + user_id existe déjà

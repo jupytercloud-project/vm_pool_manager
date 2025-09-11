@@ -26,7 +26,7 @@ func DecrementPending(poolID, userID string) error {
 		if err := tx.Where(&models.ServerPool{
 			ServerpoolID: poolID,
 			UserID:       userID,
-		}).First(&pool).Error; err != nil {
+		}).FirstOrCreate(&pool).Error; err != nil {
 			return err
 		}
 		if pool.PendingJobs > 0 {

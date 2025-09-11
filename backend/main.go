@@ -19,6 +19,9 @@ import (
 
 func main() {
 
+	// loading .env
+	config.LoadEnvConfig()
+
 	//starting database
 	config.Sync_DB()
 
@@ -35,6 +38,7 @@ func main() {
 	//starting goroutines
 	go internal.Backwork(ctx)
 	go internal.Monitor(ctx)
+	go config.Resync_DB(ctx)
 
 	//starting server gin in go routine
 	srv := &http.Server{
@@ -54,12 +58,12 @@ func main() {
 	<-quit
 	log.Println("Shutdown signal received")
 	cancel()
-	wg.Wait()
 	ctxTimeout, cancelTimeout := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelTimeout()
 	if err := srv.Shutdown(ctxTimeout); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
+	wg.Wait()
 
 	log.Println("Program exited cleanly")
 }
