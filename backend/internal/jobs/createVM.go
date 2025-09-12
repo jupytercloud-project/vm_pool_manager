@@ -14,6 +14,8 @@ import (
 )
 
 func CreateVM(serv models.Server, paramID uint) error {
+
+	models.PrintServer(serv)
 	opts := &clientconfig.ClientOpts{
 		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
@@ -35,9 +37,6 @@ func CreateVM(serv models.Server, paramID uint) error {
 		CreateOptsBuilder: createOpts,
 		KeyName:           os.Getenv("API_KEYNAME"),
 	}
-
-	log.Printf("Creating server with Name=%s, Image=%s, Flavor=%s, Key=%s, Metadata=%v\n",
-		createOpts.Name, createOpts.ImageRef, createOpts.FlavorRef, createOptsExt.KeyName, createOpts.Metadata)
 
 	server, err := servers.Create(client, createOptsExt).Extract()
 	if err != nil {

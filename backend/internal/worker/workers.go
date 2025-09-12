@@ -78,6 +78,10 @@ func processJob(workerID int, job Job) {
 				log.Println("Error unmarshall metadata: ", err)
 			}
 		}
+		metadata["user_id"] = job.Data["user_id"]
+		metadata["serverpool_id"] = job.Data["serverpool_id"]
+		metadata["min_vm"] = job.Data["min_vm"]
+		metadata["max_vm"] = job.Data["max_vm"]
 
 		var networks models.JSONStringSlice
 		if err := networks.Scan(job.Data["networks"]); err != nil {
@@ -88,11 +92,13 @@ func processJob(workerID int, job Job) {
 		paramID := utils.ParseInt(job.Data["paramID"])
 		fmt.Println("Worker ", workerID, " takes the job of creating a VM")
 		jobs.CreateVM(models.Server{
-			Name:      fmt.Sprintf(`%s-%s`, job.Data["Name"], uuid.New().String()),
-			FlavorRef: job.Data["flavor_ref"],
-			ImageRef:  job.Data["image_ref"],
-			Metadata:  metadata,
-			Networks:  networks,
+			Name:         fmt.Sprintf(`%s-%s`, job.Data["name"], uuid.New().String()),
+			FlavorRef:    job.Data["flavor_ref"],
+			ImageRef:     job.Data["image_ref"],
+			UserID:       job.Data["user_id"],
+			ServerpoolID: job.Data["serverpool_id"],
+			Metadata:     metadata,
+			Networks:     networks,
 		}, uint(paramID))
 		fmt.Println("Worker ", workerID, " finished its job")
 	}

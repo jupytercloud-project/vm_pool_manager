@@ -19,8 +19,9 @@ func GetAllServerPool() ([]models.Serverpool, error) {
 	poolMap := make(map[PoolKey]models.Serverpool)
 
 	for _, s := range allServers {
-		userID, ok1 := s.Metadata["userID"]
-		poolID, ok2 := s.Metadata["serverpool-id"]
+		// models.PrintServer(models.FromGopherServer(s))
+		userID, ok1 := s.Metadata["user_id"]
+		poolID, ok2 := s.Metadata["serverpool_id"]
 		if !ok1 || !ok2 {
 			continue
 		}
@@ -44,8 +45,8 @@ func GetAllServerPool() ([]models.Serverpool, error) {
 		param := models.Param{
 			ServerpoolID: poolID,
 			UserID:       userID,
-			MinVM:        ParseInt(s.Metadata["minVM"]),
-			MaxVM:        ParseInt(s.Metadata["maxVM"]),
+			MinVM:        ParseInt(s.Metadata["min_vm"]),
+			MaxVM:        ParseInt(s.Metadata["max_vm"]),
 			PendingJobs:  0,
 			ImageRef:     imageID,
 			FlavorRef:    flavorID,
@@ -112,6 +113,7 @@ func GetAllServerPool() ([]models.Serverpool, error) {
 				ListServ:     []models.Server{serverModel},
 			}
 		}
+		// models.PrintServerpool(poolMap[key])
 	}
 
 	// Transformer la map en slice

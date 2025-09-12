@@ -122,12 +122,15 @@ func NewCreateServerJob(pool models.Serverpool, param models.Param) map[string]s
 	networkJSON := string(networkBytes)
 
 	return utils.BuildDataMap(
+		"name", pool.ServerpoolID,
 		"serverpool_id", pool.ServerpoolID,
 		"user_id", pool.UserID,
 		"image_ref", param.ImageRef,
 		"flavor_ref", param.FlavorRef,
 		"networks", networkJSON,
 		"paramID", strconv.FormatUint(uint64(param.ID), 10),
+		"min_vm", strconv.Itoa(param.MinVM),
+		"max_vm", strconv.Itoa(param.MaxVM),
 	)
 }
 
