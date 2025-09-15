@@ -21,7 +21,7 @@ func BuildDataMap(kv []string) map[string]string {
 	return data
 }
 
-func FlatstringParam(p models.Param) []string {
+func FlatstringSP(p models.Serverpool) []string {
 	var flat []string
 	flat = append(flat,
 		"ID", fmt.Sprint(p.ID),

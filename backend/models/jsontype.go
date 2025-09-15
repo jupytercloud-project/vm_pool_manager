@@ -15,10 +15,22 @@ func (j *JSONStringSlice) Scan(value interface{}) error {
 		*j = JSONStringSlice{}
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
+
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
 		return fmt.Errorf("failed to scan JSONStringSlice: %v", value)
 	}
+
+	if len(bytes) == 0 {
+		*j = JSONStringSlice{}
+		return nil
+	}
+
 	return json.Unmarshal(bytes, j)
 }
 
@@ -35,10 +47,22 @@ func (j *JSONStringMap) Scan(value interface{}) error {
 		*j = JSONStringMap{}
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
+
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
 		return fmt.Errorf("failed to scan JSONStringMap: %v", value)
 	}
+
+	if len(bytes) == 0 {
+		*j = JSONStringMap{}
+		return nil
+	}
+
 	return json.Unmarshal(bytes, j)
 }
 

@@ -8,9 +8,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func IncrementPending(paramID uint) {
-	result := config.Database.Model(&models.Param{}).
-		Where("id = ?", paramID).
+func IncrementPending(ServerpoolID uint) {
+	result := config.Database.Model(&models.Serverpool{}).
+		Where("id = ?", ServerpoolID).
 		UpdateColumn("pending_jobs", gorm.Expr("pending_jobs + ?", 1))
 
 	if result.Error != nil {
@@ -18,9 +18,9 @@ func IncrementPending(paramID uint) {
 	}
 }
 
-func DecrementPending(paramID uint) {
-	result := config.Database.Model(&models.Param{}).
-		Where("id = ?", paramID).
+func DecrementPending(ServerpoolID uint) {
+	result := config.Database.Model(&models.Serverpool{}).
+		Where("id = ? AND pending_jobs > 0", ServerpoolID).
 		UpdateColumn("pending_jobs", gorm.Expr("pending_jobs - ?", 1))
 
 	if result.Error != nil {

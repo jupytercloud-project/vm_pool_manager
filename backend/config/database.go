@@ -22,7 +22,7 @@ func Start_DB() {
 		panic("failed to connect database")
 	}
 
-	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Param{}, &models.Server{})
+	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{})
 }
 
 func Sync_DB(ctx context.Context) {
@@ -36,6 +36,7 @@ func Sync_DB(ctx context.Context) {
 			return
 		case <-ticker.C:
 			do_sync()
+			delete_serv()
 		}
 	}
 }
@@ -106,20 +107,7 @@ func do_sync() {
 				Database.Model(&existeds).Updates(s)
 			}
 		}
-		for _, param := range p.Params {
-			var existedp models.Param
-			if err := Database.First(&existedp, "serverpool_id = ? AND user_id = ? AND flavor_ref = ? AND image_ref = ?", param.ServerpoolID, param.UserID, param.FlavorRef, param.ImageRef).Error; err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					Database.Create(&param)
-				} else {
-					log.Println("Error Database param: ", err)
-				}
-			} else {
-				Database.Model(&existedp).Updates(param)
-			}
-		}
 	}
-	delete_serv()
 }
 
 //quand passage a Postgres, utiliser :

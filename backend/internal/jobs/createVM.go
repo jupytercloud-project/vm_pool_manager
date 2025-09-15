@@ -25,7 +25,7 @@ func CreateVM(serv models.Server, paramID uint) error {
 	}
 
 	createOpts := servers.CreateOpts{
-		Name:      fmt.Sprintf(`%s-%s`, serv.Name, uuid.New().String()),
+		Name:      fmt.Sprintf(`%s-%s`, serv.ServerpoolID, uuid.New().String()),
 		FlavorRef: serv.FlavorRef,
 		ImageRef:  serv.ImageRef,
 		Metadata:  serv.Metadata,

@@ -84,7 +84,7 @@ func processJob(workerID int, job Job) {
 			networks = models.JSONStringSlice{} // fallback
 		}
 
-		paramID := utils.ParseInt(job.Data["paramID"])
+		paramID := utils.ParseInt(job.Data["ID"])
 		fmt.Println("Worker ", workerID, " takes the job of creating a VM")
 		jobs.CreateVM(models.Server{
 			Name:         job.Data["name"],
