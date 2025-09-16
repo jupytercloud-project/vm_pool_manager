@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func GetUsers(c *gin.Context) {
@@ -19,12 +21,27 @@ func GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
-func CreateUser(c *gin.Context) {
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func CreateUser(db *gorm.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var input models.User
+		if err := ctx.ShouldBindJSON(&input); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		hashpass, _ := bcrypt.GenerateFromPassword([]byte(input.Password), 14)
+		input.Password = string(hashpass)
+
+		if err := db.Create(&input).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		ctx.JSON(http.StatusCreated, input)
 	}
-	config.Database.Create(&user)
-	c.JSON(http.StatusOK, user)
+}
+
+func GetProfile(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "your profile (protected)",
+	})
 }

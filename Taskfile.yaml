@@ -42,6 +42,7 @@ tasks:
     cmds:
     - 
       rm -rf ./backend/bin
+      rm ./backend/PoolManagerVM.db
 
   cli:
     desc: cli

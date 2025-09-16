@@ -2,8 +2,8 @@ package models
 
 // Modèle utilisateur
 type User struct {
-	ID       uint   `gorm:"primaryKey"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `gorm:"not null" json:"-"`
+	ID       uint   `json:"id" gorm:"primaryKey"`
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email" gorm:"unique"`
+	Password string `json:"password" gorm:"not null"`
 }

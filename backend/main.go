@@ -33,6 +33,7 @@ func main() {
 	r := gin.Default()
 	routes.UserRoutes(r)
 	routes.ServerpoolRoutes(r)
+	routes.LoginRoutes(r)
 
 	//preparing workers
 	var wg sync.WaitGroup
