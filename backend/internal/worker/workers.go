@@ -23,7 +23,6 @@ const (
 type Job struct {
 	Type JobType
 	Data map[string]string
-	// retryCount int
 }
 
 var (
@@ -96,6 +95,15 @@ func processJob(workerID int, job Job) {
 			Networks:     networks,
 		}, uint(paramID))
 		fmt.Println("Worker ", workerID, " finished its job")
+
+	case DeleteVM:
+		instanceID := job.Data["instance_id"]
+		err := jobs.DeleteVM(instanceID)
+		if err != nil {
+			log.Println("Failed to delete VM:", err)
+		} else {
+			log.Println("VM deleted successfully:", instanceID)
+		}
 	}
 }
 

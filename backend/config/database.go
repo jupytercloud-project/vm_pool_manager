@@ -27,6 +27,7 @@ func Start_DB() {
 
 func Sync_DB(ctx context.Context) {
 	do_sync()
+	first = false
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -77,23 +78,27 @@ func delete_serv() {
 	}
 }
 
+var first = true
+
 func do_sync() {
-	// log.Println("Resync !")
+	log.Println("Resync !")
 	allpool, err := utils.GetAllServerPool()
 	if err != nil {
 		panic("failed to connect to OpenStack")
 	}
 
 	for _, p := range allpool {
-		var existed models.Serverpool
-		if err := Database.First(&existed, "serverpool_id = ? AND user_id = ?", p.ServerpoolID, p.UserID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				Database.Create(&p)
+		if first {
+			var existed models.Serverpool
+			if err := Database.First(&existed, "serverpool_id = ? AND user_id = ?", p.ServerpoolID, p.UserID).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					Database.Create(&p)
+				} else {
+					log.Println("Error Database: ", err)
+				}
 			} else {
-				log.Println("Error Database: ", err)
+				Database.Model(&existed).Updates(p)
 			}
-		} else {
-			Database.Model(&existed).Updates(p)
 		}
 		for _, s := range p.ListServ {
 			var existeds models.Server

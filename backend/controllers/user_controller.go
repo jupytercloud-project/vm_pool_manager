@@ -41,7 +41,37 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 }
 
 func GetProfile(c *gin.Context) {
+	userID, exist := c.Get("user_id")
+	if !exist {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+	var user models.User
+	if err := config.Database.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "your profile (protected)",
+		"id":      user.ID,
+		"name":    user.Name,
+		"email":   user.Email,
 	})
+}
+
+func DeleteUser(c *gin.Context) {
+	userID, exist := c.Get("user_id")
+	if !exist {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	var user models.User
+	if err := config.Database.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	config.Database.Delete(&user)
+	c.JSON(http.StatusOK, gin.H{"message": "user deleted"})
 }

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"PoolManagerVM/backend/controllers"
+	"PoolManagerVM/backend/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,7 +10,8 @@ import (
 func ServerpoolRoutes(r *gin.Engine) {
 	serverpool := r.Group("/serverpool")
 	{
-		serverpool.GET("/", controllers.GetServerpool)
-		// serverpool.POST("/", controllers.CreateServerpool)
+		serverpool.GET("", controllers.GetServerpool)
+		serverpool.POST("", middlewares.AuthMiddleware(), controllers.CreateServerpool)
+		serverpool.DELETE("", middlewares.AuthMiddleware(), controllers.DeleteServerpool)
 	}
 }
