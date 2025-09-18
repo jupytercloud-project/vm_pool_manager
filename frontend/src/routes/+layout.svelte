@@ -1,55 +1,59 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { onMount } from 'svelte';
-	import DialogModal from '$lib/DialogModal.svelte';
-	import { user, logoutUser, initUser, loginUser, createUser } from '$lib/stores/user';
-	import { writable } from 'svelte/store';
+	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button} from 'flowbite-svelte';
+	import { Modal, Label, Input, Checkbox } from 'flowbite-svelte'
 
-	// modals
-	let showLogin = false;
-	let showSignup = false;
-	let showEndSignup = false;
+	let { children } = $props();
 
-	// champs login/signup
-	let loginEmail = '';
-	let loginPassword = '';
-	let signupName = '';
-	let signupEmail = '';
-	let signupPassword = '';
-	let signupConfirmPassword = '';
+	// script pour modal login
+	let loginModal = $state(false);
+	let loginError = $state("");
 
-	// message d'erreur
-	let errorMsg = '';
+	async function trylogin(event: Event) {
+		const form = event.target as HTMLFormElement;
+		const data = new FormData(form);
 
-	onMount(() => initUser());
+		loginError = "";
+		console.log("coucou");
+		if ((data.get("email") as string)?.length < 1 || (data.get("password") as string)?.length < 1) {
+			loginError = "Champs non rempli";
+			return false
+		}
 
-	async function handleLogin() {
-		errorMsg = '';
+		const jsonData = Object.fromEntries(data.entries());
+
 		try {
-			await loginUser(loginEmail, loginPassword);
-			showLogin = false; // ferme la modal
-			// réinitialiser champs
-			loginEmail = '';
-			loginPassword = '';
-		} catch (err: any) {
-			errorMsg = err.message;
+			const response = await fetch('http://localhost:8080/login', {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify(jsonData)
+			});
+
+			if (!response.ok) {
+				loginError = "Erreur lors de la connexion";
+				return
+			}
+		
+				const result = await response.json();
+				const token = result.token;
+
+				localStorage.setItem('authToken', token);
+				loginModal = false;
+				console.log("Login reussi");
+
+		} catch (err) {
+			loginError = "Erreur backend";
+			console.error(err);
 		}
 	}
 
-	async function handleSignup() {
-		errorMsg = '';
-		try {
-			await createUser(signupName, signupEmail, signupPassword, signupConfirmPassword);
-			showSignup = false;
-			showEndSignup = true;
-			signupName = '';
-			signupEmail = '';
-			signupPassword = '';
-			signupConfirmPassword = '';
-		} catch (err: any) {
-			errorMsg = err.message;
-		}
+	// script pour modal createAccount
+	let createAccountModal = $state(false);
+	let createAccountError = $state("");
+
+	async function tryCreate(event:Event) {
+		
 	}
 </script>
 
@@ -57,74 +61,72 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-	<!-- NAVBAR -->
-	<nav class="bg-white shadow-md px-6 py-4 flex justify-between items-center">
-		<h1 class="text-2xl font-bold text-blue-600">PoolManagerCloud</h1>
-		<div class="space-x-4 flex items-center">
-			<a href="/" class="hover:text-blue-600">Accueil</a>
-			{#if $user}
-				<a href="/dashboard" class="hover:text-blue-600">Dashboard</a>
-				<button
-					class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-					on:click={logoutUser}
-				>
-					Déconnexion
-				</button>
-			{:else}
-				<button
-					class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-					on:click={() => (showLogin = true)}
-				>
-					Connexion
-				</button>
-				<button
-					class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-					on:click={() => (showSignup = true)}
-				>
-					Inscription
-				</button>
+{@render children?.()}
+
+
+<!-- NavBar -->
+<div class="min-h-screen bg-gradient-to-b from-gray-600 via-gray-400 to-gray-800">
+	<Navbar class=" sticky start-0 top-0 z-20 w-full bg-gray-600/30 backdrop-blur-md shadow-md rounded-2xl ">
+		<NavBrand href="/">
+			<img src="src/lib/assets/IDCS.png" class="me-3 h-6 sm:h-9" alt="ICDS Logo" />
+			<span class="self-center text-xl font-semibold whitespace-nowrap text-gray-300 dark:text-white">CloudPoolManager</span>
+		</NavBrand>
+	<div class="flex md:order-2 gap-2">
+		<Button size="sm" color="blue" onclick={() => (loginModal = true)}>Login</Button>
+		<Button size="sm" color="green" onclick={() => (createAccountModal = true)}>Create Account</Button>
+		<NavHamburger />
+	</div>
+	<NavUl>
+		<NavLi href="/" class="text-gray-300">Home</NavLi>
+		<NavLi href="/" class="text-gray-300">About</NavLi>
+	</NavUl>
+	
+	</Navbar>
+
+	<!-- Login Modal -->
+	 <Modal bind:open={loginModal} class="bg-gray-400">
+		<form class="flex flex-col space-y-6" onsubmit={trylogin}>
+			<h3 class="mb-4 text-xl font-medium text-gray-300">Connexion</h3>
+			{#if loginError}
+				<Label color="red">{loginError}</Label>
 			{/if}
-		</div>
-	</nav>
+			<Label class="space-y-2">
+				<span>Email</span>
+				<Input type="email" name="email" placeholder="name@company.com" required/>
+			</Label>
+			<Label class="space-y-2">
+				<span>Password</span>
+				<Input type="password" name="password" placeholder="votre mot de passe" required/>
+			</Label>
+			<Button type="submit">Se connecter</Button>
+		</form>
+	 </Modal>
 
-	<!-- CONTENU DES PAGES -->
-	<main class="flex-1">
-		<slot />
-	</main>
+	<!-- Create Account Modal -->
+	<Modal bind:open={createAccountModal} class="bg-gray-400">
+		<form class="flex flex-col space-y-6" onsubmit={tryCreate}>
+			<h3 class="mb-4 text-xl font-medium text-gray-300">Creer votre compte</h3>
+			{#if createAccountError}
+				<Label color="red">{createAccountError}</Label>
+			{/if}
+			<Label class="space-y-2">
+				<span>Name</span>
+				<Input type="text" name="name" placeholder="votre nom" required/>
+			</Label>
+			<Label class="space-y-2">
+				<span>Email</span>
+				<Input type="email" name="email" placeholder="name@company.com" required/>
+			</Label>
+			<Label class="space-y-2">
+				<span>Password</span>
+				<Input type="password" name="password" placeholder="votre mot de passe" required/>
+			</Label>
+			<Label class="space-y-2">
+				<span>Confirme Password</span>
+				<Input type="password" name="Confirmpassword" placeholder="Confirmez votre mot de passe" required/>
+			</Label>
+			<Button type="submit">Creer</Button>
+		</form>
+	</Modal>
 
-	<!-- FOOTER -->
-	<footer class="bg-gray-100 text-center py-4 text-sm text-gray-600">
-		© {new Date().getFullYear()} PoolManagerCloud. Tous droits réservés.
-	</footer>
 </div>
-
-<!-- MODAL LOGIN -->
-<DialogModal bind:showModal={showLogin}>
-	<h3 slot="header">Connexion</h3>
-  	<form on:submit|preventDefault={handleLogin}>
-    	<input type="email" placeholder="Email" bind:value={loginEmail} required />
-    	<input type="password" placeholder="Mot de passe" bind:value={loginPassword} required />
-    	{#if errorMsg}<p class="text-red-500">{errorMsg}</p>{/if}
-    	<button type="submit">Se connecter</button>
-	</form>
-</DialogModal>
-
-<!-- MODAL SIGNUP -->
-<DialogModal bind:showModal={showSignup}>
-	<h3 slot="header">Inscription</h3>
-	<form on:submit|preventDefault={handleSignup}>
-    	<input type="text" placeholder="Nom" bind:value={signupName} required />
-    	<input type="email" placeholder="Email" bind:value={signupEmail} required />
-    	<input type="password" placeholder="Mot de passe" bind:value={signupPassword} required />
-    	<input type="password" placeholder="Confirmer le mot de passe" bind:value={signupConfirmPassword} required />
-    	{#if errorMsg}<p class="text-red-500">{errorMsg}</p>{/if}
-    	<button type="submit">S’inscrire</button>
-	</form>
-</DialogModal>
-
-<!-- MODAL FIN SIGNUP -->
-<DialogModal bind:showModal={showEndSignup}>
-	<h3 slot="header">Inscription complétée !</h3>
-	<p>Votre compte a été créé avec succès.</p>
-</DialogModal>
