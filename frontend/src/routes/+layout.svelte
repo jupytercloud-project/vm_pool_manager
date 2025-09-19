@@ -1,10 +1,9 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import {authStore} from '$lib/index'
+	import {authStore, tryLogin, logout } from '$lib/index'
 	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button} from 'flowbite-svelte';
 	import { Modal, Label, Input, Checkbox } from 'flowbite-svelte'
-	import { goto } from '$app/navigation';
 
 	let { children } = $props();
 
@@ -14,52 +13,27 @@
 	let loginSuccess = $state(false);
 
 
-	async function trylogin(event: Event) {
-		event.preventDefault();
-		const form = event.target as HTMLFormElement;
-		const data = new FormData(form);
+	async function handleLogin(event: Event) {
+  		event.preventDefault();
+ 		const form = event.target as HTMLFormElement;
+ 		const data = new FormData(form);
+		const email = data.get('email') as string;
+		const password = data.get('password') as string;
 
 		loginError = "";
-		console.log("coucou");
-		if (!(data.get("email") as string) || !(data.get("password") as string)) {
-			loginError = "Champs non rempli";
-			return false
-		}
+		const result = await tryLogin(email, password);
 
-		const jsonData = Object.fromEntries(data.entries());
+		if (!result.success) {
+			loginError = "Erreur lors du login";
+			return;
+  		}
 
-		try {
-			const response = await fetch('http://localhost:8080/login', {
-				method: 'POST',
-				headers: {'Content-Type': 'application/json'},
-				body: JSON.stringify(jsonData)
-			});
-
-			if (!response.ok) {
-				loginError = "Erreur lors de la connexion";
-				return
-			}
-		
-				const result = await response.json();
-				const token = result.token;
-
-				localStorage.setItem('authToken', token);
-				authStore.set(token);
-				loginSuccess = true;
-				
-				console.log("Login reussi");
-
-				setTimeout(() => {
-					form.reset();
-					loginModal = false;
-					loginSuccess = false;
-
-				}, 3000);
-
-		} catch (err) {
-			loginError = "Erreur backend";
-			console.error(err);
-		}
+	loginSuccess = true;
+	setTimeout(() => {
+    	form.reset();
+		loginModal = false;
+		loginSuccess = false;
+	}, 3000);
 	}
 
 	// script pour modal createAccount
@@ -108,13 +82,6 @@
 			console.log(err);
 		}
 	}
-
-	// function logout
-	function logout() {
-		localStorage.removeItem('authToken');
-		authStore.set(null);
-		goto('/');
-	}
 </script>
 
 <svelte:head>
@@ -142,7 +109,7 @@
 		<NavLi href="/" class="text-gray-300 text-xl">Home</NavLi>
 		{#if $authStore}
 		<NavLi href="/profile" class="text-gray-300 text-xl">Profil</NavLi>
-		<NavLi href="/" class="text-gray-300 text-xl">Mes Serverpools</NavLi>
+		<NavLi href="/serverpools" class="text-gray-300 text-xl">Mes Serverpools</NavLi>
 		{/if}
 		<NavLi href="/" class="text-gray-300 text-xl">About</NavLi>
 	</NavUl>
@@ -150,7 +117,7 @@
 	</Navbar>
 	<!-- Login Modal -->
 	 <Modal bind:open={loginModal} class="bg-gray-400">
-		<form class="flex flex-col space-y-6" onsubmit={trylogin}>
+		<form class="flex flex-col space-y-6" onsubmit={handleLogin}>
 			<h3 class="mb-4 text-2xl font-medium text-gray-800">Connexion</h3>
 			{#if loginError}
 				<Label color="red">{loginError}</Label>

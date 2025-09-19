@@ -49,7 +49,8 @@ func Sync_DB(ctx context.Context) {
 func delete_serv() {
 	allserv, err := utils.GetAllServers()
 	if err != nil {
-		panic("failed to connect to Openstack")
+		log.Println("Failed to connect to OpenStack, will retry:", err)
+		return
 	}
 
 	var ops []models.Server
@@ -90,7 +91,8 @@ func do_sync() {
 	log.Println("Resync !")
 	allpool, err := utils.GetAllServerPool()
 	if err != nil {
-		panic("failed to connect to OpenStack")
+		log.Println("Failed to connect to OpenStack, will retry:", err)
+		return
 	}
 
 	for _, p := range allpool {

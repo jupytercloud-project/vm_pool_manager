@@ -24,18 +24,29 @@ tasks:
     - echo "building app"
     - go build -o ./bin/app .
 
-  run:
-    desc: run the binary file, build it if not existed
+  backend:
     deps: [build]
     dir: backend
     cmds:
-    - |
-      export OS_CLIENT_CONFIG_FILE={{.OS_CLIENT_CONFIG_FILE}}
-      export OS_CLOUD={{.OS_CLOUD}}
-      export PORT=8080
-      export DOTENV_PATH={{.DOTENV_PATH}}
-      #export GIN_MODE=release
-      ./bin/app
+      - |
+        export OS_CLIENT_CONFIG_FILE={{.OS_CLIENT_CONFIG_FILE}}
+        export OS_CLOUD={{.OS_CLOUD}}
+        export PORT=8080
+        export DOTENV_PATH={{.DOTENV_PATH}}
+        #export GIN_MODE=release
+        ./bin/app
+
+  frontend:
+    dir:  frontend
+    cmds:
+      - npm run dev
+
+  run:
+    desc: run the binary file, build it if not existed
+    cmds:
+      - task backend &
+      - task frontend
+      
 
   clean:
     desc: delete binary file
