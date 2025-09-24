@@ -1,11 +1,12 @@
 package jobs
 
 import (
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 )
 
 // DeleteVM deletes an existing virtual machine (VM) from OpenStack.
@@ -34,13 +35,13 @@ func DeleteVM(instanceID string) error {
 	}
 
 	// Crée un provider client à partir du clouds.yaml
-	provider, err := clientconfig.NewServiceClient("compute", opts)
+	provider, err := clientconfig.NewServiceClient(context.Background(), "compute", opts)
 	if err != nil {
 		return fmt.Errorf("failed to create provider client: %w", err)
 	}
 
 	// Supprime la VM
-	err = servers.Delete(provider, instanceID).ExtractErr()
+	err = servers.Delete(context.Background(), provider, instanceID).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("failed to delete VM %s: %w", instanceID, err)
 	}

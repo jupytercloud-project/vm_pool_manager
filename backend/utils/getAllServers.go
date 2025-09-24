@@ -1,11 +1,12 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 )
 
 // GetAllServers retrieves the full list of servers from OpenStack.
@@ -29,12 +30,12 @@ func GetAllServers() ([]servers.Server, error) {
 		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
 
-	client, err := clientconfig.NewServiceClient("compute", opts)
+	client, err := clientconfig.NewServiceClient(context.Background(), "compute", opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute client: %w", err)
 	}
 
-	pages, err := servers.List(client, servers.ListOpts{}).AllPages()
+	pages, err := servers.List(client, servers.ListOpts{}).AllPages(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list servers: %w", err)
 	}

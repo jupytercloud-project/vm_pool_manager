@@ -3,6 +3,7 @@ package jobs
 import (
 	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/utils"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,9 +11,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 )
 
 // CreateVM handles the creation of a new virtual machine (VM) on OpenStack.
@@ -72,7 +73,7 @@ func CreateVM(workerID int, job models.Job) error {
 		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
 
-	client, err := clientconfig.NewServiceClient("compute", opts)
+	client, err := clientconfig.NewServiceClient(context.Background(), "compute", opts)
 	if err != nil {
 		return fmt.Errorf("failed to create compute client: %w", err)
 	}
@@ -90,7 +91,7 @@ func CreateVM(workerID int, job models.Job) error {
 		KeyName:           os.Getenv("API_KEYNAME"),
 	}
 
-	server, err := servers.Create(client, createOptsExt).Extract()
+	server, err := servers.Create(context.Background(), client, createOptsExt, nil).Extract()
 	if err != nil {
 		log.Println("failed to create VM:", err)
 		return fmt.Errorf("failed to create VM: %w", err)
@@ -100,7 +101,7 @@ func CreateVM(workerID int, job models.Job) error {
 	log.Println("[VM] Creating server ID=", server.ID, " , Name=", server.Name)
 
 	for {
-		current, err := servers.Get(client, server.ID).Extract()
+		current, err := servers.Get(context.Background(), client, server.ID).Extract()
 		if err != nil {
 			return fmt.Errorf("failed to get server status: %w", err)
 		}
