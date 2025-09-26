@@ -1,7 +1,7 @@
 <script lang="ts">
 import { onDestroy, onMount } from 'svelte';
 import { goto } from '$app/navigation';
-import { authStore, serverpoolStore, createServerpool , fetchAllImages, fetchAllFlavors , fetchAllNetworks, deleteServerpool} from '$lib/index';
+import { authStore, serverpoolStore, createServerpool , fetchAllImages, fetchAllFlavors , fetchAllNetworks, deleteServerpool, rebuildServer } from '$lib/index';
 import type { ImageOption , FlavorOption , NetworkOption } from '$lib/index';
 import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect } from 'flowbite-svelte';
 import { ChevronDownOutline } from 'flowbite-svelte-icons';
@@ -160,6 +160,19 @@ async function handleDeleteServerpool(serverpoolId: string) {
   }
 }
 
+async function handleRebuildServer(server: Server) {
+  if (!confirm(`Êtes-vous sûr de vouloir rebuild le serveur ${server.name} (${server.id}) ?`)) {
+    return;
+  }
+  try {
+    await rebuildServer(server.id, server.name, server.image.id);
+    alert(`Rebuild du serveur ${server.name} (${server.id}) lancé avec succès.`);
+    await handleSelectServerpool(selectedsp);
+  } catch (err: any) {
+    alert(err.message || "Erreur lors du rebuild du serveur");
+  }
+}
+
 // Helpers
 function getFlavorNameById(id: string): string {
   const flavor = flavors.find(f => f.value === id);
@@ -191,46 +204,55 @@ let selectedImage: string = "";
 {#if loadingServers}
   <p>Chargement des serveurs...</p>
 {:else if servers.length > 0}
-  <Table hoverable={true} class="mt-4" striped={true} color="gray">
-    <caption>
-      {selectedsp}
-      <p class="text-sm font-normal">Flavor: {getFlavorNameById(servers[0].flavor.id)}</p>
-      <p class="text-sm font-normal">Image: {getImageNameById(servers[0].image.id)}</p>
-      <!-- <p class="text-sm font-normal">Networks: {getNetworkNamesByIds(servers[0].networks)}</p> -->
-    </caption>
+  <Table hoverable={true} striped={false} class="mt-4 w-full text-tertiary-50">
+  <caption class="text-left mb-2">
+    {selectedsp}
+    <p class="text-sm font-normal">Flavor: {getFlavorNameById(servers[0].flavor.id)}</p>
+    <p class="text-sm font-normal">Image: {getImageNameById(servers[0].image.id)}</p>
+    <!-- <p class="text-sm font-normal">Networks: {getNetworkNamesByIds(servers[0].networks)}</p> -->
+  </caption>
 
-    <TableHead>
-      <TableHeadCell>Nom</TableHeadCell>
-      <TableHeadCell>Status</TableHeadCell>
-      <TableHeadCell>IP</TableHeadCell>
-      <TableHeadCell>Créé le</TableHeadCell>
-    </TableHead>
-    <TableBody>
-      {#each servers as s}
-        <TableBodyRow>
-          <TableBodyCell>{s.name}</TableBodyCell>
-          <TableBodyCell>{s.status}</TableBodyCell>
-          <TableBodyCell>
-            {#if s.addresses}
-              {#each Object.values(s.addresses) as net}
-                {#each net as addr}
-                  {addr.addr}{' '}
-                {/each}
+  <TableHead class="bg-tertiary-500 text-white">
+    <TableHeadCell>Nom</TableHeadCell>
+    <TableHeadCell>Status</TableHeadCell>
+    <TableHeadCell>IP</TableHeadCell>
+    <TableHeadCell>Créé le</TableHeadCell>
+    <TableHeadCell></TableHeadCell>
+  </TableHead>
+
+  <TableBody>
+    {#each servers as s, i}
+      <TableBodyRow class={i % 2 === 0 ? 'bg-tertiary-400 hover:bg-tertiary-200' : 'bg-tertiary-300 hover:bg-tertiary-200'}>
+        <TableBodyCell>{s.name}</TableBodyCell>
+        <TableBodyCell>{s.status}</TableBodyCell>
+        <TableBodyCell>
+          {#if s.addresses}
+            {#each Object.values(s.addresses) as net}
+              {#each net as addr}
+                {addr.addr}{';  '}
               {/each}
-            {/if}
-          </TableBodyCell>
-          <TableBodyCell>{s.created}</TableBodyCell>
-        </TableBodyRow>
-      {/each}
-    </TableBody>
-  </Table>
-  <Button size="sm" color="blue" class="mt-2" onclick={() => handleDeleteServerpool(selectedsp)}>Supprimer le serverpool</Button>
+            {/each}
+          {/if}
+        </TableBodyCell>
+        <TableBodyCell>{s.created}</TableBodyCell>
+        <TableBodyCell>
+          <Button size="sm" class="bg-option-500" onclick={() => handleRebuildServer(s)}>Rebuild</Button>
+        </TableBodyCell>
+      </TableBodyRow>
+    {/each}
+  </TableBody>
+</Table>
+
+<Button class="bg-tertiary-500 mt-4" onclick={() => handleDeleteServerpool(selectedsp)}>
+  Supprimer le serverpool
+</Button>
+
 {:else}
   <p>Aucun serveur trouvé pour ce serverpool.</p>
 {/if}
 
 <!-- Modal -->
-<Button size="md" color="green" class="mt-4" onclick={() => createspModal = true}>Créer un serverpool</Button>
+<Button size="md" class="bg-option-500 mt-4" onclick={() => createspModal = true}>Créer un serverpool</Button>
 
 {#if createspModal}
   <Modal bind:open={createspModal} class="bg-gray-400" focustrap={true}>
@@ -283,7 +305,7 @@ let selectedImage: string = "";
         <span>Max VM</span>
         <Input type="number" name="max_vm" min="1" value="1" required />
       </Label>
-      <Button type="submit" color="green">Créer</Button>
+      <Button type="submit" class="bg-option-500">Créer</Button>
     </form>
   </Modal>
 {/if}

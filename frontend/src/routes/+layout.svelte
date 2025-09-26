@@ -97,8 +97,8 @@
 
 
 <!-- NavBar -->
-<div class="min-h-screen bg-gradient-to-b from-gray-300 via-gray-400 to-gray-900">
-	<Navbar color="gray" class=" sticky start-0 top-0 z-20 w-full bg-gray-900/70 backdrop-blur-md shadow-md rounded-b-2xl">
+<div class="min-h-screen bg-primary-500">
+	<Navbar class=" sticky start-0 top-0 z-20 w-ful bg-tertiary-500 backdrop-blur-md shadow-md rounded-b-2xl">
 		<NavBrand href="/">
 			<img src="src/lib/assets/IDCS.png" class="me-3 h-6 sm:h-9" alt="ICDS Logo" />
 			<span class="self-center text-xl font-semibold whitespace-nowrap text-gray-300 dark:text-white">CloudPoolManager</span>
@@ -107,8 +107,8 @@
 		{#if $authStore}
 			<Button size="sm" color="red" onclick={logout}>Deconnexion</Button>
 		{:else}
-		<Button size="sm" color="blue" onclick={() => (loginModal = true)}>Login</Button>
-		<Button size="sm" color="green" onclick={() => (createAccountModal = true)}>Create Account</Button>
+		<Button size="sm" class="bg-secondary-500 border-white hover:bg-secondary-600" onclick={() => (loginModal = true)}>Login</Button>
+		<Button size="sm" class="bg-option-500 border-white hover:bg-option-600" onclick={() => (createAccountModal = true)}>Create Account</Button>
 		{/if}
 		<NavHamburger />
 	</div>
@@ -170,7 +170,7 @@
 				<span>Confirme Password</span>
 				<Input type="password" name="confirmpassword" placeholder="Confirmez votre mot de passe" required/>
 			</Label>
-			<Button type="submit">Creer</Button>
+			<Button type="submit" class="bg-option-500">Creer</Button>
 		</form>
 	</Modal>
 

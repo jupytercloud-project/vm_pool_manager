@@ -7,28 +7,56 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary-50: #fff5f2;
-  --color-primary-100: #fff1ee;
-  --color-primary-200: #ffe4de;
-  --color-primary-300: #ffd5cc;
-  --color-primary-400: #ffbcad;
-  --color-primary-500: #fe795d;
-  --color-primary-600: #ef562f;
-  --color-primary-700: #eb4f27;
-  --color-primary-800: #cc4522;
-  --color-primary-900: #a5371b;
+  /* Primary */
+  --color-primary-50:  #e6ebee;
+  --color-primary-100: #cdd7dd;
+  --color-primary-200: #9bafbb;
+  --color-primary-300: #688798;
+  --color-primary-400: #365075;
+  --color-primary-500: #1B3C53; /* ta couleur */
+  --color-primary-600: #173448;
+  --color-primary-700: #122a3a;
+  --color-primary-800: #0d1f2b;
+  --color-primary-900: #08151d;
 
-  --color-secondary-50: #f0f9ff;
-  --color-secondary-100: #e0f2fe;
-  --color-secondary-200: #bae6fd;
-  --color-secondary-300: #7dd3fc;
-  --color-secondary-400: #38bdf8;
-  --color-secondary-500: #0ea5e9;
-  --color-secondary-600: #0284c7;
-  --color-secondary-700: #0369a1;
-  --color-secondary-800: #075985;
-  --color-secondary-900: #0c4a6e;
+  /* Secondary */
+  --color-secondary-50:  #e7edf1;
+  --color-secondary-100: #cfdbe3;
+  --color-secondary-200: #9fb7c6;
+  --color-secondary-300: #6f93aa;
+  --color-secondary-400: #406f8d;
+  --color-secondary-500: #234C6A; /* ta couleur */
+  --color-secondary-600: #1d3f58;
+  --color-secondary-700: #173146;
+  --color-secondary-800: #112434;
+  --color-secondary-900: #0a1622;
+
+  /* Tertiary */
+  --color-tertiary-50:  #eceff2;
+  --color-tertiary-100: #d9dfe5;
+  --color-tertiary-200: #b3bfc9;
+  --color-tertiary-300: #8d9fae;
+  --color-tertiary-400: #677f92;
+  --color-tertiary-500: #456882; /* ta couleur */
+  --color-tertiary-600: #3a576e;
+  --color-tertiary-700: #2e4659;
+  --color-tertiary-800: #233545;
+  --color-tertiary-900: #17242f;
+
+  /* Option */
+  /* Option - Vert menthe / Turquoise clair */
+  --color-option-50: #E6FCF2;
+  --color-option-100: #CFF9E6;
+  --color-option-200: #9CF3CC;
+  --color-option-300: #69EDB2;
+  --color-option-400: #3DE699;
+  --color-option-500: #3ECF8E; /* couleur principale */
+  --color-option-600: #35B877;
+  --color-option-700: #2C9F62;
+  --color-option-800: #23764C;
+  --color-option-900: #1A4D36;
 }
+
 
 @source "../node_modules/flowbite-svelte/dist";
 @source "../node_modules/flowbite-svelte-icons/dist";

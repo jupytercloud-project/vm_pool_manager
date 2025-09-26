@@ -254,7 +254,30 @@ async function deleteServerpool(serverpoolId: string) {
   }
 }
 
+async function rebuildServer(serverId: string, serverName: string, imageId: string) {
+  const token = get(authStore);
+  try {
+    const res = await fetch(`http://localhost:8080/serverpool/rebuild`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ serverId: serverId, server_name: serverName, image_id: imageId })
+    });
+    if (!res.ok) {
+      throw new Error("Impossible de reconstruire le serveur");
+    } else {
+      // Optionnel : Actualiser les données du serveur après la reconstruction
+      console.log("Serveur reconstruit avec succès");
+    }
+  } catch (err) {
+    console.error(err);
+    throw err;
+  } 
+}
+
 // Exports
 
-export { createServerpool, fetchAllImages, fetchAllFlavors, fetchAllNetworks, deleteServerpool };
+export { createServerpool, fetchAllImages, fetchAllFlavors, fetchAllNetworks, deleteServerpool, rebuildServer };
 export const serverpoolStore = createServerpoolStore();

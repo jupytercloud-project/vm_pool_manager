@@ -28,7 +28,7 @@
   });
 </script>
 
-<Table striped={true} color={'gray'} shadow hoverable={true}>
+<Table shadow hoverable={true} class="w-full text-tertiary-50">
   {#if error}
     <p class="text-red-500">{error}</p>
   {:else}
@@ -42,7 +42,7 @@
     {#if !serverpools || serverpools.length === 0}
       <p class="text-gray-500">Aucun serverpool trouvé</p>
     {:else}
-      <TableHead>
+      <TableHead class="bg-secondary-200">
         <TableHeadCell>Serverpool Name</TableHeadCell>
         <TableHeadCell>Image</TableHeadCell>
         <TableHeadCell>Flavor</TableHeadCell>
@@ -51,14 +51,14 @@
         <TableHeadCell><span class="sr-only">Inspect</span></TableHeadCell>
       </TableHead>
       <TableBody>
-        {#each serverpools as sp}
-          <TableBodyRow>
+        {#each serverpools as sp, i}
+          <TableBodyRow class={i % 2 === 0 ? 'bg-tertiary-400 hover:bg-tertiary-200' : 'bg-tertiary-300 hover:bg-tertiary-200'}>
             <TableBodyCell>{sp.serverpool_id}</TableBodyCell>
             <TableBodyCell>{sp.image_ref}</TableBodyCell>
             <TableBodyCell>{sp.flavor_ref}</TableBodyCell>
             <TableBodyCell>{sp.min_vm}</TableBodyCell>
             <TableBodyCell>{sp.max_vm}</TableBodyCell>
-            <TableBodyCell class="flex justify-center"><Button onclick={() => goto(`/serverpools/${sp.serverpool_id}`)}>Inspect</Button></TableBodyCell>
+            <TableBodyCell class="flex justify-center"><Button class="bg-option-500"onclick={() => goto(`/serverpools/${sp.serverpool_id}`)}>Inspect</Button></TableBodyCell>
           </TableBodyRow>
         {/each}
       </TableBody>

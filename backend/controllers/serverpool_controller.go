@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 	"github.com/gophercloud/utils/v2/openstack/clientconfig"
@@ -289,4 +290,67 @@ func GetAllNetworks(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"networks": allNets})
+}
+
+type RebuildRequest struct {
+	ServerID   string `json:"serverId" binding:"required"`
+	ServerName string `json:"server_name" binding:"required"`
+	ImageID    string `json:"image_id" binding:"required"`
+}
+
+func RebuildServer(c *gin.Context) {
+	var req RebuildRequest
+
+	// Lire le JSON du body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Récupérer user_id / email injectés par le middleware
+	userID, _ := c.Get("user_id")
+	email, _ := c.Get("email")
+
+	// Créer un client Compute via clouds.yaml
+	opts := &clientconfig.ClientOpts{
+		Cloud: os.Getenv("OPTS_CLOUD"), // ex: "devstack", "ovh", etc.
+	}
+
+	client, err := clientconfig.NewServiceClient(c, "compute", opts)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "failed to create compute client",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Préparer les options de rebuild
+	rebuildOpts := servers.RebuildOpts{
+		ImageRef: req.ImageID,
+		Name:     req.ServerName,
+	}
+
+	// Exécuter le rebuild
+	_, err = servers.Rebuild(c.Request.Context(), client, req.ServerID, rebuildOpts).Extract()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed to rebuild server",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Réponse au frontend
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "rebuild launched successfully",
+		"server_id":   req.ServerID,
+		"server_name": req.ServerName,
+		"image_id":    req.ImageID,
+		"user_id":     userID,
+		"email":       email,
+	})
 }
