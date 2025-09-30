@@ -7,6 +7,7 @@ import (
 	"PoolManagerVM/backend/utils"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -212,21 +213,17 @@ func GetServersInServerpool(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"servers": serversInPool})
 }
 
-func GetAllImages(c *gin.Context) {
-	var images []models.Image
-	if err := config.Database.Find(&images).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch images"})
-		return
-	}
-	c.JSON(http.StatusOK, images)
-}
-
 func GetallFlavors(c *gin.Context) {
 	var flavor []models.Flavor
 	if err := config.Database.Find(&flavor).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch flavors"})
 		return
 	}
+
+	sort.Slice(flavor, func(i, j int) bool {
+		return flavor[i].Name < flavor[j].Name
+	})
+
 	c.JSON(http.StatusOK, flavor)
 }
 
@@ -236,6 +233,11 @@ func GetAllNetworks(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch networks"})
 		return
 	}
+
+	sort.Slice(networks, func(i, j int) bool {
+		return networks[i].Name < networks[j].Name
+	})
+
 	c.JSON(http.StatusOK, networks)
 }
 
@@ -264,6 +266,10 @@ func GetGroupeImage(c *gin.Context) {
 		}
 	}
 
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Name < filtered[j].Name
+	})
+
 	c.JSON(http.StatusOK, filtered)
 }
 
@@ -290,6 +296,10 @@ func GetGroupeImagename(c *gin.Context) {
 	for k := range groupMap {
 		groupList = append(groupList, GroupeImageName{Name: k, Value: k})
 	}
+
+	sort.Slice(groupList, func(i, j int) bool {
+		return groupList[i].Name < groupList[j].Name
+	})
 
 	c.JSON(http.StatusOK, groupList)
 }

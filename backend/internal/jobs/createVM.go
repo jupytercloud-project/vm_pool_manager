@@ -99,12 +99,12 @@ func CreateVM(workerID int, job models.Job) error {
 		return fmt.Errorf("failed to create VM: %w", err)
 	}
 
-	DecrementPending(uint(paramID))
 	log.Println("[VM] Creating server ID=", server.ID, " , Name=", server.Name)
 
 	for {
 		current, err := servers.Get(context.Background(), client, server.ID).Extract()
 		if err != nil {
+			DecrementPending(uint(paramID))
 			return fmt.Errorf("failed to get server status: %w", err)
 		}
 
@@ -114,6 +114,7 @@ func CreateVM(workerID int, job models.Job) error {
 		}
 
 		if current.Status == "ERROR" {
+			DecrementPending(uint(paramID))
 			return fmt.Errorf("server %s failed to boot (ERROR state)", current.ID)
 		}
 
@@ -121,6 +122,7 @@ func CreateVM(workerID int, job models.Job) error {
 		time.Sleep(3 * time.Second)
 	}
 
+	DecrementPending(uint(paramID))
 	fmt.Println("Worker ", workerID, " finished its job")
 
 	return nil

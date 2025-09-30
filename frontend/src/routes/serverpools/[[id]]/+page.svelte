@@ -1,8 +1,8 @@
 <script lang="ts">
 import { onDestroy, onMount } from 'svelte';
 import { goto } from '$app/navigation';
-import { authStore, serverpoolStore, createServerpool , fetchAllImages, fetchAllFlavors , fetchAllNetworks, deleteServerpool, rebuildServer, fetchGroupImages , fetchGroupImageName } from '$lib/index';
-import type { ImageOption , FlavorOption , NetworkOption , ImageGroupe, GroupedImageOption , GroupeImageName} from '$lib/index';
+import { authStore, serverpoolStore, createServerpool , fetchAllFlavors , fetchAllNetworks, deleteServerpool, rebuildServer, fetchGroupImages , fetchGroupImageName } from '$lib/index';
+import type { ImageOption , FlavorOption , NetworkOption , GroupeImageName} from '$lib/index';
 import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect } from 'flowbite-svelte';
 import { ChevronDownOutline } from 'flowbite-svelte-icons';
 import { page } from '$app/stores';
@@ -42,17 +42,6 @@ onMount(async () => {
     serverpoolStore.fetchServerpools();
     interval = setInterval(serverpoolStore.fetchServerpools, 50000);
     loadingServers = true;
-    
-    const apiImages = await fetchAllImages();
-    images = apiImages
-    .filter(img => img.status === 'active')
-    .map(img => ({
-      value: img.value,
-      name: img.name || img.value,
-      status: img.status,
-      Mindisk: img.Mindisk,
-      Minram: img.Minram
-    }));
     
     const apiFlavors = await fetchAllFlavors();
     flavors = apiFlavors.map(flavor => ({

@@ -43,8 +43,8 @@ export interface ImageOption {
 
 export type ImageGroupe = Record<string, ImageOption[]>;
 export interface GroupedImageOption {
-  group: string;   // la clé du groupe, ex: "sl" ou "ubuntu"
-  value: string;   // l’ID de l’image
+  group: string;   
+  value: string;   
   name: string;
   status: string;
   Mindisk: number;
@@ -175,29 +175,6 @@ async function createServerpool(serverpool: {
   } catch (err) {
     console.error(err);
     throw err;
-  }
-}
-
-async function fetchAllImages(): Promise<ImageOption[]> {
-  const token = get(authStore);
-  try {
-    const res = await fetch('http://localhost:8080/serverpool/images', {
-      headers: { 'Authorization': `Bearer ${token}` } // Ajout du token d'authentification
-    });
-    if (!res.ok) {
-      throw new Error("Impossible de récupérer les images");
-    }
-    const data = await res.json();
-    return data.map((img: any) => ({
-      value: img.id,
-      name: img.name || img.id,
-      status: img.status,
-      Mindisk: img.min_disk,
-      Minram: img.min_ram
-    }));
-  } catch (err) {
-    console.error(err);
-    return [];
   }
 }
 
@@ -350,5 +327,5 @@ async function fetchGroupImageName(): Promise<GroupeImageName[]> {
 
 // Exports
 
-export { createServerpool, fetchAllImages, fetchAllFlavors, fetchAllNetworks, deleteServerpool, rebuildServer , fetchGroupImages , fetchGroupImageName};
+export { createServerpool, fetchAllFlavors, fetchAllNetworks, deleteServerpool, rebuildServer , fetchGroupImages , fetchGroupImageName};
 export const serverpoolStore = createServerpoolStore();
