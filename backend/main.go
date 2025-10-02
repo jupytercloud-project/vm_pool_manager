@@ -25,7 +25,6 @@ func main() {
 	config.LoadEnvConfig()
 	models.CreateParams()
 
-	log.Println(models.BlockstorageClient)
 	// creating context to stop cleanly
 	ctx, cancel := context.WithCancel(context.Background())
 

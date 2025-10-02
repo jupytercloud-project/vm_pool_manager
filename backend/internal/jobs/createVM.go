@@ -49,12 +49,10 @@ func CreateVM(workerID int, job models.Job) error {
 	metadata["max_vm"] = job.Data["max_vm"]
 
 	var networks models.JSONStringSlice
-	log.Println("Raw networks data:", job.Data["networks"])
 	if err := networks.Scan(job.Data["networks"]); err != nil {
 		log.Println("Failed to parse networks:", err)
 		networks = models.JSONStringSlice{} // fallback
 	}
-	log.Println("Networks for VM:", networks)
 
 	paramID := utils.ParseInt(job.Data["ID"])
 	fmt.Println("Worker ", workerID, " takes the job of creating a VM")

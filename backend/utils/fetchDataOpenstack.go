@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"PoolManagerVM/backend/models"
 	"context"
 	"os"
 
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
@@ -76,4 +78,18 @@ func GetAllNetworks(ctx context.Context) []networks.Network {
 	}
 
 	return allNets
+}
+
+func GetAllVolumes(ctx context.Context) []volumes.Volume {
+	allPages, err := volumes.List(models.BlockstorageClient, volumes.ListOpts{}).AllPages(ctx)
+	if err != nil {
+		return nil
+	}
+
+	allVolumes, err := volumes.ExtractVolumes(allPages)
+	if err != nil {
+		return nil
+	}
+
+	return allVolumes
 }

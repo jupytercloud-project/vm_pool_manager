@@ -27,7 +27,7 @@ func Start_DB() {
 		panic("failed to connect database")
 	}
 
-	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.Image{}, &models.Flavor{}, &models.Network{})
+	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.Image{}, &models.Flavor{}, &models.Network{}, &models.VolumeDB{})
 }
 
 func SyncImage(ctx context.Context) {
@@ -95,7 +95,7 @@ func SyncFlavor(ctx context.Context) {
 }
 
 func SyncNetwork(ctx context.Context) {
-	allNetworks := utils.GetAllNetworks(ctx) // à adapter selon ton utilitaire
+	allNetworks := utils.GetAllNetworks(ctx)
 
 	for _, net := range allNetworks {
 		networkRecord := models.Network{
@@ -119,6 +119,42 @@ func SyncNetwork(ctx context.Context) {
 	}
 }
 
+func SyncVolumes(ctx context.Context) {
+	allVolumes := utils.GetAllVolumes(ctx)
+
+	for _, vol := range allVolumes {
+		volRecord := models.VolumeDB{
+			ID:                  vol.ID,
+			Status:              vol.Status,
+			Size:                vol.Size,
+			AvailabilityZone:    vol.AvailabilityZone,
+			CreatedAt:           vol.CreatedAt,
+			UpdatedAt:           vol.UpdatedAt,
+			Name:                vol.Name,
+			Description:         vol.Description,
+			VolumeType:          vol.VolumeType,
+			SnapshotID:          vol.SnapshotID,
+			SourceVolID:         vol.SourceVolID,
+			BackupID:            vol.BackupID,
+			Metadata:            models.JSONStringMap(vol.Metadata),
+			UserID:              vol.UserID,
+			Bootable:            vol.Bootable,
+			Encrypted:           vol.Encrypted,
+			ReplicationStatus:   vol.ReplicationStatus,
+			ConsistencyGroupID:  vol.ConsistencyGroupID,
+			Multiattach:         vol.Multiattach,
+			VolumeImageMetadata: models.JSONStringMap(vol.VolumeImageMetadata),
+			Host:                vol.Host,
+			TenantID:            vol.TenantID,
+			Attachments:         models.JSONAttachments(vol.Attachments),
+		}
+
+		Database.Clauses(clause.OnConflict{
+			UpdateAll: true,
+		}).Create(&volRecord)
+	}
+}
+
 // routine to maintain a cohesive database with the reality on OpenStack
 func Sync_DB(ctx context.Context) {
 	do_sync()
@@ -134,11 +170,13 @@ func Sync_DB(ctx context.Context) {
 		case <-ticker.C:
 			do_sync()
 			delete_serv()
+			delete_volumes()
 			count++
 			if count >= 12 {
 				SyncImage(ctx)
 				SyncFlavor(ctx)
 				SyncNetwork(ctx)
+				SyncVolumes(ctx)
 				count = 0
 			}
 		}
@@ -162,6 +200,7 @@ func delete_serv() {
 	res_servs := Database.Find(&dbs)
 	if res_servs.Error != nil {
 		log.Println(res_servs.Error)
+		return
 	}
 
 	for _, s := range dbs {
@@ -177,7 +216,40 @@ func delete_serv() {
 			if result.Error != nil {
 				log.Println("Error: can't delete serv: ", result.Error)
 			} else {
-				log.Println("Ligne supprimee")
+				log.Println("Server supprimee")
+			}
+		}
+	}
+}
+
+func delete_volumes() {
+	allvol := utils.GetAllVolumes(context.Background())
+	if allvol == nil {
+		log.Println("Failed to connect to OpenStack, will retry")
+		return
+	}
+
+	var dbv []models.VolumeDB
+	res_vol := Database.Find(&dbv)
+	if res_vol.Error != nil {
+		log.Println(res_vol.Error)
+		return
+	}
+
+	for _, v := range dbv {
+		found := false
+		for _, opv := range allvol {
+			if opv.ID == v.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			res := Database.Delete(&v)
+			if res.Error != nil {
+				log.Println("Error: can't delete volume: ", res.Error)
+			} else {
+				log.Println("Volume supprimee")
 			}
 		}
 	}

@@ -201,9 +201,14 @@ func attachVolume() {
 		return
 	}
 	for _, serv := range allServ {
-		if utils.NoVolAttached(serv) && utils.NoVolAttachedDB(models.FromGopherServer(serv), config.Database) {
+		var server models.Server
+		if err := config.Database.Select("vol_pending").Where("id = ?", serv.ID).First(&server).Error; err != nil {
+			log.Println("Error fetching updated vol_pending:", err)
+			return
+		}
+		if utils.NoVolAttached(serv) && utils.NoVolAttachedDB(models.FromGopherServer(serv), config.Database) && serv.Status == "ACTIVE" && !server.VolPending {
 			log.Printf("Attaching volume to server %s\n", serv.ID)
-			jobs.ChangePendingVol(models.FromGopherServer(serv).ID)
+			jobs.ChangePendingVol(serv.ID)
 			worker.AddJob(*worker.CreateJob(models.CreateVolumeAndAttach, map[string]string{
 				"size":        os.Getenv("VOLUME_SIZE"),
 				"description": os.Getenv("VOLUME_DESCRIPTION"),

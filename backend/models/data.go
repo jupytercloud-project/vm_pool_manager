@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type Image struct {
 	ID               string    `gorm:"primaryKey" json:"id"`
@@ -55,4 +57,30 @@ type Network struct {
 	AvailabilityZoneHints string `json:"availability_zone_hints"` // CSV
 	Tags                  string `json:"tags"`                    // CSV
 	// CreatedAt et UpdatedAt ignorés car json:"-"
+}
+
+type VolumeDB struct {
+	ID                  string `gorm:"primaryKey"` // Même ID que OpenStack
+	Status              string
+	Size                int
+	AvailabilityZone    string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	Name                string
+	Description         string
+	VolumeType          string
+	SnapshotID          string
+	SourceVolID         string
+	BackupID            *string
+	Metadata            JSONStringMap `gorm:"type:json"` // map[string]string
+	UserID              string
+	Bootable            string
+	Encrypted           bool
+	ReplicationStatus   string
+	ConsistencyGroupID  string
+	Multiattach         bool
+	VolumeImageMetadata JSONStringMap `gorm:"type:json"`
+	Host                string
+	TenantID            string
+	Attachments         JSONAttachments `gorm:"type:json"`
 }
