@@ -1,9 +1,11 @@
 package models
 
 import (
+	"PoolManagerVM/backend/websockethandler"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"gorm.io/gorm"
 )
 
 type Server struct {
@@ -20,6 +22,7 @@ type Server struct {
 	AttachVolumeID string
 	VolPending     bool `gorm:"default:false; not null"`
 	Reattrib       bool `gorm:"default:false; not null"`
+	Progress       int  `gorm:"default:0; not null"`
 }
 
 func FromGopherServer(s servers.Server) Server {
@@ -72,4 +75,59 @@ func PrintServer(server Server) error {
 	}
 
 	return nil
+}
+
+func (s *Server) AfterCreate(tx *gorm.DB) (err error) {
+	if s.UserID != "admin" {
+		websockethandler.SendMessageToUser(s.UserID, "created", s)
+	}
+	return nil
+}
+
+func (s *Server) AfterUpdate(tx *gorm.DB) (err error) {
+	if s.UserID != "admin" {
+		websockethandler.SendMessageToUser(s.UserID, "updated", s)
+	}
+	return nil
+}
+
+func (s *Server) AfterDelete(tx *gorm.DB) (err error) {
+	if s.UserID != "admin" {
+		websockethandler.SendMessageToUser(s.UserID, "deleted", map[string]string{
+			"serverpool_id": s.ServerpoolID,
+		})
+	}
+	return nil
+}
+
+func (s *Server) IsEqual(other Server) bool {
+	if s.ID != other.ID ||
+		s.Name != other.Name ||
+		s.Status != other.Status ||
+		s.FlavorRef != other.FlavorRef ||
+		s.ImageRef != other.ImageRef ||
+		s.ServerpoolID != other.ServerpoolID ||
+		s.UserID != other.UserID {
+		return false
+	}
+
+	if len(s.Networks) != len(other.Networks) {
+		return false
+	}
+	for i, v := range s.Networks {
+		if v != other.Networks[i] {
+			return false
+		}
+	}
+
+	if len(s.Metadata) != len(other.Metadata) {
+		return false
+	}
+	for k, v := range s.Metadata {
+		if otherVal, ok := other.Metadata[k]; !ok || v != otherVal {
+			return false
+		}
+	}
+
+	return true
 }

@@ -36,16 +36,8 @@ func GetAllImages(ctx context.Context) []images.Image {
 }
 
 func GetallFlavors(ctx context.Context) []flavors.Flavor {
-	opts := &clientconfig.ClientOpts{
-		Cloud: os.Getenv("OPTS_CLOUD"),
-	}
 
-	client, err := clientconfig.NewServiceClient(ctx, "compute", opts)
-	if err != nil {
-		return nil
-	}
-
-	allPages, err := flavors.ListDetail(client, flavors.ListOpts{}).AllPages(ctx)
+	allPages, err := flavors.ListDetail(models.ComputeClient, flavors.ListOpts{}).AllPages(ctx)
 	if err != nil {
 		return nil
 	}

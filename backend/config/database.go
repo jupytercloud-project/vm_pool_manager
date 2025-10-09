@@ -293,8 +293,8 @@ func do_sync() {
 				} else {
 					log.Println("Error Database param: ", err)
 				}
-			} else {
-				Database.Model(&existeds).Updates(s)
+			} else if !existeds.IsEqual(s) {
+				Database.Updates(&s)
 			}
 		}
 	}

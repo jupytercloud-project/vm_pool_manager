@@ -13,6 +13,8 @@ var (
 	ProviderClient     gophercloud.ProviderClient
 	ComputeClient      *gophercloud.ServiceClient
 	BlockstorageClient *gophercloud.ServiceClient
+	ImageClient        *gophercloud.ServiceClient
+	NetworkClient      *gophercloud.ServiceClient
 )
 
 func CreateParams() error {
@@ -34,6 +36,16 @@ func CreateParams() error {
 	}
 
 	BlockstorageClient, err = openstack.NewBlockStorageV3(ProviderClient, EndpointOpts)
+	if err != nil {
+		panic(err)
+	}
+
+	ImageClient, err = openstack.NewImageV2(ProviderClient, EndpointOpts)
+	if err != nil {
+		panic(err)
+	}
+
+	NetworkClient, err = openstack.NewNetworkV2(ProviderClient, EndpointOpts)
 	if err != nil {
 		panic(err)
 	}

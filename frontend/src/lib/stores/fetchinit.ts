@@ -113,8 +113,95 @@ function createServerpoolStore() {
     return {
         subscribe,
         fetchInitData,
-        reset
+        reset,
+        update
     };
 }
 
 export const serverpoolStore = createServerpoolStore();
+
+export function handleWebSocketMessage(message: string) {
+  try {
+    const { action, data } = JSON.parse(message);
+
+    serverpoolStore.update(state => {
+      const newState = { ...state };
+
+      // --- 🧱 SERVERPOOL CHANGES ---
+      if (data.ServerpoolID || data.serverpool_id) {
+        const spId = data.ServerpoolID || data.serverpool_id;
+
+        switch (action) {
+          case "created": {
+            // Ajout d’un nouveau serverpool
+            const newSp: Serverpool = {
+              serverpool_id: data.ServerpoolID,
+              image_ref: data.ImageRef,
+              flavor_ref: data.FlavorRef,
+              networks: data.Networks || [],
+              min_vm: data.MinVM,
+              max_vm: data.MaxVM,
+              pending_jobs: data.PendingJobs,
+            };
+            newState.serverpools = [...newState.serverpools, newSp];
+            newState.servers[spId] = [];
+            break;
+          }
+          case "deleted": {
+            // Suppression d’un serverpool
+            newState.serverpools = newState.serverpools.filter(sp => sp.serverpool_id !== spId);
+            delete newState.servers[spId];
+            break;
+          }
+        }
+      }
+
+      // --- ⚙️ SERVER CHANGES ---
+      if (data.ID && data.ServerpoolID) {
+        const spId = data.ServerpoolID;
+        const servers = newState.servers[spId] || [];
+
+        switch (action) {
+          case "created": {
+            const newServer: Server = {
+              id: data.ID,
+              name: data.Name,
+              status: data.Status,
+              flavor: { id: data.FlavorRef, name: null },
+              image: { id: data.ImageRef, name: null },
+              addresses: Array.isArray(data.Networks)
+                ? { public: data.Networks.map((addr: string) => ({ addr })) }
+                : { public: [] },
+              created: new Date().toISOString(),
+            };
+            newState.servers[spId] = [...servers, newServer];
+            break;
+          }
+          case "updated": {
+            const idx = servers.findIndex(s => s.id === data.ID);
+            if (idx !== -1) {
+              servers[idx] = {
+                ...servers[idx],
+                status: data.Status,
+                addresses: Array.isArray(data.Networks)
+                  ? { public: data.Networks.map((addr: string) => ({ addr })) }
+                  : servers[idx].addresses,
+              };
+            }
+            newState.servers[spId] = [...servers];
+            break;
+          }
+          case "deleted": {
+            newState.servers[spId] = servers.filter(s => s.id !== data.ID);
+            break;
+          }
+        }
+      }
+
+      return newState;
+    });
+
+  } catch (err) {
+    console.error("Erreur traitement message WebSocket :", err);
+  }
+}

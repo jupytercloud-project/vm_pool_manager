@@ -3,7 +3,7 @@ import { onDestroy, onMount } from 'svelte';
 import { goto } from '$app/navigation';
 import { authStore, serverpoolStore, createServerpool , fetchAllFlavors , fetchAllNetworks, deleteServerpool, rebuildServer, fetchGroupImages , fetchGroupImageName } from '$lib/index';
 import type { ImageOption , FlavorOption , NetworkOption , GroupeImageName} from '$lib/index';
-import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect } from 'flowbite-svelte';
+import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect, Spinner } from 'flowbite-svelte';
 import { ChevronDownOutline } from 'flowbite-svelte-icons';
 import { page } from '$app/stores';
 
@@ -27,8 +27,7 @@ let networks: NetworkOption[] = [];
 let token: string | null = null;
 $: token = $authStore;
 
-let serverpools;
-$: ({ user, serverpools, error } = $serverpoolStore);
+$: store = $serverpoolStore;
 
 let selectedsp: string = 'Choisissez le serverpool';
 let groupimagename: GroupeImageName[] = [];
@@ -67,6 +66,8 @@ onMount(async () => {
 
 let servers: Server[] = [];
 
+$: servers = $serverpoolStore.servers[selectedsp] || [];
+
 let loadingServers = false;
 
 const handleClick = async (e: Event) => {
@@ -78,7 +79,6 @@ const handleClick = async (e: Event) => {
 
 async function handleSelectServerpool(serverpoolId: string) {
   loadingServers = true;
-  servers = $serverpoolStore.servers[serverpoolId] || [];
   loadingServers = false;
 }
 
@@ -195,7 +195,7 @@ $: if (!createspModal){
   {selectedsp}<ChevronDownOutline class="ms-2 h-6 text-white" />
 </Button>
 <Dropdown simple isOpen={false} class="mt-2">
-  {#each serverpools as sp}
+  {#each store.serverpools as sp}
     <DropdownItem name={sp.serverpool_id} onclick={handleClick}>{sp.serverpool_id}</DropdownItem>
   {/each}
 </Dropdown>
@@ -224,7 +224,12 @@ $: if (!createspModal){
     {#each servers as s, i}
       <TableBodyRow class={i % 2 === 0 ? 'bg-tertiary-400 hover:bg-tertiary-200' : 'bg-tertiary-300 hover:bg-tertiary-200'}>
         <TableBodyCell>{s.name}</TableBodyCell>
-        <TableBodyCell>{s.status}</TableBodyCell>
+        <TableBodyCell>
+          {#if s.status === 'BUILD' || s.status === 'REBUILD'}
+            <Spinner />
+            {/if}
+            {s.status}
+        </TableBodyCell>
         <TableBodyCell>
           {#if s.addresses}
             {#each Object.values(s.addresses) as net}
@@ -236,7 +241,11 @@ $: if (!createspModal){
         </TableBodyCell>
         <TableBodyCell>{s.created}</TableBodyCell>
         <TableBodyCell>
-          <Button size="sm" class="bg-option-500" onclick={() => handleRebuildServer(s)}>Rebuild</Button>
+          {#if s.status === 'BUILD' || s.status === 'REBUILD'}
+            <Button disabled size="sm" class="bg-option-500" onclick={() => handleRebuildServer(s)}>Rebuild</Button>
+          {:else}
+            <Button size="sm" class="bg-option-500" onclick={() => handleRebuildServer(s)}>Rebuild</Button>
+          {/if}
         </TableBodyCell>
       </TableBodyRow>
     {/each}

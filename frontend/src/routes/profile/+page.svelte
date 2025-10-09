@@ -6,24 +6,21 @@
   let token: string | null = null;
   $: token = $authStore;
 
-  let user;
-  let serverpools;
-  let error;
-  $: ({ user, serverpools, error } = $serverpoolStore);
+  $: store = $serverpoolStore;
 
 </script>
 
 <Table shadow hoverable={true} class="w-full text-tertiary-50">
-  {#if error}
-    <p class="text-red-500">{error}</p>
+  {#if store.error}
+    <p class="text-red-500">{store.error}</p>
   {:else}
     <caption class="text-2xl text-left font-bold mb-4 pl-4">
       Profil de l'utilisateur
-      <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>Nom :</strong> {user?.name}</p>
-      <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>Email :</strong> {user?.email}</p>
+      <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>Nom :</strong> {store.user?.name}</p>
+      <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>Email :</strong> {store.user?.email}</p>
     </caption>
 
-    {#if !serverpools || serverpools.length === 0}
+    {#if !store.serverpools || store.serverpools.length === 0}
       <p class="text-gray-500">Aucun serverpool trouvé</p>
     {:else}
       <TableHead class="bg-secondary-200">
@@ -35,7 +32,7 @@
         <TableHeadCell><span class="sr-only">Inspect</span></TableHeadCell>
       </TableHead>
       <TableBody>
-        {#each serverpools as sp, i}
+        {#each store.serverpools as sp, i}
           <TableBodyRow class={i % 2 === 0 ? 'bg-tertiary-400 hover:bg-tertiary-200' : 'bg-tertiary-300 hover:bg-tertiary-200'}>
             <TableBodyCell>{sp.serverpool_id}</TableBodyCell>
             <TableBodyCell>{sp.image_ref}</TableBodyCell>

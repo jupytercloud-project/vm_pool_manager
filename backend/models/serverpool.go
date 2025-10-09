@@ -1,6 +1,11 @@
 package models
 
-import "fmt"
+import (
+	"PoolManagerVM/backend/websockethandler"
+	"fmt"
+
+	"gorm.io/gorm"
+)
 
 type Serverpool struct {
 	ID           uint   `gorm:"primaryKey;autoIncrement"`
@@ -39,6 +44,29 @@ func PrintMapServerpool(m []Serverpool) error {
 	for _, p := range m {
 		PrintServerpool(p)
 		fmt.Println("=====================================")
+	}
+	return nil
+}
+
+func (s *Serverpool) AfterCreate(tx *gorm.DB) (err error) {
+	if s.UserID != "admin" {
+		websockethandler.SendMessageToUser(s.UserID, "created", s)
+	}
+	return nil
+}
+
+func (s *Serverpool) AfterUpdate(tx *gorm.DB) (err error) {
+	if s.UserID != "admin" {
+		websockethandler.SendMessageToUser(s.UserID, "updated", s)
+	}
+	return nil
+}
+
+func (s *Serverpool) AfterDelete(tx *gorm.DB) (err error) {
+	if s.UserID != "admin" {
+		websockethandler.SendMessageToUser(s.UserID, "deleted", map[string]string{
+			"serverpool_id": s.ServerpoolID,
+		})
 	}
 	return nil
 }

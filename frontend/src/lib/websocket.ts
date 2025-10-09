@@ -1,3 +1,4 @@
+import { handleWebSocketMessage } from "./stores/fetchinit";
 
 let socket: WebSocket | null = null;
 let reconnectTimeout: NodeJS.Timeout | null = null;
@@ -19,7 +20,7 @@ export function connectWebSocket(token: string) {
 
 	socket.onmessage = (event) => {
 		console.log("📩 Message reçu :", event.data);
-		// → Tu peux ici dispatcher des événements ou mettre à jour un store Svelte
+		handleWebSocketMessage(event.data);
 	};
 
 	socket.onclose = () => {

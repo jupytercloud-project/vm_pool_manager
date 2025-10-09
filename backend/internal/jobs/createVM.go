@@ -113,6 +113,7 @@ func CreateVM(workerID int, job models.Job) error {
 
 		if current.Status == "ERROR" {
 			DecrementPending(uint(paramID))
+			log.Println("Server entered ERROR state:", current.ID)
 			return fmt.Errorf("server %s failed to boot (ERROR state)", current.ID)
 		}
 
