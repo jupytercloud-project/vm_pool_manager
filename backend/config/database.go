@@ -31,7 +31,7 @@ func Start_DB() {
 		panic("failed to connect database")
 	}
 
-	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.Image{}, &models.Flavor{}, &models.Network{}, &models.VolumeDB{})
+	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.Image{}, &models.Flavor{}, &models.Network{}, &models.VolumeDB{}, &models.ConfigPool{})
 }
 
 func SyncImage(ctx context.Context) {

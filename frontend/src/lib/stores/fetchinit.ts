@@ -33,10 +33,17 @@ export interface Server {
   progress?: number;
 }
 
+export interface Config {
+  id: number;
+  name: string;
+  data: string;
+}
+
 interface ServerpoolStore {
     user: User | null;
     serverpools: Serverpool[];
     servers: Record<string, Server[]>; // Clé : serverpool_id
+    configs: Config[];
     error: string | null;
 }
 
@@ -60,11 +67,28 @@ async function fetchServersForAllServerpools(token: string, serverpools: Serverp
   return servers;
 }
 
+async function fetchUserConfigs(token: string) {
+  const configs: Config[] = [];
+  try {
+    const res = await fetch('http://localhost:8080/users/me/configs', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Erreur lors de la récupération des configurations utilisateur');
+    const data = await res.json();
+    
+    return data || [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
 function createServerpoolStore() {
     const { subscribe, set, update } = writable<ServerpoolStore>({
         user: null,
         serverpools: [],
         servers: {},
+        configs: [],
         error: null
     });
 
@@ -93,7 +117,10 @@ function createServerpoolStore() {
             const serversData = await fetchServersForAllServerpools(token, poolsData);
             console.log("Servers for all serverpools fetched:", serversData);
 
-            set({ user: userData, serverpools: poolsData, servers: serversData, error: null });
+            const configsData = await fetchUserConfigs(token);
+            console.log("User configs fetched:", configsData);
+
+            set({ user: userData, serverpools: poolsData, servers: serversData, configs: configsData, error: null });
 
         } catch (err: any) {
             console.error(err);
@@ -106,6 +133,7 @@ function createServerpoolStore() {
       user: null,
       serverpools: [],
       servers: {},
+      configs: [],
       error: null
     });
   }
@@ -193,6 +221,37 @@ export function handleWebSocketMessage(message: string) {
           }
           case "deleted": {
             newState.servers[spId] = servers.filter(s => s.id !== data.ID);
+            break;
+          }
+        }
+      }
+
+      // --- 🛠️ CONFIG CHANGES ---
+      if (data.ConfigID) {
+        const configId = data.ConfigID;
+
+        switch (action) {
+          case "created": {
+            const newConfig: Config = {
+              id: configId,
+              name: data.Name,
+              data: data.Data,
+            };
+            newState.configs = [...newState.configs, newConfig];
+            break;
+          }
+          case "updated": {
+            const idx = newState.configs.findIndex(c => c.id === configId);
+            if (idx !== -1) {
+              newState.configs[idx] = {
+                ...newState.configs[idx],
+                ...data,
+              };
+            }
+            break;
+          }
+          case "deleted": {
+            newState.configs = newState.configs.filter(c => c.id !== configId);
             break;
           }
         }

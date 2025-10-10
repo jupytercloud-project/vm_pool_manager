@@ -6,3 +6,4 @@ export type { ImageOption , FlavorOption , NetworkOption , ImageGroupe , Grouped
 export { fetchAllFlavors , fetchAllNetworks , fetchGroupImages , fetchGroupImageName } from '$lib/fetchDatas'
 export { connectWebSocket , disconnectWebSocket } from '$lib/websocket'
 export { serverpoolStore } from '$lib/stores/fetchinit'
+export { createConfig } from '$lib/stores/configHandler'

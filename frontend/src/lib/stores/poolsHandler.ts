@@ -1,4 +1,3 @@
-// src/stores/fetchServerpools.ts
 import { get } from 'svelte/store';
 import { authStore } from './authStore';
 

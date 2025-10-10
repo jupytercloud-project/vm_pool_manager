@@ -130,6 +130,7 @@
 		{#if $authStore}
 		<NavLi href="/profile" class="text-gray-300 text-xl">Profil</NavLi>
 		<NavLi href="/serverpools" class="text-gray-300 text-xl">Mes Serverpools</NavLi>
+		<NavLi href="/configs" class="text-gray-300 text-xl">Mes Configurations</NavLi>
 		{/if}
 		<NavLi href="/" class="text-gray-300 text-xl">About</NavLi>
 	</NavUl>
