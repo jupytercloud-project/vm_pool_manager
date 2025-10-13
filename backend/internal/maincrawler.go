@@ -98,6 +98,7 @@ func CheckAndCreate() {
 					"user_id":       p.UserID,
 					"min_vm":        fmt.Sprint(p.MinVM),
 					"max_vm":        fmt.Sprint(p.MaxVM),
+					"config_id":     fmt.Sprint(p.ConfigID),
 				})), true)
 				countadmin--
 			} else {

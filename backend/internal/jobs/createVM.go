@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"PoolManagerVM/backend/config"
 	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/utils"
 	"context"
@@ -13,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
-	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 )
 
 // CreateVM handles the creation of a new virtual machine (VM) on OpenStack.
@@ -65,16 +65,16 @@ func CreateVM(workerID int, job models.Job) error {
 		ServerpoolID: job.Data["serverpool_id"],
 		Metadata:     metadata,
 		Networks:     networks,
+		ConfigID:     utils.ParseInt(job.Data["config_id"]),
 	}
 
-	opts := &clientconfig.ClientOpts{
-		Cloud: os.Getenv("OPTS_CLOUD"),
-	}
-
-	client, err := clientconfig.NewServiceClient(context.Background(), "compute", opts)
-	if err != nil {
-		DecrementPending(uint(paramID))
-		return fmt.Errorf("failed to create compute client: %w", err)
+	var conf_file models.ConfigPool
+	conferr := config.Database.First(&conf_file, serv.ConfigID).Error
+	if conferr != nil {
+		log.Println("Error fetching config file:", conferr)
+		conf_file = models.ConfigPool{
+			Data: "#!/bin/bash\n",
+		}
 	}
 
 	createOpts := servers.CreateOpts{
@@ -83,6 +83,7 @@ func CreateVM(workerID int, job models.Job) error {
 		ImageRef:  serv.ImageRef,
 		Metadata:  serv.Metadata,
 		Networks:  serv.Networks.ToNetworks(),
+		UserData:  []byte(conf_file.Data),
 	}
 
 	createOptsExt := keypairs.CreateOptsExt{
@@ -90,7 +91,7 @@ func CreateVM(workerID int, job models.Job) error {
 		KeyName:           os.Getenv("API_KEYNAME"),
 	}
 
-	server, err := servers.Create(context.Background(), client, createOptsExt, nil).Extract()
+	server, err := servers.Create(context.Background(), models.ComputeClient, createOptsExt, nil).Extract()
 	if err != nil {
 		log.Println("failed to create VM:", err)
 		DecrementPending(uint(paramID))
@@ -100,7 +101,7 @@ func CreateVM(workerID int, job models.Job) error {
 	log.Println("[VM] Creating server ID=", server.ID, " , Name=", server.Name)
 
 	for {
-		current, err := servers.Get(context.Background(), client, server.ID).Extract()
+		current, err := servers.Get(context.Background(), models.ComputeClient, server.ID).Extract()
 		if err != nil {
 			DecrementPending(uint(paramID))
 			return fmt.Errorf("failed to get server status: %w", err)

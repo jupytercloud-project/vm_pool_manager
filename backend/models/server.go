@@ -23,6 +23,7 @@ type Server struct {
 	VolPending     bool `gorm:"default:false; not null"`
 	Reattrib       bool `gorm:"default:false; not null"`
 	Progress       int  `gorm:"default:0; not null"`
+	ConfigID       int
 }
 
 func FromGopherServer(s servers.Server) Server {

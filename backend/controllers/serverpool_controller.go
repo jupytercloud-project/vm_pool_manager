@@ -78,6 +78,7 @@ func CreateServerpool(c *gin.Context) {
 		Networks:     models.JSONStringSlice(body.Networks),
 		MinVM:        body.MinVM,
 		MaxVM:        body.MaxVM,
+		ConfigID:     body.Config_file,
 		PendingJobs:  0,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot create serverpool"})
@@ -168,6 +169,8 @@ func GetMyServerpools(c *gin.Context) {
 				"networks":      sp.Networks,
 				"min_vm":        sp.MinVM,
 				"max_vm":        sp.MaxVM,
+				"pending_jobs":  sp.PendingJobs,
+				"config_file":   sp.ConfigID,
 			})
 		}
 	}
@@ -215,6 +218,7 @@ func GetServersInServerpool(c *gin.Context) {
 				"updated":   s.Updated,
 				"host_id":   s.HostID,
 				"progress":  s.Progress,
+				"config_id": ms.ConfigID,
 			})
 
 		}
