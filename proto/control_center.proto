@@ -1,0 +1,40 @@
+syntax = "proto3";
+package controlcenter;
+
+option go_package = "project/backend/pb;pb";
+
+enum Status {
+    STATUS_UNKNOWN = 0;
+    CREATE = 1;
+    UPDATE = 2;
+    DELETE = 3;
+}
+
+enum Type {
+    TYPE_UNKNOWN = 0;
+    SERVERPOOL = 1;
+    SERVER = 2;
+    CONFIG = 3;
+}
+
+message RessourceRequest {
+    string userid = 1;
+    map<string, string> data = 2;
+}
+
+message RessourceResponse {
+    string userid = 1;
+    map<string, string> data = 2;
+}
+
+message StreamRessourceResponse {
+    string userid = 1;
+    Status status = 2;
+    map<string, string> data = 3;
+}
+
+service ControlCenter {
+    rpc GetRessources(RessourceRequest) returns (RessourceResponse);
+    rpc GetStreamRessources(RessourceRequest) returns (stream RessourceResponse);
+    rpc GetStreamUpdates(RessourceRequest) returns (stream StreamRessourceResponse);
+}

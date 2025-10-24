@@ -56,9 +56,6 @@ $: if (!createspModal){
   selectedNetworks = [];
 }
 
-$: console.log("Selected Config File:", selectedConfigFile);
-
-
 onMount(async () => {
   if (!token) {
 	goto('/'); 
@@ -227,10 +224,12 @@ function getImageNameById(id: string): string {
 		  {#if s.addresses}
 			{#each Object.values(s.addresses) as net}
 			  {#each net as addr}
-				{addr.addr}{'\n'}
-				<Clipboard bind:value={addr.addr} bind:success={clipboardsuccess} class="w-14">
-					{#if clipboardsuccess}<CheckOutline />{:else}Copy{/if}
-				</Clipboard>
+			  <div class="flex items-center justify-between w-full">
+				  {addr.addr}{'\t'}
+				  <Clipboard bind:value={addr.addr} bind:success={clipboardsuccess} class="">
+					  {#if clipboardsuccess}<CheckOutline />{:else}Copy{/if}
+				  </Clipboard>
+			  </div>
 			  {/each}
 			{/each}
 		  {/if}
