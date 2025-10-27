@@ -3,6 +3,9 @@ package controllers
 import (
 	"PoolManagerVM/backend/config"
 	"PoolManagerVM/backend/models"
+	"PoolManagerVM/backend/pb"
+	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -57,4 +60,64 @@ func LoginUser(c *gin.Context) {
 		"message": "logged in",
 		"token":   tokerString,
 	})
+}
+
+// AuthenticateForRPC vérifie les identifiants et renvoie un JWT
+func AuthenticateForRPC(ctx context.Context, email, password string) (string, *models.User, error) {
+	if email == "" || password == "" {
+		return "", nil, errors.New("missing credentials")
+	}
+
+	var user models.User
+	config.DBmu.Lock()
+	err := config.Database.Where("email = ?", email).First(&user).Error
+	config.DBmu.Unlock()
+	if err != nil {
+		return "", nil, errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return "", nil, errors.New("invalid password")
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"name":    user.Name,
+		"email":   user.Email,
+		"exp":     time.Now().Add(4 * time.Hour).Unix(),
+	})
+
+	tokerString, err := token.SignedString(config.JWTSecret)
+	if err != nil {
+		return "", nil, errors.New("cannot generate token")
+	}
+
+	return tokerString, &user, nil
+}
+
+// LoginRPC -> wrapper compatible gRPC qui reçoit email/password via req.Data
+// attend req.Data["email"] et req.Data["password"]
+// renvoie dans RessourceResponse.Data["token"] et RessourceResponse.Userid = user.ID
+func LoginRPC(ctx context.Context, req *pb.RessourceRequest) (*pb.RessourceResponse, error) {
+	email := ""
+	password := ""
+	if req != nil && req.GetData() != nil {
+		if v, ok := req.GetData()["email"]; ok {
+			email = v
+		}
+		if v, ok := req.GetData()["password"]; ok {
+			password = v
+		}
+	}
+
+	token, user, err := AuthenticateForRPC(ctx, email, password)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &pb.RessourceResponse{
+		Userid: user.Email,
+		Data:   map[string]string{"token": token},
+	}
+	return resp, nil
 }

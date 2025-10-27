@@ -14,7 +14,7 @@ tasks:
 
   build:
     desc: build the binary file for the backend
-    dir: backend
+    dir: microservices/openstack
     sources:
     - "**/*.go"
     generates:
@@ -26,7 +26,7 @@ tasks:
 
   backend:
     deps: [build]
-    dir: backend
+    dir: microservices/openstack
     cmds:
       - |
         export OS_CLIENT_CONFIG_FILE={{.OS_CLIENT_CONFIG_FILE}}
