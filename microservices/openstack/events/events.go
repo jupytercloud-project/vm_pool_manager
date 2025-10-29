@@ -1,6 +1,9 @@
 package events
 
+import "PoolManagerVM/backend/pb"
+
 type RessourceEvent struct {
-	Action string
-	Server any
+	Action    string
+	Type      pb.Type
+	Ressource any
 }

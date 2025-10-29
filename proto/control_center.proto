@@ -20,6 +20,8 @@ enum Type {
 message RessourceRequest {
     string userid = 1;
     map<string, string> data = 2;
+    Status status = 3;
+    Type type = 4;
 }
 
 message RessourceResponse {
@@ -31,6 +33,7 @@ message StreamRessourceResponse {
     string userid = 1;
     Status status = 2;
     map<string, string> data = 3;
+    Type type = 4;
 }
 
 service ControlCenter {

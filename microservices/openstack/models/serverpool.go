@@ -2,6 +2,7 @@ package models
 
 import (
 	"PoolManagerVM/backend/websockethandler"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -20,6 +21,28 @@ type Serverpool struct {
 	PendingJobs  int
 	ListServ     []Server `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
 	ConfigID     int
+}
+
+func (sp *Serverpool) ToMap() map[string]string {
+	result := map[string]string{
+		"id":            fmt.Sprintf("%d", sp.ID),
+		"serverpool_id": sp.ServerpoolID,
+		"user_id":       sp.UserID,
+		"image_ref":     sp.ImageRef,
+		"flavor_ref":    sp.FlavorRef,
+		"min_vm":        fmt.Sprintf("%d", sp.MinVM),
+		"max_vm":        fmt.Sprintf("%d", sp.MaxVM),
+		"pending_jobs":  fmt.Sprintf("%d", sp.PendingJobs),
+		"config_id":     fmt.Sprintf("%d", sp.ConfigID),
+	}
+
+	// Sérialiser les champs JSON custom
+	if sp.Networks != nil {
+		if b, err := json.Marshal(sp.Networks); err == nil {
+			result["networks"] = string(b)
+		}
+	}
+	return result
 }
 
 func PrintServerpool(sp Serverpool) error {
