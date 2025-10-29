@@ -232,9 +232,8 @@ func RebuildServer(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	email, _ := c.Get("email")
 
-	// Créer un client Compute via clouds.yaml
 	opts := &clientconfig.ClientOpts{
-		Cloud: os.Getenv("OPTS_CLOUD"), // ex: "devstack", "ovh", etc.
+		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
 
 	client, err := clientconfig.NewServiceClient(c, "compute", opts)
@@ -246,13 +245,10 @@ func RebuildServer(c *gin.Context) {
 		return
 	}
 
-	// Préparer les options de rebuild
 	rebuildOpts := servers.RebuildOpts{
 		ImageRef: req.ImageID,
 		Name:     req.ServerName,
 	}
-
-	// Exécuter le rebuild
 	_, err = servers.Rebuild(c.Request.Context(), client, req.ServerID, rebuildOpts).Extract()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -262,7 +258,6 @@ func RebuildServer(c *gin.Context) {
 		return
 	}
 
-	// Réponse au frontend
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "rebuild launched successfully",
 		"server_id":   req.ServerID,

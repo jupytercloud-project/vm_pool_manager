@@ -56,7 +56,6 @@ type Network struct {
 	Subnets               string `json:"subnets"`                 // CSV
 	AvailabilityZoneHints string `json:"availability_zone_hints"` // CSV
 	Tags                  string `json:"tags"`                    // CSV
-	// CreatedAt et UpdatedAt ignorés car json:"-"
 }
 
 type VolumeDB struct {

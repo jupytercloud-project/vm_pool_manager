@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"control_center/pb/pb"
+	"control_center/pb"
 	"io"
 	"log"
 

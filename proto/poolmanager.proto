@@ -4,6 +4,7 @@ package poolmanager;
 option go_package = "./pb";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 enum Status {
     STATUS_UNKNOWN = 0;
@@ -35,9 +36,65 @@ message StreamRessourceResponse {
     map<string, string> data = 4;
 }
 
+message Image {
+    string id = 1;
+    string name = 2;
+    string status = 3;
+    string tags = 4; // CSV format
+    string container_format = 5;
+    string disk_format = 6;
+    int32 min_disk_gigabytes = 7;
+    int32 min_ram_megabytes = 8;
+    string owner = 9;
+    bool protected = 10;
+    string visibility = 11;
+    bool hidden = 12;
+    string checksum = 13;
+    int64 size_bytes = 14;
+    google.protobuf.Timestamp created_at = 15;
+    google.protobuf.Timestamp updated_at = 16;
+    string file = 17;
+    string schema = 18;
+    int64 virtual_size = 19;
+    string import_methods = 20; // CSV format
+    string store_ids = 21;      // CSV format
+}
+
+message Flavor {
+    string id = 1;
+    string name = 2;
+    int32 disk = 3;
+    int32 ram = 4;
+    int32 vcpus = 5;
+    double rxtx_factor = 6;
+    int32 swap = 7;
+    int32 ephemeral = 8;
+    bool is_public = 9;
+    string description = 10;
+    string extra_specs = 11; // JSON serialized
+}
+
+message Network {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    bool admin_state_up = 4;
+    string status = 5;
+    string tenant_id = 6;
+    string project_id = 7;
+    bool shared = 8;
+    int32 revision_number = 9;
+    string subnets = 10;                  // CSV
+    string availability_zone_hints = 11;  // CSV
+    string tags = 12;                     // CSV
+}
+
 service PoolManager {
     rpc SendRessources( RessourceRequest ) returns ( google.protobuf.Empty );
     rpc GetStreamRessources ( google.protobuf.Empty ) returns (stream StreamRessourceResponse);
     rpc GetStreamRessourcesUser ( UserRequest ) returns (stream StreamRessourceResponse);
+    rpc GetAllImages (google.protobuf.Empty ) returns (stream Image);
+    rpc GetAllFlavors (google.protobuf.Empty ) returns (stream Flavor);
+    rpc GetAllNetworks (google.protobuf.Empty ) returns (stream Network);
 }
 

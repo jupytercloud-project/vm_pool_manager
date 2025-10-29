@@ -26,7 +26,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	controlCenter := &cc.ControlCenterServer{DB: config.Database}
-	pb.RegisterControlCenterServer(grpcServer, controlCenter)
+	pb.RegisterPoolManagerServer(grpcServer, controlCenter)
 
 	port := os.Getenv("CONTROL_CENTER_PORT")
 	if port == "" {

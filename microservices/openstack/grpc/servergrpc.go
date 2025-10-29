@@ -11,6 +11,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
@@ -241,5 +242,124 @@ func (s *ServerMicroOpenstack) GetStreamRessources(req *emptypb.Empty, stream pb
 func (s *ServerMicroOpenstack) GetStreamRessourcesUser(req *pb.UserRequest, stream grpc.ServerStreamingServer[pb.StreamRessourceResponse]) error {
 	log.Println("[GetStreamRessourcesUser] Stream User started")
 	// stream user-specific ressources
+	return nil
+}
+
+func (s *ServerMicroOpenstack) GetAllImages(req *emptypb.Empty, stream grpc.ServerStreamingServer[pb.Image]) error {
+	rows, err := s.DB.Model(&models.Image{}).Rows()
+	if err != nil {
+		log.Println("Error retrieving servers")
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var img models.Image
+		if err := s.DB.ScanRows(rows, &img); err != nil {
+			log.Println("Error rows server")
+			return err
+		}
+		ret := &pb.Image{
+			Id:               img.ID,
+			Name:             img.Name,
+			Status:           img.Status,
+			Tags:             img.Tags,
+			ContainerFormat:  img.ContainerFormat,
+			DiskFormat:       img.DiskFormat,
+			MinDiskGigabytes: int32(img.MinDiskGigabytes),
+			MinRamMegabytes:  int32(img.MinRAMMegabytes),
+			Owner:            img.Owner,
+			Protected:        img.Protected,
+			Visibility:       img.Visibility,
+			Hidden:           img.Hidden,
+			Checksum:         img.Checksum,
+			SizeBytes:        img.SizeBytes,
+			CreatedAt:        timestamppb.New(img.CreatedAt),
+			UpdatedAt:        timestamppb.New(img.UpdatedAt),
+			File:             img.File,
+			Schema:           img.Schema,
+			VirtualSize:      img.VirtualSize,
+			ImportMethods:    img.ImportMethods,
+			StoreIds:         img.StoreIDs,
+		}
+
+		if err := stream.Send(ret); err != nil {
+			log.Println("error sending server")
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *ServerMicroOpenstack) GetAllFlavors(req *emptypb.Empty, stream grpc.ServerStreamingServer[pb.Flavor]) error {
+	rows, err := s.DB.Model(&models.Image{}).Rows()
+	if err != nil {
+		log.Println("Error retrieving servers")
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var f models.Flavor
+		if err := s.DB.ScanRows(rows, &f); err != nil {
+			log.Println("Error rows server")
+			return err
+		}
+		ret := &pb.Flavor{
+			Id:          f.ID,
+			Name:        f.Name,
+			Disk:        int32(f.Disk),
+			Ram:         int32(f.RAM),
+			Vcpus:       int32(f.VCPUs),
+			RxtxFactor:  f.RxTxFactor,
+			Swap:        int32(f.Swap),
+			Ephemeral:   int32(f.Ephemeral),
+			IsPublic:    f.IsPublic,
+			Description: f.Description,
+			ExtraSpecs:  f.ExtraSpecs,
+		}
+
+		if err := stream.Send(ret); err != nil {
+			log.Println("error sending server")
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *ServerMicroOpenstack) GetAllNetwork(req *emptypb.Empty, stream grpc.ServerStreamingServer[pb.Network]) error {
+	rows, err := s.DB.Model(&models.Image{}).Rows()
+	if err != nil {
+		log.Println("Error retrieving servers")
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var n models.Network
+		if err := s.DB.ScanRows(rows, &n); err != nil {
+			log.Println("Error rows server")
+			return err
+		}
+		ret := &pb.Network{
+			Id:                    n.ID,
+			Name:                  n.Name,
+			Description:           n.Description,
+			AdminStateUp:          n.AdminStateUp,
+			Status:                n.Status,
+			TenantId:              n.TenantID,
+			ProjectId:             n.ProjectID,
+			Shared:                n.Shared,
+			RevisionNumber:        int32(n.RevisionNumber),
+			Subnets:               n.Subnets,
+			AvailabilityZoneHints: n.AvailabilityZoneHints,
+			Tags:                  n.Tags,
+		}
+
+		if err := stream.Send(ret); err != nil {
+			log.Println("error sending server")
+			return err
+		}
+	}
 	return nil
 }
