@@ -86,7 +86,7 @@ func sendAllPool(s *ServerMicroOpenstack, stream pb.PoolManager_GetStreamRessour
 		ret := &pb.StreamRessourceResponse{
 			User:   pool.UserID,
 			Status: pb.Status_STATUS_UNKNOWN,
-			Type:   pb.Type_SERVER,
+			Type:   pb.Type_SERVERPOOL,
 			Data:   pool.ToMap(),
 		}
 
@@ -115,7 +115,7 @@ func sendAllConfig(s *ServerMicroOpenstack, stream pb.PoolManager_GetStreamResso
 		ret := &pb.StreamRessourceResponse{
 			User:   pool.UserID,
 			Status: pb.Status_STATUS_UNKNOWN,
-			Type:   pb.Type_SERVER,
+			Type:   pb.Type_CONFIG,
 			Data:   pool.ToMap(),
 		}
 
@@ -267,7 +267,7 @@ func (s *ServerMicroOpenstack) GetAllImages(req *emptypb.Empty, stream grpc.Serv
 }
 
 func (s *ServerMicroOpenstack) GetAllFlavors(req *emptypb.Empty, stream grpc.ServerStreamingServer[pb.Flavor]) error {
-	rows, err := s.DB.Model(&models.Image{}).Rows()
+	rows, err := s.DB.Model(&models.Flavor{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving servers")
 		return err
@@ -288,8 +288,8 @@ func (s *ServerMicroOpenstack) GetAllFlavors(req *emptypb.Empty, stream grpc.Ser
 	return nil
 }
 
-func (s *ServerMicroOpenstack) GetAllNetwork(req *emptypb.Empty, stream grpc.ServerStreamingServer[pb.Network]) error {
-	rows, err := s.DB.Model(&models.Image{}).Rows()
+func (s *ServerMicroOpenstack) GetAllNetworks(req *emptypb.Empty, stream grpc.ServerStreamingServer[pb.Network]) error {
+	rows, err := s.DB.Model(&models.Network{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving servers")
 		return err

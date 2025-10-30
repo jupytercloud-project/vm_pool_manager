@@ -1,7 +1,10 @@
 package models
 
 import (
+	"control_center/pb"
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"gorm.io/gorm"
@@ -52,6 +55,45 @@ func FromGopherServer(s servers.Server) Server {
 		Metadata:     metadata,
 		ServerpoolID: s.Metadata["serverpool_id"],
 		UserID:       s.Metadata["user_id"],
+	}
+}
+
+func (s *Server) FromPb(pbs *pb.StreamRessourceResponse) {
+	s.ID = pbs.Data["id"]
+	s.Name = pbs.Data["name"]
+	s.Status = pbs.Data["status"]
+	s.FlavorRef = pbs.Data["flavor_ref"]
+	s.ImageRef = pbs.Data["image_ref"]
+	s.ServerpoolID = pbs.Data["serverpool_id"]
+	s.UserID = pbs.Data["user_id"]
+	s.AttachVolumeID = pbs.Data["attach_volume"]
+	if v, ok := pbs.Data["vol_pending"]; ok {
+		s.VolPending = (v == "true")
+	}
+	if v, ok := pbs.Data["reattrib"]; ok {
+		s.Reattrib = (v == "true")
+	}
+	if v, ok := pbs.Data["progress"]; ok {
+		if num, err := strconv.Atoi(v); err == nil {
+			s.Progress = num
+		}
+	}
+	if v, ok := pbs.Data["config_id"]; ok {
+		if num, err := strconv.Atoi(v); err == nil {
+			s.ConfigID = num
+		}
+	}
+	if v, ok := pbs.Data["networks"]; ok && v != "" {
+		var arr []string
+		if err := json.Unmarshal([]byte(v), &arr); err == nil {
+			s.Networks = arr
+		}
+	}
+	if v, ok := pbs.Data["metadata"]; ok && v != "" {
+		var m map[string]string
+		if err := json.Unmarshal([]byte(v), &m); err == nil {
+			s.Metadata = m
+		}
 	}
 }
 

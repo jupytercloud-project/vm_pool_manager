@@ -1,8 +1,11 @@
 package models
 
 import (
+	"control_center/pb"
+	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -17,8 +20,58 @@ type Serverpool struct {
 	MinVM        int
 	MaxVM        int
 	PendingJobs  int
-	// ListServ     []Server `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
-	ConfigID int
+	ConfigID     int
+}
+
+func (sp *Serverpool) FromPb(pbs *pb.StreamRessourceResponse) error {
+	data := pbs.Data
+	if data == nil {
+		return fmt.Errorf("empty data map in StreamRessourceResponse")
+	}
+
+	if v, ok := data["id"]; ok && v != "" {
+		if id, err := strconv.ParseUint(v, 10, 32); err == nil {
+			sp.ID = uint(id)
+		} else {
+			return fmt.Errorf("invalid id value: %v", err)
+		}
+	}
+
+	sp.ServerpoolID = data["serverpool_id"]
+	sp.UserID = data["user_id"]
+	sp.ImageRef = data["image_ref"]
+	sp.FlavorRef = data["flavor_ref"]
+
+	if v, ok := data["networks"]; ok && v != "" {
+		var networks []string
+		if err := json.Unmarshal([]byte(v), &networks); err != nil {
+			return fmt.Errorf("error unmarshaling networks: %v", err)
+		}
+		sp.Networks = networks
+	}
+
+	if v, ok := data["min_vm"]; ok && v != "" {
+		if val, err := strconv.Atoi(v); err == nil {
+			sp.MinVM = val
+		}
+	}
+	if v, ok := data["max_vm"]; ok && v != "" {
+		if val, err := strconv.Atoi(v); err == nil {
+			sp.MaxVM = val
+		}
+	}
+	if v, ok := data["pending_jobs"]; ok && v != "" {
+		if val, err := strconv.Atoi(v); err == nil {
+			sp.PendingJobs = val
+		}
+	}
+	if v, ok := data["config_id"]; ok && v != "" {
+		if val, err := strconv.Atoi(v); err == nil {
+			sp.ConfigID = val
+		}
+	}
+
+	return nil
 }
 
 func PrintServerpool(sp Serverpool) error {

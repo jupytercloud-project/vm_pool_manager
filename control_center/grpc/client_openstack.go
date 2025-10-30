@@ -11,9 +11,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"gorm.io/gorm/clause"
 )
 
-func ConnectToMicroOpen() {
+func ConnectToMicroOpen(ctx context.Context) {
 	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Erreur de connexion: %v", err)
@@ -22,26 +23,39 @@ func ConnectToMicroOpen() {
 
 	client := pb.NewPoolManagerClient(conn)
 
-	stream, err := client.GetStreamRessources(context.Background(), &emptypb.Empty{})
+	stream, err := client.GetStreamRessources(ctx, &emptypb.Empty{})
 	if err != nil {
 		log.Fatalf("Erreur stream: %v", err)
 	}
 
 	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error listening stream: %v", err)
-		}
-		switch resp.Type {
-		case pb.Type_SERVER:
-			// createserver
-		case pb.Type_SERVERPOOL:
-			// createpool
-		case pb.Type_CONFIG:
-			// createconfig
+		select {
+		case <-ctx.Done():
+			log.Println("Arrêt du streaming ConnectToMicroOpen")
+			return
+		default:
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.Fatalf("Error listening stream: %v", err)
+			}
+
+			switch resp.Type {
+			case pb.Type_SERVER:
+				var serv models.Server
+				serv.FromPb(resp)
+				config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&serv)
+			case pb.Type_SERVERPOOL:
+				var pool models.Serverpool
+				pool.FromPb(resp)
+				config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pool)
+			case pb.Type_CONFIG:
+				var conf models.ConfigPool
+				conf.FromPb(resp)
+				config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&conf)
+			}
 		}
 	}
 }
@@ -71,7 +85,7 @@ func PopulateDBImageMicroOpen() {
 
 		var img models.Image
 		img.FromPb(resp, "Openstack")
-		config.Database.Create(&img)
+		config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&img)
 	}
 }
 
@@ -100,7 +114,7 @@ func PopulateDBFlavorMicroOpen() {
 
 		var flavor models.Flavor
 		flavor.FromPb(resp, "Openstack")
-		config.Database.Create(&flavor)
+		config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&flavor)
 	}
 }
 
@@ -129,6 +143,6 @@ func PopulateDBNetworkMicroOpen() {
 
 		var network models.Network
 		network.FromPb(resp, "Openstack")
-		config.Database.Create(&network)
+		config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&network)
 	}
 }

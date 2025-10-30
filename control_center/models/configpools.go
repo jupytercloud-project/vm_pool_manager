@@ -1,6 +1,10 @@
 package models
 
 import (
+	"control_center/pb"
+	"fmt"
+	"strconv"
+
 	"gorm.io/gorm"
 )
 
@@ -9,6 +13,23 @@ type ConfigPool struct {
 	UserID string `json:"user_id"`
 	Name   string `json:"name"`
 	Data   string `json:"data"`
+}
+
+func (c *ConfigPool) FromPb(pbs *pb.StreamRessourceResponse) error {
+	data := pbs.Data
+	if data == nil {
+		return fmt.Errorf("empty data map in StreamRessourceResponse")
+	}
+	if v, ok := data["id"]; ok && v != "" {
+		if id, err := strconv.ParseUint(v, 10, 32); err == nil {
+			c.ID = uint(id)
+		}
+	}
+	c.UserID = data["user_id"]
+	c.Name = data["name"]
+	c.Data = data["data"]
+
+	return nil
 }
 
 func (c *ConfigPool) AfterCreate(tx *gorm.DB) (err error) {
