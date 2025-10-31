@@ -47,7 +47,7 @@ func Start_DB() {
 	}
 
 	Database = db
-	log.Println("✅ Connexion à PostgreSQL réussie avec GORM")
+	log.Println("Connexion à PostgreSQL réussie avec GORM")
 
 	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.ConfigPool{}, &models.Image{}, &models.Flavor{}, &models.Network{})
 }
@@ -59,10 +59,10 @@ func Sync_DB(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("🛑 Arrêt de la synchronisation DB")
+			log.Println("Arrêt de la synchronisation DB")
 			return
 		case <-ticker.C:
-			log.Println("🔄 Synchronisation de la base de données...")
+			log.Println("Synchronisation de la base de données...")
 			// Exemple : synchroniser les serveurs, configurations, etc.
 		}
 	}

@@ -41,22 +41,61 @@ func ConnectToMicroOpen(ctx context.Context) {
 			if err != nil {
 				log.Fatalf("Error listening stream: %v", err)
 			}
-
-			switch resp.Type {
-			case pb.Type_SERVER:
-				var serv models.Server
-				serv.FromPb(resp)
-				config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&serv)
-			case pb.Type_SERVERPOOL:
-				var pool models.Serverpool
-				pool.FromPb(resp)
-				config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&pool)
-			case pb.Type_CONFIG:
-				var conf models.ConfigPool
-				conf.FromPb(resp)
-				config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(&conf)
-			}
+			log.Printf("message recieved type : %s", resp.GetType().String())
+			HandleStreamEvent(resp)
 		}
+	}
+}
+
+func HandleStreamEvent(resp *pb.StreamRessourceResponse) {
+	switch resp.Type {
+
+	case pb.Type_SERVER:
+		var serv models.Server
+		serv.FromPb(resp)
+		handleDBEvent(&serv, resp.Status)
+
+	case pb.Type_SERVERPOOL:
+		var pool models.Serverpool
+		pool.FromPb(resp)
+		handleDBEvent(&pool, resp.Status)
+
+	case pb.Type_CONFIG:
+		var conf models.ConfigPool
+		conf.FromPb(resp)
+		handleDBEvent(&conf, resp.Status)
+
+	default:
+		log.Printf("⚠️ Type inconnu reçu : %v", resp.Type)
+	}
+}
+
+func handleDBEvent(model any, status pb.Status) {
+	switch status {
+
+	case pb.Status_CREATE:
+		if err := config.Database.Clauses(clause.OnConflict{UpdateAll: true}).Create(model).Error; err != nil {
+			log.Printf("Erreur CREATE %T : %v", model, err)
+		} else {
+			log.Printf("CREATE %T OK", model)
+		}
+
+	case pb.Status_UPDATE:
+		if err := config.Database.Save(model).Error; err != nil {
+			log.Printf("Erreur UPDATE %T : %v", model, err)
+		} else {
+			log.Printf("UPDATE %T OK", model)
+		}
+
+	case pb.Status_DELETE:
+		if err := config.Database.Delete(model).Error; err != nil {
+			log.Printf("Erreur DELETE %T : %v", model, err)
+		} else {
+			log.Printf("DELETE %T OK", model)
+		}
+
+	default:
+		log.Printf("Status inconnu : %v", status)
 	}
 }
 

@@ -56,7 +56,7 @@ func sendAllServer(s *ServerMicroOpenstack, stream pb.PoolManager_GetStreamResso
 		}
 		ret := &pb.StreamRessourceResponse{
 			User:   serv.UserID,
-			Status: pb.Status_STATUS_UNKNOWN,
+			Status: pb.Status_CREATE,
 			Type:   pb.Type_SERVER,
 			Data:   serv.ToMap(),
 		}
@@ -85,7 +85,7 @@ func sendAllPool(s *ServerMicroOpenstack, stream pb.PoolManager_GetStreamRessour
 		}
 		ret := &pb.StreamRessourceResponse{
 			User:   pool.UserID,
-			Status: pb.Status_STATUS_UNKNOWN,
+			Status: pb.Status_CREATE,
 			Type:   pb.Type_SERVERPOOL,
 			Data:   pool.ToMap(),
 		}
@@ -114,7 +114,7 @@ func sendAllConfig(s *ServerMicroOpenstack, stream pb.PoolManager_GetStreamResso
 		}
 		ret := &pb.StreamRessourceResponse{
 			User:   pool.UserID,
-			Status: pb.Status_STATUS_UNKNOWN,
+			Status: pb.Status_CREATE,
 			Type:   pb.Type_CONFIG,
 			Data:   pool.ToMap(),
 		}
@@ -194,7 +194,7 @@ func (s *ServerMicroOpenstack) GetStreamRessources(req *emptypb.Empty, stream pb
 				}
 				err := stream.Send(&pb.StreamRessourceResponse{
 					User:   pool.UserID,
-					Type:   pb.Type_SERVER,
+					Type:   pb.Type_SERVERPOOL,
 					Status: status,
 					Data:   pool.ToMap(),
 				})
@@ -221,7 +221,7 @@ func (s *ServerMicroOpenstack) GetStreamRessources(req *emptypb.Empty, stream pb
 				}
 				err := stream.Send(&pb.StreamRessourceResponse{
 					User:   config.UserID,
-					Type:   pb.Type_SERVER,
+					Type:   pb.Type_CONFIG,
 					Status: status,
 					Data:   config.ToMap(),
 				})
