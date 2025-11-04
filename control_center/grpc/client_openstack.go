@@ -32,6 +32,9 @@ func ConnectToMicroOpen(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			log.Println("Arrêt du streaming ConnectToMicroOpen")
+			if err := stream.CloseSend(); err != nil {
+				log.Printf("Erreur lors de la fermeture du stream: %v", err)
+			}
 			return
 		default:
 			resp, err := stream.Recv()
@@ -39,6 +42,10 @@ func ConnectToMicroOpen(ctx context.Context) {
 				return
 			}
 			if err != nil {
+				if ctx.Err() != nil {
+					log.Println("Stream ended due to context")
+					return
+				}
 				log.Fatalf("Error listening stream: %v", err)
 			}
 			log.Printf("message recieved type : %s", resp.GetType().String())
