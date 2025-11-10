@@ -156,9 +156,8 @@ message GetPoolResponse {
     string flavor = 3;
     string network = 4;
     string config = 5;
-    string min_vm = 6;
-    string max_vm = 7;
-    map<string, string> metadata = 8;
+    int32 min_vm = 6;
+    int32 max_vm = 7;
 }
 
 message UpdateDataUserRequest {

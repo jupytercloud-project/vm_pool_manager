@@ -46,3 +46,36 @@ func (s *Service) CreatePool(ctx context.Context, req *frontcontrolpb.CreatePool
 	}
 	return &frontcontrolpb.CreatePoolResponse{Success: true}, nil
 }
+
+func (s *Service) DeletePool(ctx context.Context, req *frontcontrolpb.DeletePoolRequest) (*frontcontrolpb.DeletePoolResponse, error) {
+	var pool models.Serverpool
+	if err := s.DB.Where("serverpool_id = ? AND user_id = ?", req.GetPoolId(), req.GetUser()).First(&pool).Error; err != nil {
+		return &frontcontrolpb.DeletePoolResponse{Success: false}, err
+	}
+	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+		User:   req.GetUser(),
+		Data:   pool.ToMap(),
+		Status: pb.Status_DELETE,
+		Type:   pb.Type_SERVERPOOL,
+	})
+	if rep.GetSuccess() == false || err != nil {
+		return &frontcontrolpb.DeletePoolResponse{Success: false}, err
+	}
+	return &frontcontrolpb.DeletePoolResponse{Success: true}, nil
+}
+
+func (s *Service) GetPool(ctx context.Context, req *frontcontrolpb.GetPoolRequest) (*frontcontrolpb.GetPoolResponse, error) {
+	var pool models.Serverpool
+	if err := s.DB.Where("serverpool_id = ? AND user_id = ?", req.GetPoolId(), req.GetUser()).First(&pool).Error; err != nil {
+		return &frontcontrolpb.GetPoolResponse{}, err
+	}
+	return &frontcontrolpb.GetPoolResponse{
+		Name:    pool.ServerpoolID,
+		Image:   pool.ImageRef,
+		Flavor:  pool.FlavorRef,
+		MinVm:   int32(pool.MinVM),
+		MaxVm:   int32(pool.MaxVM),
+		Network: pool.Networks[0],
+		Config:  pool.ConfigID,
+	}, nil
+}

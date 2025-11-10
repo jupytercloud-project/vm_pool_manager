@@ -368,28 +368,28 @@ export class ConfigServiceClient {
     '/frontcontrol.ConfigService/DeleteConfig',
     grpcWeb.MethodType.UNARY,
     frontcontrol_pb.DeleteConfigRequest,
-    google_protobuf_empty_pb.Empty,
+    frontcontrol_pb.DeleteConfigResponse,
     (request: frontcontrol_pb.DeleteConfigRequest) => {
       return request.serializeBinary();
     },
-    google_protobuf_empty_pb.Empty.deserializeBinary
+    frontcontrol_pb.DeleteConfigResponse.deserializeBinary
   );
 
   deleteConfig(
     request: frontcontrol_pb.DeleteConfigRequest,
-    metadata?: grpcWeb.Metadata | null): Promise<google_protobuf_empty_pb.Empty>;
+    metadata?: grpcWeb.Metadata | null): Promise<frontcontrol_pb.DeleteConfigResponse>;
 
   deleteConfig(
     request: frontcontrol_pb.DeleteConfigRequest,
     metadata: grpcWeb.Metadata | null,
     callback: (err: grpcWeb.RpcError,
-               response: google_protobuf_empty_pb.Empty) => void): grpcWeb.ClientReadableStream<google_protobuf_empty_pb.Empty>;
+               response: frontcontrol_pb.DeleteConfigResponse) => void): grpcWeb.ClientReadableStream<frontcontrol_pb.DeleteConfigResponse>;
 
   deleteConfig(
     request: frontcontrol_pb.DeleteConfigRequest,
     metadata?: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.RpcError,
-               response: google_protobuf_empty_pb.Empty) => void) {
+               response: frontcontrol_pb.DeleteConfigResponse) => void) {
     if (callback !== undefined) {
       return this.client_.rpcCall(
         this.hostname_ +

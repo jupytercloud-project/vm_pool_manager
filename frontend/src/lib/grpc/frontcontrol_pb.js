@@ -4097,7 +4097,8 @@ proto.frontcontrol.GetConfigResponse.prototype.toObject = function(opt_includeIn
  */
 proto.frontcontrol.GetConfigResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-value: jspb.Message.getFieldWithDefault(msg, 1, "")
+value: jspb.Message.getFieldWithDefault(msg, 1, ""),
+key: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -4138,6 +4139,10 @@ proto.frontcontrol.GetConfigResponse.deserializeBinaryFromReader = function(msg,
       var value = /** @type {string} */ (reader.readString());
       msg.setValue(value);
       break;
+    case 2:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setKey(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -4174,6 +4179,13 @@ proto.frontcontrol.GetConfigResponse.serializeBinaryToWriter = function(message,
       f
     );
   }
+  f = message.getKey();
+  if (f.length > 0) {
+    writer.writeString(
+      2,
+      f
+    );
+  }
 };
 
 
@@ -4192,6 +4204,24 @@ proto.frontcontrol.GetConfigResponse.prototype.getValue = function() {
  */
 proto.frontcontrol.GetConfigResponse.prototype.setValue = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * optional string key = 2;
+ * @return {string}
+ */
+proto.frontcontrol.GetConfigResponse.prototype.getKey = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.frontcontrol.GetConfigResponse} returns this
+ */
+proto.frontcontrol.GetConfigResponse.prototype.setKey = function(value) {
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 
@@ -5182,9 +5212,8 @@ image: jspb.Message.getFieldWithDefault(msg, 2, ""),
 flavor: jspb.Message.getFieldWithDefault(msg, 3, ""),
 network: jspb.Message.getFieldWithDefault(msg, 4, ""),
 config: jspb.Message.getFieldWithDefault(msg, 5, ""),
-minVm: jspb.Message.getFieldWithDefault(msg, 6, ""),
-maxVm: jspb.Message.getFieldWithDefault(msg, 7, ""),
-metadataMap: (f = msg.getMetadataMap()) ? f.toObject(includeInstance, undefined) : []
+minVm: jspb.Message.getFieldWithDefault(msg, 6, 0),
+maxVm: jspb.Message.getFieldWithDefault(msg, 7, 0)
   };
 
   if (includeInstance) {
@@ -5242,18 +5271,12 @@ proto.frontcontrol.GetPoolResponse.deserializeBinaryFromReader = function(msg, r
       msg.setConfig(value);
       break;
     case 6:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {number} */ (reader.readInt32());
       msg.setMinVm(value);
       break;
     case 7:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {number} */ (reader.readInt32());
       msg.setMaxVm(value);
-      break;
-    case 8:
-      var value = msg.getMetadataMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString, null, "", "");
-         });
       break;
     default:
       reader.skipField();
@@ -5320,22 +5343,18 @@ proto.frontcontrol.GetPoolResponse.serializeBinaryToWriter = function(message, w
     );
   }
   f = message.getMinVm();
-  if (f.length > 0) {
-    writer.writeString(
+  if (f !== 0) {
+    writer.writeInt32(
       6,
       f
     );
   }
   f = message.getMaxVm();
-  if (f.length > 0) {
-    writer.writeString(
+  if (f !== 0) {
+    writer.writeInt32(
       7,
       f
     );
-  }
-  f = message.getMetadataMap(true);
-  if (f && f.getLength() > 0) {
-    f.serializeBinary(8, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeString);
   }
 };
 
@@ -5431,61 +5450,38 @@ proto.frontcontrol.GetPoolResponse.prototype.setConfig = function(value) {
 
 
 /**
- * optional string min_vm = 6;
- * @return {string}
+ * optional int32 min_vm = 6;
+ * @return {number}
  */
 proto.frontcontrol.GetPoolResponse.prototype.getMinVm = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 6, 0));
 };
 
 
 /**
- * @param {string} value
+ * @param {number} value
  * @return {!proto.frontcontrol.GetPoolResponse} returns this
  */
 proto.frontcontrol.GetPoolResponse.prototype.setMinVm = function(value) {
-  return jspb.Message.setProto3StringField(this, 6, value);
+  return jspb.Message.setProto3IntField(this, 6, value);
 };
 
 
 /**
- * optional string max_vm = 7;
- * @return {string}
+ * optional int32 max_vm = 7;
+ * @return {number}
  */
 proto.frontcontrol.GetPoolResponse.prototype.getMaxVm = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 7, ""));
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 7, 0));
 };
 
 
 /**
- * @param {string} value
+ * @param {number} value
  * @return {!proto.frontcontrol.GetPoolResponse} returns this
  */
 proto.frontcontrol.GetPoolResponse.prototype.setMaxVm = function(value) {
-  return jspb.Message.setProto3StringField(this, 7, value);
-};
-
-
-/**
- * map<string, string> metadata = 8;
- * @param {boolean=} opt_noLazyCreate Do not create the map if
- * empty, instead returning `undefined`
- * @return {!jspb.Map<string,string>}
- */
-proto.frontcontrol.GetPoolResponse.prototype.getMetadataMap = function(opt_noLazyCreate) {
-  return /** @type {!jspb.Map<string,string>} */ (
-      jspb.Message.getMapField(this, 8, opt_noLazyCreate,
-      null));
-};
-
-
-/**
- * Clears values from the map. The map will be non-null.
- * @return {!proto.frontcontrol.GetPoolResponse} returns this
- */
-proto.frontcontrol.GetPoolResponse.prototype.clearMetadataMap = function() {
-  this.getMetadataMap().clear();
-  return this;
+  return jspb.Message.setProto3IntField(this, 7, value);
 };
 
 

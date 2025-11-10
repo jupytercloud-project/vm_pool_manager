@@ -472,6 +472,9 @@ export class GetConfigResponse extends jspb.Message {
   getValue(): string;
   setValue(value: string): GetConfigResponse;
 
+  getKey(): string;
+  setKey(value: string): GetConfigResponse;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetConfigResponse.AsObject;
   static toObject(includeInstance: boolean, msg: GetConfigResponse): GetConfigResponse.AsObject;
@@ -483,6 +486,7 @@ export class GetConfigResponse extends jspb.Message {
 export namespace GetConfigResponse {
   export type AsObject = {
     value: string;
+    key: string;
   };
 }
 
@@ -632,14 +636,11 @@ export class GetPoolResponse extends jspb.Message {
   getConfig(): string;
   setConfig(value: string): GetPoolResponse;
 
-  getMinVm(): string;
-  setMinVm(value: string): GetPoolResponse;
+  getMinVm(): number;
+  setMinVm(value: number): GetPoolResponse;
 
-  getMaxVm(): string;
-  setMaxVm(value: string): GetPoolResponse;
-
-  getMetadataMap(): jspb.Map<string, string>;
-  clearMetadataMap(): GetPoolResponse;
+  getMaxVm(): number;
+  setMaxVm(value: number): GetPoolResponse;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GetPoolResponse.AsObject;
@@ -656,9 +657,8 @@ export namespace GetPoolResponse {
     flavor: string;
     network: string;
     config: string;
-    minVm: string;
-    maxVm: string;
-    metadataMap: Array<[string, string]>;
+    minVm: number;
+    maxVm: number;
   };
 }
 
