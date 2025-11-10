@@ -35,13 +35,13 @@ func (s *Service) CreatePool(ctx context.Context, req *frontcontrolpb.CreatePool
 		ConfigID:     req.GetConfig(),
 	}
 
-	_, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
 		User:   req.GetUser(),
 		Data:   pool.ToMap(),
 		Status: pb.Status_CREATE,
 		Type:   pb.Type_SERVERPOOL,
 	})
-	if err != nil {
+	if rep.GetSuccess() == false || err != nil {
 		return &frontcontrolpb.CreatePoolResponse{Success: false}, err
 	}
 	return &frontcontrolpb.CreatePoolResponse{Success: true}, nil

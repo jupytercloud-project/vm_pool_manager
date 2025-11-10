@@ -4,12 +4,14 @@ import (
 	"context"
 	"control_center/frontcontrolpb"
 	"control_center/models"
+	"control_center/pb"
 
 	"gorm.io/gorm"
 )
 
 type Service struct {
 	frontcontrolpb.UnimplementedConfigServiceServer
+	pm pb.PoolManagerClient
 	DB *gorm.DB
 }
 
@@ -34,7 +36,14 @@ func (s *Service) CreateConfig(ctx context.Context, req *frontcontrolpb.CreateCo
 		Name:   req.GetKey(),
 		Data:   req.GetValue(),
 	}
-	if err := s.DB.Create(&conf).Error; err != nil {
+
+	ress, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+		User:   req.GetUser(),
+		Data:   conf.ToMap(),
+		Status: pb.Status_CREATE,
+		Type:   pb.Type_CONFIG,
+	})
+	if ress.GetSuccess() == false || err != nil {
 		return &frontcontrolpb.CreateConfigResponse{
 			Success: false,
 		}, err
@@ -52,7 +61,13 @@ func (s *Service) UpdateConfig(ctx context.Context, req *frontcontrolpb.UpdateCo
 		}, err
 	}
 	conf.Data = req.GetValue()
-	if err := s.DB.Save(&conf).Error; err != nil {
+	ress, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+		User:   req.GetUser(),
+		Data:   conf.ToMap(),
+		Status: pb.Status_UPDATE,
+		Type:   pb.Type_CONFIG,
+	})
+	if ress.GetSuccess() == false || err != nil {
 		return &frontcontrolpb.UpdateConfigResponse{
 			Success: false,
 		}, err
@@ -63,7 +78,19 @@ func (s *Service) UpdateConfig(ctx context.Context, req *frontcontrolpb.UpdateCo
 }
 
 func (s *Service) DeleteConfig(ctx context.Context, req *frontcontrolpb.DeleteConfigRequest) (*frontcontrolpb.DeleteConfigResponse, error) {
-	if err := s.DB.Where(" userid = ? && name = ? ", req.GetUser(), req.GetKey()).Delete(&models.ConfigPool{}).Error; err != nil {
+	var conf models.ConfigPool
+	if err := s.DB.Where(" userid = ? && name = ? ", req.GetUser(), req.GetKey()).First(&conf).Error; err != nil {
+		return &frontcontrolpb.DeleteConfigResponse{
+			Success: false,
+		}, err
+	}
+	ress, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+		User:   req.GetUser(),
+		Data:   conf.ToMap(),
+		Status: pb.Status_DELETE,
+		Type:   pb.Type_CONFIG,
+	})
+	if ress.GetSuccess() == false || err != nil {
 		return &frontcontrolpb.DeleteConfigResponse{
 			Success: false,
 		}, err
