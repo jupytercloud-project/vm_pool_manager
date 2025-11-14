@@ -15,8 +15,11 @@ type Service struct {
 	DB *gorm.DB
 }
 
-func New() *Service {
-	return &Service{}
+func New(pm pb.PoolManagerClient, db *gorm.DB) *Service {
+	return &Service{
+		pm: pm,
+		DB: db,
+	}
 }
 
 func (s *Service) GetConfig(ctx context.Context, req *frontcontrolpb.GetConfigRequest) (*frontcontrolpb.GetConfigResponse, error) {

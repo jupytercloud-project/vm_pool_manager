@@ -7,6 +7,7 @@ import (
 	"control_center/internal/auth"
 	"control_center/internal/configpool"
 	"control_center/internal/gatherdata"
+	"control_center/internal/pool"
 	"control_center/pb"
 	"log"
 	"net"
@@ -57,8 +58,8 @@ func Start_grpc(ctx context.Context) {
 
 	frontcontrolpb.RegisterAuthServiceServer(s, auth.New(config.Database, client))
 	frontcontrolpb.RegisterGatherDataServiceServer(s, gatherdata.New())
-	frontcontrolpb.RegisterConfigServiceServer(s, configpool.New())
-	frontcontrolpb.RegisterPoolServiceServer(s, &PoolServer{DB: config.Database})
+	frontcontrolpb.RegisterConfigServiceServer(s, configpool.New(client, config.Database))
+	frontcontrolpb.RegisterPoolServiceServer(s, pool.New(config.Database, client))
 	frontcontrolpb.RegisterUserServiceServer(s, &UserServer{DB: config.Database})
 
 	reflection.Register(s)

@@ -16,8 +16,11 @@ type Service struct {
 	pm pb.PoolManagerClient
 }
 
-func New() *Service {
-	return &Service{}
+func New(db *gorm.DB, pm pb.PoolManagerClient) *Service {
+	return &Service{
+		DB: db,
+		pm: pm,
+	}
 }
 
 func (s *Service) CreatePool(ctx context.Context, req *frontcontrolpb.CreatePoolRequest) (*frontcontrolpb.CreatePoolResponse, error) {
