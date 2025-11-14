@@ -6,8 +6,10 @@ import (
 	"PoolManagerVM/backend/notifier"
 	"PoolManagerVM/backend/pb"
 	"context"
+	"fmt"
 	"log"
 	"net"
+	"strconv"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -34,9 +36,134 @@ func Start_grpc() {
 	}
 }
 
+func (s *ServerMicroOpenstack) handleUser(db *gorm.DB, req *pb.RessourceRequest) error {
+	data := req.GetData()
+	switch req.GetStatus() {
+	case pb.Status_CREATE:
+		user := models.User{
+			Name:     data["name"],
+			Email:    data["email"],
+			Password: data["password"],
+		}
+		return db.Create(&user).Error
+	case pb.Status_UPDATE:
+		return db.Model(&models.User{}).
+			Where("email = ?", data["email"]).
+			Updates(map[string]interface{}{
+				"name":     data["name"],
+				"password": data["password"],
+			}).Error
+	case pb.Status_DELETE:
+		return db.Where("email = ?", data["email"]).Delete(&models.User{}).Error
+	default:
+		return fmt.Errorf("unknown status for USER: %v", req.GetStatus())
+	}
+}
+
+func (s *ServerMicroOpenstack) handleServerpool(db *gorm.DB, req *pb.RessourceRequest) error {
+	data := req.GetData()
+	switch req.GetStatus() {
+	case pb.Status_CREATE:
+		pool := models.Serverpool{
+			ServerpoolID: data["serverpool_id"],
+			UserID:       req.GetUser(),
+			ImageRef:     data["image"],
+			FlavorRef:    data["flavor"],
+			MinVM:        parseInt(data["min_vm"]),
+			MaxVM:        parseInt(data["max_vm"]),
+		}
+		return db.Create(&pool).Error
+	case pb.Status_UPDATE:
+		return db.Model(&models.Serverpool{}).
+			Where("serverpool_id = ? AND user_id = ?", data["serverpool_id"], req.GetUser()).
+			Updates(map[string]interface{}{
+				"image_ref":  data["image"],
+				"flavor_ref": data["flavor"],
+				"min_vm":     parseInt(data["min_vm"]),
+				"max_vm":     parseInt(data["max_vm"]),
+			}).Error
+	case pb.Status_DELETE:
+		return db.Where("serverpool_id = ? AND user_id = ?", data["serverpool_id"], req.GetUser()).
+			Delete(&models.Serverpool{}).Error
+	default:
+		return fmt.Errorf("unknown status for SERVERPOOL: %v", req.GetStatus())
+	}
+}
+
+func (s *ServerMicroOpenstack) handleServer(db *gorm.DB, req *pb.RessourceRequest) error {
+	data := req.GetData()
+	switch req.GetStatus() {
+	case pb.Status_CREATE:
+		server := models.Server{
+			ID:           data["server_id"],
+			Name:         data["name"],
+			Status:       data["status"],
+			FlavorRef:    data["flavor"],
+			ImageRef:     data["image"],
+			ServerpoolID: data["serverpool_id"],
+			UserID:       req.GetUser(),
+		}
+		return db.Create(&server).Error
+	case pb.Status_UPDATE:
+		return db.Model(&models.Server{}).
+			Where("id = ?", data["server_id"]).
+			Updates(map[string]interface{}{
+				"name":       data["name"],
+				"status":     data["status"],
+				"flavor_ref": data["flavor"],
+				"image_ref":  data["image"],
+			}).Error
+	case pb.Status_DELETE:
+		return db.Where("id = ?", data["server_id"]).Delete(&models.Server{}).Error
+	default:
+		return fmt.Errorf("unknown status for SERVER: %v", req.GetStatus())
+	}
+}
+
+func (s *ServerMicroOpenstack) handleConfig(db *gorm.DB, req *pb.RessourceRequest) error {
+	data := req.GetData()
+	switch req.GetStatus() {
+	case pb.Status_CREATE:
+		cfg := models.ConfigPool{
+			UserID: req.GetUser(),
+			Name:   data["name"],
+			Data:   data["data"],
+		}
+		return db.Create(&cfg).Error
+	case pb.Status_UPDATE:
+		return db.Model(&models.ConfigPool{}).
+			Where("user_id = ? AND name = ?", req.GetUser(), data["name"]).
+			Update("data", data["data"]).Error
+	case pb.Status_DELETE:
+		return db.Where("user_id = ? AND name = ?", req.GetUser(), data["name"]).
+			Delete(&models.ConfigPool{}).Error
+	default:
+		return fmt.Errorf("unknown status for CONFIG: %v", req.GetStatus())
+	}
+}
+
 func (s *ServerMicroOpenstack) SendRessources(ctx context.Context, req *pb.RessourceRequest) (*pb.RessourceResponse, error) {
-	log.Printf("[SendRessources] User=%s Data=%v", req.GetUser(), req.GetData())
-	//create ressources here
+	log.Printf("[SendRessources] User=%s Data=%v Status=%v Type=%v", req.GetUser(), req.GetData(), req.GetStatus(), req.GetType())
+
+	err := s.DB.Transaction(func(db *gorm.DB) error {
+		switch req.GetType() {
+		case pb.Type_USER:
+			return s.handleUser(db, req)
+		case pb.Type_SERVERPOOL:
+			return s.handleServerpool(db, req)
+		case pb.Type_SERVER:
+			return s.handleServer(db, req)
+		case pb.Type_CONFIG:
+			return s.handleConfig(db, req)
+		default:
+			return fmt.Errorf("Type unknown: %v", req.GetType())
+		}
+	})
+
+	if err != nil {
+		return &pb.RessourceResponse{Success: false}, err
+	}
+
 	return &pb.RessourceResponse{Success: true}, nil
 }
 
@@ -311,4 +438,10 @@ func (s *ServerMicroOpenstack) GetAllNetworks(req *emptypb.Empty, stream grpc.Se
 		}
 	}
 	return nil
+}
+
+// parseInt helper
+func parseInt(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
 }
