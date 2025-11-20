@@ -6,6 +6,7 @@ import (
 	"control_center/models"
 	"control_center/pb"
 	"fmt"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -21,6 +22,7 @@ func New(db *gorm.DB, pm pb.PoolManagerClient) *Service {
 }
 
 func (s *Service) CreateUser(ctx context.Context, req *frontcontrolpb.CreateUserRequest) (*frontcontrolpb.CreateUserResponse, error) {
+	log.Println("Message reçu")
 	if req.Username == "" || req.Email == "" || req.Password == "" {
 		return &frontcontrolpb.CreateUserResponse{
 			Success: false,

@@ -8,10 +8,17 @@
 	import { AuthenticateUser, CreateUser } from '$lib/login/AuthUser';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	
+	import { browser } from '$app/environment';   // <-- IMPORTANT
+
 	let { children } = $props();
 
-	onMount(() => {
+	onMount(async () => {
+		if (!browser) return;   // <-- empêche SSR d'exécuter la logique
+
+		// Import gRPC uniquement côté client
+		await import('$lib/grpc/FrontcontrolServiceClientPb.js');
+		await import('$lib/grpc/frontcontrol_pb.js');
+
 		const token = get(authStore);
 		if (token) {
 			serverpoolStore.fetchInitData();
@@ -24,7 +31,6 @@
 	let loginModal = $state(false);
 	let loginError = $state("");
 	let loginSuccess = $state(false);
-
 
 	async function handleLogin(event: Event) {
   		event.preventDefault();
@@ -77,7 +83,7 @@
 		}
 
 		try {
-			const result = await CreateUser(name, email, password);
+			const result = await CreateUser(name, password, email);
 			if (result.success) {
 				createAccountSuccess = true;
 			} else {
@@ -98,6 +104,7 @@
 		}, 3000);
 	}
 </script>
+
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
