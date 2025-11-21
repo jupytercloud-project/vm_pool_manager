@@ -23,9 +23,10 @@ type RessourceEvent struct {
 	Ressource any
 }
 
-func New(broker *event.EventBroker) *Service {
+func New(db *gorm.DB, broker *event.EventBroker) *Service {
 	return &Service{
 		Broker: broker,
+		DB:     db,
 	}
 }
 

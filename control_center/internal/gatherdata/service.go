@@ -3,6 +3,7 @@ package gatherdata
 import (
 	"control_center/frontcontrolpb"
 	"control_center/models"
+	"control_center/pb"
 	"log"
 
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -12,10 +13,14 @@ import (
 type Service struct {
 	frontcontrolpb.UnimplementedGatherDataServiceServer
 	DB *gorm.DB
+	pm pb.PoolManagerClient
 }
 
-func New() *Service {
-	return &Service{}
+func New(pm pb.PoolManagerClient, db *gorm.DB) *Service {
+	return &Service{
+		pm: pm,
+		DB: db,
+	}
 }
 
 func (s *Service) GetAllImages(req *emptypb.Empty, stream frontcontrolpb.GatherDataService_GetAllImagesServer) error {
