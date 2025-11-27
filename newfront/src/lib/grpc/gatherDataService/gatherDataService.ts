@@ -15,7 +15,7 @@ import type {
     Config,
 } from "../frontcontrol_pb"
 
-const empty = create(EmptySchema);
+const empty = create(EmptySchema, {});
 
 const transport = createGrpcWebTransport({
   baseUrl: "http://localhost:80", // l'URL de ton proxy gRPC-Web

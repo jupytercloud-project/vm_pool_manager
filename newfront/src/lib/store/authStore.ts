@@ -2,6 +2,8 @@ import { writable } from 'svelte/store';
 import { jwtDecode } from 'jwt-decode';
 import { goto } from '$app/navigation';
 import { authenticateUser } from '$lib/grpc/authService/authService';
+import { subscribeUserUpdate } from '$lib/grpc/userUpdateService/userService';
+import { loadAll } from './serverpoolStore';
 
 interface JwtPayload {
   exp: number;
@@ -15,6 +17,30 @@ interface AuthData {
 
 // Store pour le token JWT
 export const authStore = writable<AuthData | null>(null);
+
+let stopStream: (() => void) | null = null;
+
+authStore.subscribe((auth) => {
+  if (!auth) {
+    if (stopStream) {
+      stopStream();
+      stopStream = null;
+      console.log("Stream arreté");
+    }
+    return;
+  }
+
+  console.log("Stream start for ", auth.email);
+  let active = true;
+  subscribeUserUpdate(auth.email, (data) => {
+    if (!active) return;
+    console.log("Update user :", data);
+    //todo
+  });
+  stopStream = () => {
+    active = false;
+  };
+});
 
 // Vérifie si un token JWT est valide
 function isTokenValid(token: string): boolean {
@@ -44,6 +70,7 @@ export function login(token: string, email: string) {
   const data: AuthData = { token, email };
   localStorage.setItem('authData', JSON.stringify(data));
   authStore.set(data);
+  loadAll(email);
 }
 
 export function logout() {

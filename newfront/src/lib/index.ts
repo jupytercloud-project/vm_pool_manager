@@ -6,3 +6,4 @@ export { createUser, authenticateUser } from './grpc/authService/authService';
 export { createConfig, updateConfig, deleteConfig, getConfig } from './grpc/configService/configService';
 export { createPool, getPool, deletePool, rebuildServer} from './grpc/poolService/poolService';
 export { loadAll } from './store/serverpoolStore';
+export { RebuildServerRequestSchema, CreatePoolRequestSchema, DeletePoolRequestSchema} from '$lib/grpc/frontcontrol_pb'

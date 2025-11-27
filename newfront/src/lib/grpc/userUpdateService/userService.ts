@@ -24,8 +24,9 @@ const transport = createGrpcWebTransport({
 
 const userclient = createClient(UserService, transport);
 
-export async function substribeUserUpdate(user: string, onUpdate: (data: UpdateDataUserResponse) => void) {
+export async function subscribeUserUpdate(user: string, onUpdate: (data: UpdateDataUserResponse) => void) {
     const req = create(UpdateDataUserRequestSchema, {user});
+    console.log("Envoi request stream :", req);
     const stream = userclient.updateDataUser(req);
 
     try {

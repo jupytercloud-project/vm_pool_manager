@@ -24,6 +24,7 @@ func New(pm pb.PoolManagerClient, db *gorm.DB) *Service {
 }
 
 func (s *Service) GetAllImages(req *emptypb.Empty, stream frontcontrolpb.GatherDataService_GetAllImagesServer) error {
+	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Image{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving images: ", err)
@@ -46,6 +47,7 @@ func (s *Service) GetAllImages(req *emptypb.Empty, stream frontcontrolpb.GatherD
 }
 
 func (s *Service) GetAllFlavors(req *emptypb.Empty, stream frontcontrolpb.GatherDataService_GetAllFlavorsServer) error {
+	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Flavor{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving flavors: ", err)
@@ -68,6 +70,7 @@ func (s *Service) GetAllFlavors(req *emptypb.Empty, stream frontcontrolpb.Gather
 }
 
 func (s *Service) GetAllNetworks(req *emptypb.Empty, stream frontcontrolpb.GatherDataService_GetAllNetworksServer) error {
+	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Network{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving networks: ", err)
@@ -90,6 +93,7 @@ func (s *Service) GetAllNetworks(req *emptypb.Empty, stream frontcontrolpb.Gathe
 }
 
 func (s *Service) GetAllServers(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllServersServer) error {
+	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Server{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving servers: ", err)
@@ -113,6 +117,7 @@ func (s *Service) GetAllServers(req *frontcontrolpb.UserRequest, stream frontcon
 }
 
 func (s *Service) GetAllServerpools(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllServerPoolsServer) error {
+	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Serverpool{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving servers: ", err)
@@ -136,6 +141,7 @@ func (s *Service) GetAllServerpools(req *frontcontrolpb.UserRequest, stream fron
 }
 
 func (s *Service) GetAllConfigs(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllConfigsServer) error {
+	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.ConfigPool{}).Rows()
 	if err != nil {
 		log.Println("Error retrieving servers: ", err)

@@ -4,5 +4,8 @@ export type {
     Network,
     Server,
     ServerPool,
-    Config
+    Config,
+    RebuildServerRequest,
+    CreatePoolRequest,
+    DeletePoolRequest,
 } from './grpc/frontcontrol_pb'

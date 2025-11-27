@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { authStore, serverPools } from '$lib/store';
-  
+  import { authStore, configs, serverPools } from '$lib/store';
   import { goto } from '$app/navigation';
   import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Button } from "flowbite-svelte";
 
@@ -39,4 +38,20 @@
         {/each}
       </TableBody>
     {/if}
+</Table>
+
+<Table shadow hoverable={true} class="w-full text-tertiary-50">
+  <caption class="text-2xl text-left font-bold mb-4 pl-4">
+    Mes Configs
+  </caption>
+  <TableHead class="bg-secondary-200">
+    <TableHeadCell>Nom de la Config</TableHeadCell>
+    <TableHeadCell>Data</TableHeadCell>
+  </TableHead>
+  <TableBody>
+    {#each $configs as conf}
+      <TableBodyCell>{conf.name}</TableBodyCell>
+      <TableBodyCell>{conf.data}</TableBodyCell>
+    {/each}
+  </TableBody>
 </Table>
