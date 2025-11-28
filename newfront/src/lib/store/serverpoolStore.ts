@@ -34,18 +34,18 @@ export const configs = writable<Config[]>([]);
 // Loaders (chargent les données et mettent à jour les stores)
 // ==========================================================================
 
-export async function loadImages() {
-    const data = await getAllImages();
+export async function loadImages(user: string) {
+    const data = await getAllImages(user);
     images.set(data);
 }
 
-export async function loadFlavors() {
-    const data = await getAllFlavors();
+export async function loadFlavors(user: string) {
+    const data = await getAllFlavors(user);
     flavors.set(data);
 }
 
-export async function loadNetworks() {
-    const data = await getAllNetworks();
+export async function loadNetworks(user: string) {
+    const data = await getAllNetworks(user);
     networks.set(data);
 }
 
@@ -70,9 +70,9 @@ export async function loadConfigs(user: string) {
 // ==========================================================================
 export async function loadAll(user: string) {
     await Promise.all([
-        loadImages(),
-        loadFlavors(),
-        loadNetworks(),
+        loadImages(user),
+        loadFlavors(user),
+        loadNetworks(user),
         loadServers(user),
         loadServerPools(user),
         loadConfigs(user),

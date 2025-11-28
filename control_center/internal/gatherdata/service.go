@@ -6,7 +6,6 @@ import (
 	"control_center/pb"
 	"log"
 
-	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +22,7 @@ func New(pm pb.PoolManagerClient, db *gorm.DB) *Service {
 	}
 }
 
-func (s *Service) GetAllImages(req *emptypb.Empty, stream frontcontrolpb.GatherDataService_GetAllImagesServer) error {
+func (s *Service) GetAllImages(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllImagesServer) error {
 	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Image{}).Rows()
 	if err != nil {
@@ -46,7 +45,7 @@ func (s *Service) GetAllImages(req *emptypb.Empty, stream frontcontrolpb.GatherD
 	return nil
 }
 
-func (s *Service) GetAllFlavors(req *emptypb.Empty, stream frontcontrolpb.GatherDataService_GetAllFlavorsServer) error {
+func (s *Service) GetAllFlavors(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllFlavorsServer) error {
 	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Flavor{}).Rows()
 	if err != nil {
@@ -69,7 +68,7 @@ func (s *Service) GetAllFlavors(req *emptypb.Empty, stream frontcontrolpb.Gather
 	return nil
 }
 
-func (s *Service) GetAllNetworks(req *emptypb.Empty, stream frontcontrolpb.GatherDataService_GetAllNetworksServer) error {
+func (s *Service) GetAllNetworks(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllNetworksServer) error {
 	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Network{}).Rows()
 	if err != nil {
@@ -100,7 +99,7 @@ func (s *Service) GetAllServers(req *frontcontrolpb.UserRequest, stream frontcon
 		return err
 	}
 	defer rows.Close()
-
+	sent := false
 	for rows.Next() {
 		var n models.Server
 		if err := s.DB.ScanRows(rows, &n); err != nil {
@@ -111,12 +110,17 @@ func (s *Service) GetAllServers(req *frontcontrolpb.UserRequest, stream frontcon
 			if err := stream.Send(n.ToFrontControlPb()); err != nil {
 				log.Println("Error sending server: ", err)
 			}
+			sent = true
 		}
+	}
+	if !sent {
+		empty := frontcontrolpb.Server{}
+		return stream.Send(&empty)
 	}
 	return nil
 }
 
-func (s *Service) GetAllServerpools(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllServerPoolsServer) error {
+func (s *Service) GetAllServerPools(req *frontcontrolpb.UserRequest, stream frontcontrolpb.GatherDataService_GetAllServerPoolsServer) error {
 	log.Println("Recieving message")
 	rows, err := s.DB.Model(&models.Serverpool{}).Rows()
 	if err != nil {
@@ -124,7 +128,7 @@ func (s *Service) GetAllServerpools(req *frontcontrolpb.UserRequest, stream fron
 		return err
 	}
 	defer rows.Close()
-
+	sent := false
 	for rows.Next() {
 		var n models.Serverpool
 		if err := s.DB.ScanRows(rows, &n); err != nil {
@@ -135,7 +139,13 @@ func (s *Service) GetAllServerpools(req *frontcontrolpb.UserRequest, stream fron
 			if err := stream.Send(n.ToFrontControlPb()); err != nil {
 				log.Println("Error sending server: ", err)
 			}
+			sent = true
 		}
+	}
+
+	if !sent {
+		empty := &frontcontrolpb.ServerPool{}
+		return stream.Send(empty)
 	}
 	return nil
 }
@@ -148,7 +158,7 @@ func (s *Service) GetAllConfigs(req *frontcontrolpb.UserRequest, stream frontcon
 		return err
 	}
 	defer rows.Close()
-
+	sent := false
 	for rows.Next() {
 		var n models.ConfigPool
 		if err := s.DB.ScanRows(rows, &n); err != nil {
@@ -159,7 +169,13 @@ func (s *Service) GetAllConfigs(req *frontcontrolpb.UserRequest, stream frontcon
 			if err := stream.Send(n.ToFrontControlPb()); err != nil {
 				log.Println("Error sending server: ", err)
 			}
+			sent = true
 		}
+	}
+
+	if !sent {
+		empty := &frontcontrolpb.Config{}
+		return stream.Send(empty)
 	}
 	return nil
 }

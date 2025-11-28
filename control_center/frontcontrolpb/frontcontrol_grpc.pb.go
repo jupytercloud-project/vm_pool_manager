@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -172,9 +171,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GatherDataServiceClient interface {
-	GetAllImages(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Image], error)
-	GetAllFlavors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Flavor], error)
-	GetAllNetworks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Network], error)
+	GetAllImages(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Image], error)
+	GetAllFlavors(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Flavor], error)
+	GetAllNetworks(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Network], error)
 	GetAllServers(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Server], error)
 	GetAllServerPools(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ServerPool], error)
 	GetAllConfigs(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Config], error)
@@ -188,13 +187,13 @@ func NewGatherDataServiceClient(cc grpc.ClientConnInterface) GatherDataServiceCl
 	return &gatherDataServiceClient{cc}
 }
 
-func (c *gatherDataServiceClient) GetAllImages(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Image], error) {
+func (c *gatherDataServiceClient) GetAllImages(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Image], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &GatherDataService_ServiceDesc.Streams[0], GatherDataService_GetAllImages_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[emptypb.Empty, Image]{ClientStream: stream}
+	x := &grpc.GenericClientStream[UserRequest, Image]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -207,13 +206,13 @@ func (c *gatherDataServiceClient) GetAllImages(ctx context.Context, in *emptypb.
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GatherDataService_GetAllImagesClient = grpc.ServerStreamingClient[Image]
 
-func (c *gatherDataServiceClient) GetAllFlavors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Flavor], error) {
+func (c *gatherDataServiceClient) GetAllFlavors(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Flavor], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &GatherDataService_ServiceDesc.Streams[1], GatherDataService_GetAllFlavors_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[emptypb.Empty, Flavor]{ClientStream: stream}
+	x := &grpc.GenericClientStream[UserRequest, Flavor]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -226,13 +225,13 @@ func (c *gatherDataServiceClient) GetAllFlavors(ctx context.Context, in *emptypb
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GatherDataService_GetAllFlavorsClient = grpc.ServerStreamingClient[Flavor]
 
-func (c *gatherDataServiceClient) GetAllNetworks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Network], error) {
+func (c *gatherDataServiceClient) GetAllNetworks(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Network], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &GatherDataService_ServiceDesc.Streams[2], GatherDataService_GetAllNetworks_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[emptypb.Empty, Network]{ClientStream: stream}
+	x := &grpc.GenericClientStream[UserRequest, Network]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -306,9 +305,9 @@ type GatherDataService_GetAllConfigsClient = grpc.ServerStreamingClient[Config]
 // All implementations must embed UnimplementedGatherDataServiceServer
 // for forward compatibility.
 type GatherDataServiceServer interface {
-	GetAllImages(*emptypb.Empty, grpc.ServerStreamingServer[Image]) error
-	GetAllFlavors(*emptypb.Empty, grpc.ServerStreamingServer[Flavor]) error
-	GetAllNetworks(*emptypb.Empty, grpc.ServerStreamingServer[Network]) error
+	GetAllImages(*UserRequest, grpc.ServerStreamingServer[Image]) error
+	GetAllFlavors(*UserRequest, grpc.ServerStreamingServer[Flavor]) error
+	GetAllNetworks(*UserRequest, grpc.ServerStreamingServer[Network]) error
 	GetAllServers(*UserRequest, grpc.ServerStreamingServer[Server]) error
 	GetAllServerPools(*UserRequest, grpc.ServerStreamingServer[ServerPool]) error
 	GetAllConfigs(*UserRequest, grpc.ServerStreamingServer[Config]) error
@@ -322,13 +321,13 @@ type GatherDataServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGatherDataServiceServer struct{}
 
-func (UnimplementedGatherDataServiceServer) GetAllImages(*emptypb.Empty, grpc.ServerStreamingServer[Image]) error {
+func (UnimplementedGatherDataServiceServer) GetAllImages(*UserRequest, grpc.ServerStreamingServer[Image]) error {
 	return status.Errorf(codes.Unimplemented, "method GetAllImages not implemented")
 }
-func (UnimplementedGatherDataServiceServer) GetAllFlavors(*emptypb.Empty, grpc.ServerStreamingServer[Flavor]) error {
+func (UnimplementedGatherDataServiceServer) GetAllFlavors(*UserRequest, grpc.ServerStreamingServer[Flavor]) error {
 	return status.Errorf(codes.Unimplemented, "method GetAllFlavors not implemented")
 }
-func (UnimplementedGatherDataServiceServer) GetAllNetworks(*emptypb.Empty, grpc.ServerStreamingServer[Network]) error {
+func (UnimplementedGatherDataServiceServer) GetAllNetworks(*UserRequest, grpc.ServerStreamingServer[Network]) error {
 	return status.Errorf(codes.Unimplemented, "method GetAllNetworks not implemented")
 }
 func (UnimplementedGatherDataServiceServer) GetAllServers(*UserRequest, grpc.ServerStreamingServer[Server]) error {
@@ -362,33 +361,33 @@ func RegisterGatherDataServiceServer(s grpc.ServiceRegistrar, srv GatherDataServ
 }
 
 func _GatherDataService_GetAllImages_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
+	m := new(UserRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GatherDataServiceServer).GetAllImages(m, &grpc.GenericServerStream[emptypb.Empty, Image]{ServerStream: stream})
+	return srv.(GatherDataServiceServer).GetAllImages(m, &grpc.GenericServerStream[UserRequest, Image]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GatherDataService_GetAllImagesServer = grpc.ServerStreamingServer[Image]
 
 func _GatherDataService_GetAllFlavors_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
+	m := new(UserRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GatherDataServiceServer).GetAllFlavors(m, &grpc.GenericServerStream[emptypb.Empty, Flavor]{ServerStream: stream})
+	return srv.(GatherDataServiceServer).GetAllFlavors(m, &grpc.GenericServerStream[UserRequest, Flavor]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GatherDataService_GetAllFlavorsServer = grpc.ServerStreamingServer[Flavor]
 
 func _GatherDataService_GetAllNetworks_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
+	m := new(UserRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GatherDataServiceServer).GetAllNetworks(m, &grpc.GenericServerStream[emptypb.Empty, Network]{ServerStream: stream})
+	return srv.(GatherDataServiceServer).GetAllNetworks(m, &grpc.GenericServerStream[UserRequest, Network]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.

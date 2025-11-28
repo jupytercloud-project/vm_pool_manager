@@ -15,8 +15,6 @@ import type {
     Config,
 } from "../frontcontrol_pb"
 
-const empty = create(EmptySchema, {});
-
 const transport = createGrpcWebTransport({
   baseUrl: "http://localhost:80", // l'URL de ton proxy gRPC-Web
   useBinaryFormat: true,             // recommandé pour gRPC-Web
@@ -27,27 +25,30 @@ const transport = createGrpcWebTransport({
 
 const gatherClient = createClient(GatherDataService, transport);
 
-export async function getAllImages(): Promise<Image[]>{
+export async function getAllImages(user: string): Promise<Image[]>{
     const results: Image[] = [];
-    const stream = gatherClient.getAllImages(empty);
+    const req = create(UserRequestSchema, { user });
+    const stream = gatherClient.getAllImages(req);
     for await (const img of stream) {
         results.push(img);
     }
     return results;
 }
 
-export async function getAllFlavors(): Promise<Flavor[]> {
+export async function getAllFlavors(user: string): Promise<Flavor[]> {
     const results: Flavor[] = [];
-    const stream = gatherClient.getAllFlavors(empty);
+    const req = create(UserRequestSchema, { user });
+    const stream = gatherClient.getAllFlavors(req);
     for await (const flav of stream) {
         results.push(flav);
     }
     return results;
 }
 
-export async function getAllNetworks(): Promise<Network[]> {
+export async function getAllNetworks(user: string): Promise<Network[]> {
     const results: Network[] = [];
-    const stream = gatherClient.getAllNetworks(empty);
+    const req = create(UserRequestSchema, { user });
+    const stream = gatherClient.getAllNetworks(req);
     for await (const net of stream) {
         results.push(net);
     }

@@ -9,7 +9,6 @@ package frontcontrolpb
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -2159,7 +2158,7 @@ var File_frontcontrol_proto protoreflect.FileDescriptor
 
 const file_frontcontrol_proto_rawDesc = "" +
 	"\n" +
-	"\x12frontcontrol.proto\x12\ffrontcontrol\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"a\n" +
+	"\x12frontcontrol.proto\x12\ffrontcontrol\x1a\x1fgoogle/protobuf/timestamp.proto\"a\n" +
 	"\x11CreateUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
@@ -2360,11 +2359,11 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\vAuthService\x12O\n" +
 	"\n" +
 	"CreateUser\x12\x1f.frontcontrol.CreateUserRequest\x1a .frontcontrol.CreateUserResponse\x12a\n" +
-	"\x10AuthenticateUser\x12%.frontcontrol.AuthenticateUserRequest\x1a&.frontcontrol.AuthenticateUserResponse2\xaa\x03\n" +
-	"\x11GatherDataService\x12=\n" +
-	"\fGetAllImages\x12\x16.google.protobuf.Empty\x1a\x13.frontcontrol.Image0\x01\x12?\n" +
-	"\rGetAllFlavors\x12\x16.google.protobuf.Empty\x1a\x14.frontcontrol.Flavor0\x01\x12A\n" +
-	"\x0eGetAllNetworks\x12\x16.google.protobuf.Empty\x1a\x15.frontcontrol.Network0\x01\x12B\n" +
+	"\x10AuthenticateUser\x12%.frontcontrol.AuthenticateUserRequest\x1a&.frontcontrol.AuthenticateUserResponse2\xb3\x03\n" +
+	"\x11GatherDataService\x12@\n" +
+	"\fGetAllImages\x12\x19.frontcontrol.UserRequest\x1a\x13.frontcontrol.Image0\x01\x12B\n" +
+	"\rGetAllFlavors\x12\x19.frontcontrol.UserRequest\x1a\x14.frontcontrol.Flavor0\x01\x12D\n" +
+	"\x0eGetAllNetworks\x12\x19.frontcontrol.UserRequest\x1a\x15.frontcontrol.Network0\x01\x12B\n" +
 	"\rGetAllServers\x12\x19.frontcontrol.UserRequest\x1a\x14.frontcontrol.Server0\x01\x12J\n" +
 	"\x11GetAllServerPools\x12\x19.frontcontrol.UserRequest\x1a\x18.frontcontrol.ServerPool0\x01\x12B\n" +
 	"\rGetAllConfigs\x12\x19.frontcontrol.UserRequest\x1a\x14.frontcontrol.Config0\x012\xe2\x02\n" +
@@ -2435,7 +2434,6 @@ var file_frontcontrol_proto_goTypes = []any{
 	nil,                              // 33: frontcontrol.Server.MetadataEntry
 	nil,                              // 34: frontcontrol.ServerPool.MetadataEntry
 	(*timestamppb.Timestamp)(nil),    // 35: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),            // 36: google.protobuf.Empty
 }
 var file_frontcontrol_proto_depIdxs = []int32{
 	35, // 0: frontcontrol.Image.created_at:type_name -> google.protobuf.Timestamp
@@ -2450,9 +2448,9 @@ var file_frontcontrol_proto_depIdxs = []int32{
 	34, // 9: frontcontrol.ServerPool.metadata:type_name -> frontcontrol.ServerPool.MetadataEntry
 	2,  // 10: frontcontrol.AuthService.CreateUser:input_type -> frontcontrol.CreateUserRequest
 	4,  // 11: frontcontrol.AuthService.AuthenticateUser:input_type -> frontcontrol.AuthenticateUserRequest
-	36, // 12: frontcontrol.GatherDataService.GetAllImages:input_type -> google.protobuf.Empty
-	36, // 13: frontcontrol.GatherDataService.GetAllFlavors:input_type -> google.protobuf.Empty
-	36, // 14: frontcontrol.GatherDataService.GetAllNetworks:input_type -> google.protobuf.Empty
+	27, // 12: frontcontrol.GatherDataService.GetAllImages:input_type -> frontcontrol.UserRequest
+	27, // 13: frontcontrol.GatherDataService.GetAllFlavors:input_type -> frontcontrol.UserRequest
+	27, // 14: frontcontrol.GatherDataService.GetAllNetworks:input_type -> frontcontrol.UserRequest
 	27, // 15: frontcontrol.GatherDataService.GetAllServers:input_type -> frontcontrol.UserRequest
 	27, // 16: frontcontrol.GatherDataService.GetAllServerPools:input_type -> frontcontrol.UserRequest
 	27, // 17: frontcontrol.GatherDataService.GetAllConfigs:input_type -> frontcontrol.UserRequest
