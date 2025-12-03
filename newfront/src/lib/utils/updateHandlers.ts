@@ -5,10 +5,10 @@ import {
     Status,
 } from "../grpc/frontcontrol_pb";
 import type { UpdateDataUserResponse } from "../grpc/frontcontrol_pb";
-import type { Writable } from "svelte/store";
+import { get, type Writable } from "svelte/store";
 
 // ======================================================================
-// Mapping Type → Store
+// Type → Store mapping
 // ======================================================================
 
 const storeMap: Record<Type, Writable<any[]> | undefined> = {
@@ -19,68 +19,72 @@ const storeMap: Record<Type, Writable<any[]> | undefined> = {
 };
 
 // ======================================================================
-// Convertit map<string,string> → object JS
+// map<string,string> → object JS
 // ======================================================================
 
-function mapToObject(map: Record<string, string>): any {
+function mapToObject(map: Record<string, string>) {
     return { ...map };
 }
 
 // ======================================================================
-// Vérifie la présence de la clé composite user_id + name
+// Vérifie si un objet possède la clé composite (user_id + name)
 // ======================================================================
 
-function hasCompositeKey(obj: any): boolean {
-    if (!obj.user_id || !obj.name) {
-        console.warn("Objet sans user_id ou name → ignoré :", obj);
-        return false;
+function hasRequiredKey(obj: any) {
+    const ok = obj && obj.user_id && obj.name;
+    if (!ok) {
+        console.warn("❌ Objet ignoré (clé composite absente) :", obj);
     }
-    return true;
+    return ok;
 }
 
 // ======================================================================
-// Comparaison des clés composées
+// Match clé composite : user_id + name
 // ======================================================================
 
-function isSameKey(a: any, b: any): boolean {
+function isSameKey(a: any, b: any) {
     return a.user_id === b.user_id && a.name === b.name;
 }
 
 // ======================================================================
-// CREATE / UPDATE / DELETE sur un store avec clé composite
+// Mutation CREATE - UPDATE - DELETE dans le Store
 // ======================================================================
 
-function applyStoreMutation(
-    store: Writable<any[]>,
-    status: Status,
-    newObj: any
-) {
-    if (!hasCompositeKey(newObj)) return;
+function applyStoreMutation(store: Writable<any[]>, status: Status, obj: any) {
+    if (!hasRequiredKey(obj)) return;
 
     store.update(items => {
-        if (!Array.isArray(items)) {
-            items = [];
-        }
+        if (!Array.isArray(items)) items = [];
 
-        const idx = items.findIndex(i => isSameKey(i, newObj));
+        const idx = items.findIndex(i => isSameKey(i, obj));
 
         switch (status) {
             case Status.CREATE:
-                if (idx === -1) items.push(newObj);
+                if (idx === -1) {
+                    console.log("🟢 CREATE :", obj);
+                    items.push(obj);
+                }
                 break;
 
             case Status.UPDATE:
-                if (idx !== -1)
-                    items[idx] = { ...items[idx], ...newObj };
+                if (idx !== -1) {
+                    console.log("🟡 UPDATE :", obj);
+                    items[idx] = { ...items[idx], ...obj };
+                }
                 break;
 
             case Status.DELETE:
-                if (idx !== -1)
+                if (idx !== -1) {
+                    console.log("🔴 DELETE :", obj);
                     items.splice(idx, 1);
+                }
                 break;
+
+            default:
+                console.warn("❓ Status inconnu :", status);
         }
 
-        return [...items]; // reactive pour Svelte
+        return [...items]; // force réactivité Svelte
     });
 }
 
@@ -89,17 +93,16 @@ function applyStoreMutation(
 // ======================================================================
 
 export function handleUserUpdate(update: UpdateDataUserResponse) {
-    console.log("updating something : ", update)
-    const store = storeMap[update.type];
+    console.log("📩 Update reçu :", update);
 
+    const store = storeMap[update.type];
     if (!store) {
-        console.warn("Type non géré dans le storeMap:", update.type);
+        console.warn("⚠ Type non géré :", update.type);
         return;
     }
 
     const obj = mapToObject(update.data);
-
-    console.log("Store BEFORE mutation:", configs);
     applyStoreMutation(store, update.status, obj);
-    console.log("Store AFTER mutation:", configs);
+
+    console.log("📦 Store mis à jour :", get(store));
 }

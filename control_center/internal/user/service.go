@@ -69,7 +69,7 @@ func (s *Service) UpdateDataUser(req *frontcontrolpb.UpdateDataUserRequest, stre
 			// Action → Status Proto
 			var status frontcontrolpb.Status
 			switch evt.Action {
-			case "insert":
+			case "create":
 				status = frontcontrolpb.Status_CREATE
 			case "update":
 				status = frontcontrolpb.Status_UPDATE
@@ -96,6 +96,13 @@ func (s *Service) UpdateDataUser(req *frontcontrolpb.UpdateDataUserRequest, stre
 			for k, v := range data {
 				stringData[k] = fmt.Sprintf("%v", v)
 			}
+
+			log.Printf("[STREAM OUT] User=%s Type=%s Status=%s Data=%v",
+				user,
+				typ.String(),
+				status.String(),
+				stringData,
+			)
 
 			resp := &frontcontrolpb.UpdateDataUserResponse{
 				User:   user,
