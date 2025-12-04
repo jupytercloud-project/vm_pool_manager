@@ -2154,6 +2154,50 @@ func (x *Config) GetData() string {
 	return ""
 }
 
+type ExistData struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Exist         bool                   `protobuf:"varint,1,opt,name=exist,proto3" json:"exist,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExistData) Reset() {
+	*x = ExistData{}
+	mi := &file_frontcontrol_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExistData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExistData) ProtoMessage() {}
+
+func (x *ExistData) ProtoReflect() protoreflect.Message {
+	mi := &file_frontcontrol_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExistData.ProtoReflect.Descriptor instead.
+func (*ExistData) Descriptor() ([]byte, []int) {
+	return file_frontcontrol_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ExistData) GetExist() bool {
+	if x != nil {
+		return x.Exist
+	}
+	return false
+}
+
 var File_frontcontrol_proto protoreflect.FileDescriptor
 
 const file_frontcontrol_proto_rawDesc = "" +
@@ -2339,7 +2383,9 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\x06Config\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04data\x18\x03 \x01(\tR\x04data*@\n" +
+	"\x04data\x18\x03 \x01(\tR\x04data\"!\n" +
+	"\tExistData\x12\x14\n" +
+	"\x05exist\x18\x01 \x01(\bR\x05exist*@\n" +
 	"\x06Status\x12\x12\n" +
 	"\x0eSTATUS_UNKNOWN\x10\x00\x12\n" +
 	"\n" +
@@ -2359,11 +2405,14 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\vAuthService\x12O\n" +
 	"\n" +
 	"CreateUser\x12\x1f.frontcontrol.CreateUserRequest\x1a .frontcontrol.CreateUserResponse\x12a\n" +
-	"\x10AuthenticateUser\x12%.frontcontrol.AuthenticateUserRequest\x1a&.frontcontrol.AuthenticateUserResponse2\xb3\x03\n" +
+	"\x10AuthenticateUser\x12%.frontcontrol.AuthenticateUserRequest\x1a&.frontcontrol.AuthenticateUserResponse2\x82\x05\n" +
 	"\x11GatherDataService\x12@\n" +
 	"\fGetAllImages\x12\x19.frontcontrol.UserRequest\x1a\x13.frontcontrol.Image0\x01\x12B\n" +
 	"\rGetAllFlavors\x12\x19.frontcontrol.UserRequest\x1a\x14.frontcontrol.Flavor0\x01\x12D\n" +
-	"\x0eGetAllNetworks\x12\x19.frontcontrol.UserRequest\x1a\x15.frontcontrol.Network0\x01\x12B\n" +
+	"\x0eGetAllNetworks\x12\x19.frontcontrol.UserRequest\x1a\x15.frontcontrol.Network0\x01\x12A\n" +
+	"\vExistServer\x12\x19.frontcontrol.UserRequest\x1a\x17.frontcontrol.ExistData\x12F\n" +
+	"\x10ExistServerPools\x12\x19.frontcontrol.UserRequest\x1a\x17.frontcontrol.ExistData\x12B\n" +
+	"\fExistConfigs\x12\x19.frontcontrol.UserRequest\x1a\x17.frontcontrol.ExistData\x12B\n" +
 	"\rGetAllServers\x12\x19.frontcontrol.UserRequest\x1a\x14.frontcontrol.Server0\x01\x12J\n" +
 	"\x11GetAllServerPools\x12\x19.frontcontrol.UserRequest\x1a\x18.frontcontrol.ServerPool0\x01\x12B\n" +
 	"\rGetAllConfigs\x12\x19.frontcontrol.UserRequest\x1a\x14.frontcontrol.Config0\x012\xe2\x02\n" +
@@ -2396,7 +2445,7 @@ func file_frontcontrol_proto_rawDescGZIP() []byte {
 }
 
 var file_frontcontrol_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_frontcontrol_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_frontcontrol_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_frontcontrol_proto_goTypes = []any{
 	(Status)(0),                      // 0: frontcontrol.Status
 	(Type)(0),                        // 1: frontcontrol.Type
@@ -2429,61 +2478,68 @@ var file_frontcontrol_proto_goTypes = []any{
 	(*Server)(nil),                   // 28: frontcontrol.Server
 	(*ServerPool)(nil),               // 29: frontcontrol.ServerPool
 	(*Config)(nil),                   // 30: frontcontrol.Config
-	nil,                              // 31: frontcontrol.CreatePoolRequest.MetadataEntry
-	nil,                              // 32: frontcontrol.UpdateDataUserResponse.DataEntry
-	nil,                              // 33: frontcontrol.Server.MetadataEntry
-	nil,                              // 34: frontcontrol.ServerPool.MetadataEntry
-	(*timestamppb.Timestamp)(nil),    // 35: google.protobuf.Timestamp
+	(*ExistData)(nil),                // 31: frontcontrol.ExistData
+	nil,                              // 32: frontcontrol.CreatePoolRequest.MetadataEntry
+	nil,                              // 33: frontcontrol.UpdateDataUserResponse.DataEntry
+	nil,                              // 34: frontcontrol.Server.MetadataEntry
+	nil,                              // 35: frontcontrol.ServerPool.MetadataEntry
+	(*timestamppb.Timestamp)(nil),    // 36: google.protobuf.Timestamp
 }
 var file_frontcontrol_proto_depIdxs = []int32{
-	35, // 0: frontcontrol.Image.created_at:type_name -> google.protobuf.Timestamp
-	35, // 1: frontcontrol.Image.updated_at:type_name -> google.protobuf.Timestamp
-	31, // 2: frontcontrol.CreatePoolRequest.metadata:type_name -> frontcontrol.CreatePoolRequest.MetadataEntry
+	36, // 0: frontcontrol.Image.created_at:type_name -> google.protobuf.Timestamp
+	36, // 1: frontcontrol.Image.updated_at:type_name -> google.protobuf.Timestamp
+	32, // 2: frontcontrol.CreatePoolRequest.metadata:type_name -> frontcontrol.CreatePoolRequest.MetadataEntry
 	0,  // 3: frontcontrol.UpdateDataUserResponse.status:type_name -> frontcontrol.Status
 	1,  // 4: frontcontrol.UpdateDataUserResponse.type:type_name -> frontcontrol.Type
-	32, // 5: frontcontrol.UpdateDataUserResponse.data:type_name -> frontcontrol.UpdateDataUserResponse.DataEntry
-	35, // 6: frontcontrol.Server.created_at:type_name -> google.protobuf.Timestamp
-	35, // 7: frontcontrol.Server.updated_at:type_name -> google.protobuf.Timestamp
-	33, // 8: frontcontrol.Server.metadata:type_name -> frontcontrol.Server.MetadataEntry
-	34, // 9: frontcontrol.ServerPool.metadata:type_name -> frontcontrol.ServerPool.MetadataEntry
+	33, // 5: frontcontrol.UpdateDataUserResponse.data:type_name -> frontcontrol.UpdateDataUserResponse.DataEntry
+	36, // 6: frontcontrol.Server.created_at:type_name -> google.protobuf.Timestamp
+	36, // 7: frontcontrol.Server.updated_at:type_name -> google.protobuf.Timestamp
+	34, // 8: frontcontrol.Server.metadata:type_name -> frontcontrol.Server.MetadataEntry
+	35, // 9: frontcontrol.ServerPool.metadata:type_name -> frontcontrol.ServerPool.MetadataEntry
 	2,  // 10: frontcontrol.AuthService.CreateUser:input_type -> frontcontrol.CreateUserRequest
 	4,  // 11: frontcontrol.AuthService.AuthenticateUser:input_type -> frontcontrol.AuthenticateUserRequest
 	27, // 12: frontcontrol.GatherDataService.GetAllImages:input_type -> frontcontrol.UserRequest
 	27, // 13: frontcontrol.GatherDataService.GetAllFlavors:input_type -> frontcontrol.UserRequest
 	27, // 14: frontcontrol.GatherDataService.GetAllNetworks:input_type -> frontcontrol.UserRequest
-	27, // 15: frontcontrol.GatherDataService.GetAllServers:input_type -> frontcontrol.UserRequest
-	27, // 16: frontcontrol.GatherDataService.GetAllServerPools:input_type -> frontcontrol.UserRequest
-	27, // 17: frontcontrol.GatherDataService.GetAllConfigs:input_type -> frontcontrol.UserRequest
-	9,  // 18: frontcontrol.ConfigService.CreateConfig:input_type -> frontcontrol.CreateConfigRequest
-	11, // 19: frontcontrol.ConfigService.UpdateConfig:input_type -> frontcontrol.UpdateConfigRequest
-	13, // 20: frontcontrol.ConfigService.DeleteConfig:input_type -> frontcontrol.DeleteConfigRequest
-	15, // 21: frontcontrol.ConfigService.GetConfig:input_type -> frontcontrol.GetConfigRequest
-	17, // 22: frontcontrol.PoolService.CreatePool:input_type -> frontcontrol.CreatePoolRequest
-	21, // 23: frontcontrol.PoolService.GetPool:input_type -> frontcontrol.GetPoolRequest
-	21, // 24: frontcontrol.PoolService.GetAllPools:input_type -> frontcontrol.GetPoolRequest
-	19, // 25: frontcontrol.PoolService.DeletePool:input_type -> frontcontrol.DeletePoolRequest
-	25, // 26: frontcontrol.PoolService.RebuildServer:input_type -> frontcontrol.RebuildServerRequest
-	23, // 27: frontcontrol.UserService.UpdateDataUser:input_type -> frontcontrol.UpdateDataUserRequest
-	3,  // 28: frontcontrol.AuthService.CreateUser:output_type -> frontcontrol.CreateUserResponse
-	5,  // 29: frontcontrol.AuthService.AuthenticateUser:output_type -> frontcontrol.AuthenticateUserResponse
-	6,  // 30: frontcontrol.GatherDataService.GetAllImages:output_type -> frontcontrol.Image
-	7,  // 31: frontcontrol.GatherDataService.GetAllFlavors:output_type -> frontcontrol.Flavor
-	8,  // 32: frontcontrol.GatherDataService.GetAllNetworks:output_type -> frontcontrol.Network
-	28, // 33: frontcontrol.GatherDataService.GetAllServers:output_type -> frontcontrol.Server
-	29, // 34: frontcontrol.GatherDataService.GetAllServerPools:output_type -> frontcontrol.ServerPool
-	30, // 35: frontcontrol.GatherDataService.GetAllConfigs:output_type -> frontcontrol.Config
-	10, // 36: frontcontrol.ConfigService.CreateConfig:output_type -> frontcontrol.CreateConfigResponse
-	12, // 37: frontcontrol.ConfigService.UpdateConfig:output_type -> frontcontrol.UpdateConfigResponse
-	14, // 38: frontcontrol.ConfigService.DeleteConfig:output_type -> frontcontrol.DeleteConfigResponse
-	16, // 39: frontcontrol.ConfigService.GetConfig:output_type -> frontcontrol.GetConfigResponse
-	18, // 40: frontcontrol.PoolService.CreatePool:output_type -> frontcontrol.CreatePoolResponse
-	22, // 41: frontcontrol.PoolService.GetPool:output_type -> frontcontrol.GetPoolResponse
-	22, // 42: frontcontrol.PoolService.GetAllPools:output_type -> frontcontrol.GetPoolResponse
-	20, // 43: frontcontrol.PoolService.DeletePool:output_type -> frontcontrol.DeletePoolResponse
-	26, // 44: frontcontrol.PoolService.RebuildServer:output_type -> frontcontrol.RebuildServerResponse
-	24, // 45: frontcontrol.UserService.UpdateDataUser:output_type -> frontcontrol.UpdateDataUserResponse
-	28, // [28:46] is the sub-list for method output_type
-	10, // [10:28] is the sub-list for method input_type
+	27, // 15: frontcontrol.GatherDataService.ExistServer:input_type -> frontcontrol.UserRequest
+	27, // 16: frontcontrol.GatherDataService.ExistServerPools:input_type -> frontcontrol.UserRequest
+	27, // 17: frontcontrol.GatherDataService.ExistConfigs:input_type -> frontcontrol.UserRequest
+	27, // 18: frontcontrol.GatherDataService.GetAllServers:input_type -> frontcontrol.UserRequest
+	27, // 19: frontcontrol.GatherDataService.GetAllServerPools:input_type -> frontcontrol.UserRequest
+	27, // 20: frontcontrol.GatherDataService.GetAllConfigs:input_type -> frontcontrol.UserRequest
+	9,  // 21: frontcontrol.ConfigService.CreateConfig:input_type -> frontcontrol.CreateConfigRequest
+	11, // 22: frontcontrol.ConfigService.UpdateConfig:input_type -> frontcontrol.UpdateConfigRequest
+	13, // 23: frontcontrol.ConfigService.DeleteConfig:input_type -> frontcontrol.DeleteConfigRequest
+	15, // 24: frontcontrol.ConfigService.GetConfig:input_type -> frontcontrol.GetConfigRequest
+	17, // 25: frontcontrol.PoolService.CreatePool:input_type -> frontcontrol.CreatePoolRequest
+	21, // 26: frontcontrol.PoolService.GetPool:input_type -> frontcontrol.GetPoolRequest
+	21, // 27: frontcontrol.PoolService.GetAllPools:input_type -> frontcontrol.GetPoolRequest
+	19, // 28: frontcontrol.PoolService.DeletePool:input_type -> frontcontrol.DeletePoolRequest
+	25, // 29: frontcontrol.PoolService.RebuildServer:input_type -> frontcontrol.RebuildServerRequest
+	23, // 30: frontcontrol.UserService.UpdateDataUser:input_type -> frontcontrol.UpdateDataUserRequest
+	3,  // 31: frontcontrol.AuthService.CreateUser:output_type -> frontcontrol.CreateUserResponse
+	5,  // 32: frontcontrol.AuthService.AuthenticateUser:output_type -> frontcontrol.AuthenticateUserResponse
+	6,  // 33: frontcontrol.GatherDataService.GetAllImages:output_type -> frontcontrol.Image
+	7,  // 34: frontcontrol.GatherDataService.GetAllFlavors:output_type -> frontcontrol.Flavor
+	8,  // 35: frontcontrol.GatherDataService.GetAllNetworks:output_type -> frontcontrol.Network
+	31, // 36: frontcontrol.GatherDataService.ExistServer:output_type -> frontcontrol.ExistData
+	31, // 37: frontcontrol.GatherDataService.ExistServerPools:output_type -> frontcontrol.ExistData
+	31, // 38: frontcontrol.GatherDataService.ExistConfigs:output_type -> frontcontrol.ExistData
+	28, // 39: frontcontrol.GatherDataService.GetAllServers:output_type -> frontcontrol.Server
+	29, // 40: frontcontrol.GatherDataService.GetAllServerPools:output_type -> frontcontrol.ServerPool
+	30, // 41: frontcontrol.GatherDataService.GetAllConfigs:output_type -> frontcontrol.Config
+	10, // 42: frontcontrol.ConfigService.CreateConfig:output_type -> frontcontrol.CreateConfigResponse
+	12, // 43: frontcontrol.ConfigService.UpdateConfig:output_type -> frontcontrol.UpdateConfigResponse
+	14, // 44: frontcontrol.ConfigService.DeleteConfig:output_type -> frontcontrol.DeleteConfigResponse
+	16, // 45: frontcontrol.ConfigService.GetConfig:output_type -> frontcontrol.GetConfigResponse
+	18, // 46: frontcontrol.PoolService.CreatePool:output_type -> frontcontrol.CreatePoolResponse
+	22, // 47: frontcontrol.PoolService.GetPool:output_type -> frontcontrol.GetPoolResponse
+	22, // 48: frontcontrol.PoolService.GetAllPools:output_type -> frontcontrol.GetPoolResponse
+	20, // 49: frontcontrol.PoolService.DeletePool:output_type -> frontcontrol.DeletePoolResponse
+	26, // 50: frontcontrol.PoolService.RebuildServer:output_type -> frontcontrol.RebuildServerResponse
+	24, // 51: frontcontrol.UserService.UpdateDataUser:output_type -> frontcontrol.UpdateDataUserResponse
+	31, // [31:52] is the sub-list for method output_type
+	10, // [10:31] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -2500,7 +2556,7 @@ func file_frontcontrol_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_frontcontrol_proto_rawDesc), len(file_frontcontrol_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   33,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

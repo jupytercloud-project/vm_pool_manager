@@ -13,6 +13,8 @@ import type {
     Server,
     ServerPool,
     Config,
+    ExistData,
+    UserRequest,
 } from "../frontcontrol_pb"
 
 const transport = createGrpcWebTransport({
@@ -89,4 +91,37 @@ export async function getAllConfigs(user: string): Promise<Config[]> {
         results.push(conf);
     }
     return results;
+}
+
+export async function existServer(user: string): Promise<boolean> {
+    const req : UserRequest = create(UserRequestSchema, {user});
+    try {
+        const res: ExistData = await gatherClient.existServer(req);
+        return res.exist
+    } catch (err) {
+        console.error("Erreur existServer: ", err)
+        throw err;
+    }
+}
+
+export async function existServerPools(user: string): Promise<boolean> {
+    const req : UserRequest = create(UserRequestSchema, {user});
+    try {
+        const res: ExistData = await gatherClient.existServerPools(req);
+        return res.exist
+    } catch (err) {
+        console.error("Erreur existServerPools: ", err)
+        throw err;
+    }
+}
+
+export async function existConfigs(user: string): Promise<boolean> {
+    const req : UserRequest = create(UserRequestSchema, {user});
+    try {
+        const res: ExistData = await gatherClient.existConfigs(req);
+        return res.exist
+    } catch (err) {
+        console.error("Erreur existConfigs: ", err)
+        throw err;
+    }
 }

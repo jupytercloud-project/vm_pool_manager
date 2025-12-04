@@ -231,6 +231,10 @@ message Config {
     string data = 3;
 }
 
+message ExistData {
+    bool exist = 1;
+}
+
 service AuthService {
     rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
     rpc AuthenticateUser (AuthenticateUserRequest) returns (AuthenticateUserResponse);
@@ -240,6 +244,9 @@ service GatherDataService {
     rpc GetAllImages ( UserRequest ) returns (stream Image);
     rpc GetAllFlavors ( UserRequest ) returns (stream Flavor);
     rpc GetAllNetworks ( UserRequest ) returns (stream Network);
+    rpc ExistServer ( UserRequest ) returns ( ExistData );
+    rpc ExistServerPools ( UserRequest ) returns ( ExistData );
+    rpc ExistConfigs ( UserRequest ) returns ( ExistData );
     rpc GetAllServers ( UserRequest ) returns (stream Server);
     rpc GetAllServerPools ( UserRequest ) returns (stream ServerPool);
     rpc GetAllConfigs ( UserRequest ) returns (stream Config);

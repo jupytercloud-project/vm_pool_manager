@@ -7,6 +7,9 @@ export { getAllImages,
     getAllServers,
     getAllServerPools,
     getAllConfigs,
+    existServer,
+    existServerPools,
+    existConfigs,
 } from './grpc/gatherDataService/gatherDataService';
 export { createUser,
     authenticateUser

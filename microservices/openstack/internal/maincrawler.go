@@ -196,6 +196,7 @@ func CreateServerpoolFromEnv() (models.Serverpool, error) {
 		MaxVM:        maxVM,
 		PendingJobs:  0,
 	}
+	log.Println(pool.Networks)
 
 	return pool, nil
 }

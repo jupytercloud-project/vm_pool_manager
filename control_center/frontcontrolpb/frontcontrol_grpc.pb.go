@@ -162,6 +162,9 @@ const (
 	GatherDataService_GetAllImages_FullMethodName      = "/frontcontrol.GatherDataService/GetAllImages"
 	GatherDataService_GetAllFlavors_FullMethodName     = "/frontcontrol.GatherDataService/GetAllFlavors"
 	GatherDataService_GetAllNetworks_FullMethodName    = "/frontcontrol.GatherDataService/GetAllNetworks"
+	GatherDataService_ExistServer_FullMethodName       = "/frontcontrol.GatherDataService/ExistServer"
+	GatherDataService_ExistServerPools_FullMethodName  = "/frontcontrol.GatherDataService/ExistServerPools"
+	GatherDataService_ExistConfigs_FullMethodName      = "/frontcontrol.GatherDataService/ExistConfigs"
 	GatherDataService_GetAllServers_FullMethodName     = "/frontcontrol.GatherDataService/GetAllServers"
 	GatherDataService_GetAllServerPools_FullMethodName = "/frontcontrol.GatherDataService/GetAllServerPools"
 	GatherDataService_GetAllConfigs_FullMethodName     = "/frontcontrol.GatherDataService/GetAllConfigs"
@@ -174,6 +177,9 @@ type GatherDataServiceClient interface {
 	GetAllImages(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Image], error)
 	GetAllFlavors(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Flavor], error)
 	GetAllNetworks(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Network], error)
+	ExistServer(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error)
+	ExistServerPools(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error)
+	ExistConfigs(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error)
 	GetAllServers(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Server], error)
 	GetAllServerPools(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ServerPool], error)
 	GetAllConfigs(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Config], error)
@@ -244,6 +250,36 @@ func (c *gatherDataServiceClient) GetAllNetworks(ctx context.Context, in *UserRe
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GatherDataService_GetAllNetworksClient = grpc.ServerStreamingClient[Network]
 
+func (c *gatherDataServiceClient) ExistServer(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExistData)
+	err := c.cc.Invoke(ctx, GatherDataService_ExistServer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatherDataServiceClient) ExistServerPools(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExistData)
+	err := c.cc.Invoke(ctx, GatherDataService_ExistServerPools_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatherDataServiceClient) ExistConfigs(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExistData)
+	err := c.cc.Invoke(ctx, GatherDataService_ExistConfigs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *gatherDataServiceClient) GetAllServers(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Server], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &GatherDataService_ServiceDesc.Streams[3], GatherDataService_GetAllServers_FullMethodName, cOpts...)
@@ -308,6 +344,9 @@ type GatherDataServiceServer interface {
 	GetAllImages(*UserRequest, grpc.ServerStreamingServer[Image]) error
 	GetAllFlavors(*UserRequest, grpc.ServerStreamingServer[Flavor]) error
 	GetAllNetworks(*UserRequest, grpc.ServerStreamingServer[Network]) error
+	ExistServer(context.Context, *UserRequest) (*ExistData, error)
+	ExistServerPools(context.Context, *UserRequest) (*ExistData, error)
+	ExistConfigs(context.Context, *UserRequest) (*ExistData, error)
 	GetAllServers(*UserRequest, grpc.ServerStreamingServer[Server]) error
 	GetAllServerPools(*UserRequest, grpc.ServerStreamingServer[ServerPool]) error
 	GetAllConfigs(*UserRequest, grpc.ServerStreamingServer[Config]) error
@@ -329,6 +368,15 @@ func (UnimplementedGatherDataServiceServer) GetAllFlavors(*UserRequest, grpc.Ser
 }
 func (UnimplementedGatherDataServiceServer) GetAllNetworks(*UserRequest, grpc.ServerStreamingServer[Network]) error {
 	return status.Errorf(codes.Unimplemented, "method GetAllNetworks not implemented")
+}
+func (UnimplementedGatherDataServiceServer) ExistServer(context.Context, *UserRequest) (*ExistData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExistServer not implemented")
+}
+func (UnimplementedGatherDataServiceServer) ExistServerPools(context.Context, *UserRequest) (*ExistData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExistServerPools not implemented")
+}
+func (UnimplementedGatherDataServiceServer) ExistConfigs(context.Context, *UserRequest) (*ExistData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExistConfigs not implemented")
 }
 func (UnimplementedGatherDataServiceServer) GetAllServers(*UserRequest, grpc.ServerStreamingServer[Server]) error {
 	return status.Errorf(codes.Unimplemented, "method GetAllServers not implemented")
@@ -393,6 +441,60 @@ func _GatherDataService_GetAllNetworks_Handler(srv interface{}, stream grpc.Serv
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type GatherDataService_GetAllNetworksServer = grpc.ServerStreamingServer[Network]
 
+func _GatherDataService_ExistServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatherDataServiceServer).ExistServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GatherDataService_ExistServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatherDataServiceServer).ExistServer(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatherDataService_ExistServerPools_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatherDataServiceServer).ExistServerPools(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GatherDataService_ExistServerPools_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatherDataServiceServer).ExistServerPools(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatherDataService_ExistConfigs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatherDataServiceServer).ExistConfigs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GatherDataService_ExistConfigs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatherDataServiceServer).ExistConfigs(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GatherDataService_GetAllServers_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(UserRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -432,7 +534,20 @@ type GatherDataService_GetAllConfigsServer = grpc.ServerStreamingServer[Config]
 var GatherDataService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "frontcontrol.GatherDataService",
 	HandlerType: (*GatherDataServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ExistServer",
+			Handler:    _GatherDataService_ExistServer_Handler,
+		},
+		{
+			MethodName: "ExistServerPools",
+			Handler:    _GatherDataService_ExistServerPools_Handler,
+		},
+		{
+			MethodName: "ExistConfigs",
+			Handler:    _GatherDataService_ExistConfigs_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetAllImages",

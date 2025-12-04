@@ -95,8 +95,6 @@ func (sp *Serverpool) ToMap() map[string]string {
 }
 
 func (sp *Serverpool) ToFrontControlPb() *frontcontrolpb.ServerPool {
-	// network: ton proto attend une STRING, alors que ton modèle contient un slice
-	// par défaut on prend le premier réseau s’il existe
 	var network string
 	if len(sp.Networks) > 0 {
 		network = sp.Networks[0]
