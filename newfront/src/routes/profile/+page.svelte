@@ -33,7 +33,7 @@
             <TableBodyCell>{sp.flavor}</TableBodyCell>
             <TableBodyCell>{sp.minVm}</TableBodyCell>
             <TableBodyCell>{sp.maxVm}</TableBodyCell>
-            <!-- <TableBodyCell class="flex justify-center"><Button class="bg-option-500"onclick={() => goto(`/serverpools/${sp.serverpool_id}`)}>Inspect</Button></TableBodyCell> -->
+            <TableBodyCell class="flex justify-center"><Button class="bg-option-500"onclick={() => goto(`/serverpool/${sp.name}`)}>Inspect</Button></TableBodyCell>
           </TableBodyRow>
         {/each}
       </TableBody>

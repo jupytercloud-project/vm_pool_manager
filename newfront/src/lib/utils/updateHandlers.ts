@@ -84,8 +84,16 @@ function applyStoreMutation(store: Writable<any[]>, status: Status, obj: any) {
                 console.warn("❓ Status inconnu :", status);
         }
 
-        return [...items]; // force réactivité Svelte
+        return [...items];
     });
+}
+
+function normalize(obj: any) {
+    if (!obj.name && obj.serverpool_id) {
+        obj.name = obj.serverpool_id;
+        delete obj.serverpool_id;
+    }
+    return obj;
 }
 
 // ======================================================================
@@ -101,7 +109,7 @@ export function handleUserUpdate(update: UpdateDataUserResponse) {
         return;
     }
 
-    const obj = mapToObject(update.data);
+    const obj = normalize(mapToObject(update.data));
     applyStoreMutation(store, update.status, obj);
 
     console.log("📦 Store mis à jour :", get(store));

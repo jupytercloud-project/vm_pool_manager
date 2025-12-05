@@ -12,16 +12,15 @@ import (
 )
 
 type Server struct {
-	ID           string `gorm:"primaryKey"`
-	Name         string
-	Status       string
-	FlavorRef    string
-	ImageRef     string
-	Networks     JSONStringSlice `gorm:"type:text"`
-	Metadata     JSONStringMap   `gorm:"type:text"`
-	ServerpoolID string
-	UserID       string
-	// ServerPool     *Serverpool `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
+	ID             string `gorm:"primaryKey"`
+	Name           string
+	Status         string
+	FlavorRef      string
+	ImageRef       string
+	Networks       JSONStringSlice `gorm:"type:text"`
+	Metadata       JSONStringMap   `gorm:"type:text"`
+	ServerpoolID   string
+	UserID         string
 	AttachVolumeID string
 	VolPending     bool `gorm:"default:false; not null"`
 	Reattrib       bool `gorm:"default:false; not null"`
@@ -57,6 +56,39 @@ func FromGopherServer(s servers.Server) Server {
 		ServerpoolID: s.Metadata["serverpool_id"],
 		UserID:       s.Metadata["user_id"],
 	}
+}
+
+func (s *Server) ToMap() map[string]string {
+	result := map[string]string{
+		"id":            s.ID,
+		"name":          s.Name,
+		"status":        s.Status,
+		"flavor_ref":    s.FlavorRef,
+		"image_ref":     s.ImageRef,
+		"serverpool_id": s.ServerpoolID,
+		"user_id":       s.UserID,
+		"attach_volume": s.AttachVolumeID,
+		"vol_pending":   fmt.Sprintf("%t", s.VolPending),
+		"reattrib":      fmt.Sprintf("%t", s.Reattrib),
+		"progress":      fmt.Sprintf("%d", s.Progress),
+		"config_id":     fmt.Sprintf("%d", s.ConfigID),
+	}
+
+	// Convertir les champs JSON custom (JSONStringSlice, JSONStringMap)
+	if s.Networks != nil {
+		if b, err := json.Marshal(s.Networks); err == nil {
+			result["networks"] = string(b)
+		}
+	}
+	if s.Metadata != nil {
+		if b, err := json.Marshal(s.Metadata); err == nil {
+			result["metadata"] = string(b)
+		}
+	}
+
+	result["host"] = "OpenStack"
+
+	return result
 }
 
 func (s *Server) FromPb(pbs *pb.StreamRessourceResponse) {
@@ -118,8 +150,6 @@ func (s *Server) ToFrontControlPb() *frontcontrolpb.Server {
 }
 
 func PrintServer(server Server) error {
-
-	// Afficher les infos du Server
 	fmt.Println("=== Server Data ===")
 	fmt.Printf("ID: %s\n", server.ID)
 	fmt.Printf("Name: %s\n", server.Name)
@@ -130,12 +160,6 @@ func PrintServer(server Server) error {
 	fmt.Printf("Metadata: %+v\n", server.Metadata)
 	fmt.Printf("ServerpoolID: %s\n", server.ServerpoolID)
 	fmt.Printf("UserID: %s\n", server.UserID)
-
-	// Si la relation ServerPool est chargée
-	// if server.ServerPool != nil {
-	// 	PrintServerpool(*server.ServerPool)
-	// }
-
 	return nil
 }
 

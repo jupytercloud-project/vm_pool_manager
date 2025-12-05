@@ -85,3 +85,24 @@ func (s *Service) GetPool(ctx context.Context, req *frontcontrolpb.GetPoolReques
 		Config:  pool.ConfigID,
 	}, nil
 }
+
+func (s *Service) RebuildServer(ctx context.Context, req *frontcontrolpb.RebuildServerRequest) (*frontcontrolpb.RebuildServerResponse, error) {
+	var server models.Server
+	err := s.DB.Where("name = ? AND user_id = ?", req.GetServerId(), req.GetUser()).First(&server).Error
+	if err != nil {
+		return &frontcontrolpb.RebuildServerResponse{Success: false}, err
+	}
+	data := server.ToMap()
+	data["serverpool_id"] = req.GetPoolId()
+
+	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+		User:   req.GetUser(),
+		Data:   data,
+		Status: pb.Status_UPDATE,
+		Type:   pb.Type_SERVER,
+	})
+	if err != nil || !rep.GetSuccess() {
+		return &frontcontrolpb.RebuildServerResponse{Success: false}, err
+	}
+	return &frontcontrolpb.RebuildServerResponse{Success: true}, nil
+}

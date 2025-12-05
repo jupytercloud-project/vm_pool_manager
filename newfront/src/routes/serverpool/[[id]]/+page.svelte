@@ -44,23 +44,31 @@ const handleClick = async (e: Event) => {
 };
 
 $: token = $authStore?.token ?? null;
-$: poolID = page.params.id;
-$: selectedPool = $serverPools.find(p => p.id === poolID);
-$: if (selectedPool) {
-	serversp = $servers.filter(server => 
-		server.metadata?.serverpool_id === selectedPool.name
-	);
-}
+$: selectedPool = $serverPools.find(p => p.name === selectedsp);
+$: serversp = selectedPool
+    ? $servers.filter(server =>
+        server.metadata?.serverpool_id === selectedPool.name
+    )
+    : [];
+
 $: networkOptions = $networks.map(net => ({
     value: net.id,
     name: net.name,
-}));
+  }));
+  
+  $: sortedFlavors = [...$flavors].sort((a, b) =>
+  a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+);
 
+$: image = selectedGroupImage
+  ? filterImagesByPrefix($images, selectedGroupImage)
+  : [];
 
 function getFlavorNameById(id: string): string {
 	const flavor = $flavors.find(f => f.id === id);
 	return flavor ? flavor.name : id;
 }
+
 
 function getImageNameById(id: string): string {
 	const img = $images.find(i => i.id === id);
@@ -71,8 +79,9 @@ async function handleRebuildServer(serv: Server) {
 	if (!confirm(`Voulez-vous rebuild le serveur ${serv.name} ?`)) {
 		return;
 	}
-	const req: RebuildServerRequest = create(RebuildServerRequestSchema, {})
-	try {
+	const req: RebuildServerRequest = create(RebuildServerRequestSchema, {user: $authStore?.email, poolId: serv.metadata?.serverpool_id, serverId: serv.name})
+	console.log("Rebuild request: ", req);
+  try {
 		const res: RebuildServerResponse = await rebuildServer(req);
 		if (!res.success) {
 			
@@ -87,11 +96,11 @@ async function handleDeleteServerpool(sp: ServerPool) {
 	if (!confirm(`Voulez-vous supprimer le serveur ${sp.name} ?`)) {
 		return;
 	}
-	const req: DeletePoolRequest = create(DeletePoolRequestSchema, {})
+	const req: DeletePoolRequest = create(DeletePoolRequestSchema, {user: $authStore?.email, poolId: sp.name})
 	try {
 		const res: DeletePoolResponse = await deletePool(req);
 		if (!res.success) {
-
+      selectedsp = "Choisissez le serverpool";
 		}
 	} catch (err) {
 		console.error("Erreur lors de la suppression du pool: ", err);
@@ -118,9 +127,6 @@ let selectedGroupImage: string | null = null;
 let selectedImage: string | null = null;
 let groupimagename = getUniqueFirstAlphaBlocks($images);
 
-$: image = selectedGroupImage
-	? filterImagesByPrefix($images, selectedGroupImage)
-	: [];
 
 async function handleCreateServerpool(event: Event) {
     event.preventDefault();
@@ -171,8 +177,6 @@ async function handleCreateServerpool(event: Event) {
         createError = "Impossible de créer le serverpool.";
     }
 }
-
-
 </script>
 
 <!-- Dropdown -->
@@ -181,7 +185,7 @@ async function handleCreateServerpool(event: Event) {
 </Button>
 <Dropdown simple isOpen={false} class="mt-2">
   {#each $serverPools as sp}
-	<DropdownItem name={sp.name} onclick={handleClick}>{sp.id}</DropdownItem>
+	<DropdownItem name={sp.name} onclick={handleClick}>{sp.name}</DropdownItem>
   {/each}
 </Dropdown>
 
@@ -299,7 +303,7 @@ async function handleCreateServerpool(event: Event) {
         <span>Flavor</span>
         <Select bind:value={selectedFlavor} required>
           <option disabled selected value="">Choisir un flavor</option>
-          {#each $flavors as f}
+          {#each sortedFlavors as f}
             <option value={f.id}>{f.name}</option>
           {/each}
         </Select>
