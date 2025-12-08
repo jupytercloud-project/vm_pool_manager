@@ -41,6 +41,11 @@ tasks:
     cmds:
       - npm run dev
 
+  control:
+    dir: control_center
+    cmds:
+    - go run main.go
+
   run:
     desc: run the binary file, build it if not existed
     cmds:

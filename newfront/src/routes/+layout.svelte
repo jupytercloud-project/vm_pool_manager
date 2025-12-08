@@ -12,23 +12,23 @@
   import { createUser, authenticateUser } from '$lib/grpc/authService/authService';
   import { subscribeUserUpdate } from '$lib/grpc/userUpdateService/userService';
 
+  
+  let { children } = $props();
 
-  let userStream: any = null;
+  let userStreamController: AbortController | null = null;
 
   authStore.subscribe(async (auth) => {
     if (!browser) return;
 
+    if (userStreamController) {
+      userStreamController.abort();
+      userStreamController = null;
+    }
     if (auth?.email) {
-      if (!userStream) {
-        userStream = await subscribeUserUpdate(auth.email);
-      }
-    } else {
-      if (userStream?.cancel) userStream.cancel();
-      userStream = null;
+      userStreamController = new AbortController();
+      await subscribeUserUpdate(auth.email, userStreamController.signal);
     }
   });
-
-  let { children } = $props();
 
   onMount(async () => {
     if (!browser) return;

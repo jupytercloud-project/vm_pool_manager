@@ -25,17 +25,22 @@ const transport = createGrpcWebTransport({
 
 const userclient = createClient(UserService, transport);
 
-export async function subscribeUserUpdate(user: string) {
+
+export async function subscribeUserUpdate(user: string, signal?: AbortSignal) {
     const req = create(UpdateDataUserRequestSchema, {user});
     console.log("Envoi request stream :", req);
-    const stream = userclient.updateDataUser(req);
+    const stream = userclient.updateDataUser(req, { signal });
 
     try {
         for await(const update of stream) { 
-            handleUserUpdate(update)
+            handleUserUpdate(update);
         }
     } catch (err) {
-        console.error("Erreur stream UserService:", err);
+        if ((err as any).name === 'AbortError') {
+            console.log("Stream UserService arrêté");
+        } else {
+            console.error("Erreur stream UserService:", err);
+        }
     }
 }
 
