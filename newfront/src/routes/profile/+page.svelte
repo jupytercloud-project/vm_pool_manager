@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { authStore, configs, serverPools } from '$lib/store';
+  import { authStore, configs, serverPools, flavors, images, networks } from '$lib/store';
   import { goto } from '$app/navigation';
   import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Button } from "flowbite-svelte";
 
@@ -21,6 +21,7 @@
         <TableHeadCell>Serverpool Name</TableHeadCell>
         <TableHeadCell>Image</TableHeadCell>
         <TableHeadCell>Flavor</TableHeadCell>
+        <TableHeadCell>Network</TableHeadCell>
         <TableHeadCell>Minimum VM</TableHeadCell>
         <TableHeadCell>Maximum VM</TableHeadCell>
         <TableHeadCell><span class="sr-only">Inspect</span></TableHeadCell>
@@ -29,8 +30,9 @@
         {#each $serverPools as sp, i}
           <TableBodyRow class={i % 2 === 0 ? 'bg-tertiary-400 hover:bg-tertiary-200' : 'bg-tertiary-300 hover:bg-tertiary-200'}>
             <TableBodyCell>{sp.name}</TableBodyCell>
-            <TableBodyCell>{sp.image}</TableBodyCell>
-            <TableBodyCell>{sp.flavor}</TableBodyCell>
+            <TableBodyCell>{$images.find(img => img.id === sp.image)?.name ?? sp.image}</TableBodyCell>
+            <TableBodyCell>{$flavors.find(f => f.id === sp.flavor)?.name ?? sp.flavor}</TableBodyCell>
+            <TableBodyCell>{$networks.find(n => n.id === sp.network)?.name ?? sp.network}</TableBodyCell>
             <TableBodyCell>{sp.minVm}</TableBodyCell>
             <TableBodyCell>{sp.maxVm}</TableBodyCell>
             <TableBodyCell class="flex justify-center"><Button class="bg-option-500"onclick={() => goto(`/serverpool/${sp.name}`)}>Inspect</Button></TableBodyCell>

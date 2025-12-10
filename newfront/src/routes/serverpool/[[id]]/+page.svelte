@@ -46,10 +46,23 @@ const handleClick = async (e: Event) => {
 $: token = $authStore?.token ?? null;
 $: selectedPool = $serverPools.find(p => p.name === selectedsp);
 $: serversp = selectedPool
-    ? $servers.filter(server =>
-        server.metadata?.serverpool_id === selectedPool.name
-    )
-    : [];
+  ? $servers.filter(server => {
+      // metadata pourrait être un JSON string → on le parse si besoin
+      let metadata = server.metadata;
+      if (typeof metadata === "string") {
+        try {
+          metadata = JSON.parse(metadata);
+        } catch {
+          metadata = {};
+        }
+      }
+
+      return (
+        metadata?.serverpool_id === selectedPool.name
+      );
+    })
+  : [];
+
 
 $: networkOptions = $networks.map(net => ({
     value: net.id,
@@ -59,10 +72,6 @@ $: networkOptions = $networks.map(net => ({
   $: sortedFlavors = [...$flavors].sort((a, b) =>
   a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
 );
-
-$: image = selectedGroupImage
-  ? filterImagesByPrefix($images, selectedGroupImage)
-  : [];
 
 function getFlavorNameById(id: string): string {
 	const flavor = $flavors.find(f => f.id === id);
@@ -125,7 +134,6 @@ export function filterImagesByPrefix(images: Image[], prefix: string): Image[] {
 
 let selectedGroupImage: string | null = null;
 let selectedImage: string | null = null;
-let groupimagename = getUniqueFirstAlphaBlocks($images);
 
 
 async function handleCreateServerpool(event: Event) {
@@ -196,14 +204,12 @@ async function handleCreateServerpool(event: Event) {
 	{selectedsp}
 	<p class="text-sm font-normal">Flavor: {getFlavorNameById($servers[0].flavor)}</p>
 	<p class="text-sm font-normal">Image: {getImageNameById($servers[0].image)}</p>
-	<!-- <p class="text-sm font-normal">Networks: {getNetworkNamesByIds(servers[0].networks)}</p> -->
   </caption>
 
   <TableHead class="bg-tertiary-500 text-white">
 	<TableHeadCell>Nom</TableHeadCell>
 	<TableHeadCell>Status</TableHeadCell>
 	<TableHeadCell>IP</TableHeadCell>
-	<TableHeadCell>Créé le</TableHeadCell>
 	<TableHeadCell></TableHeadCell>
   </TableHead>
 
@@ -218,20 +224,14 @@ async function handleCreateServerpool(event: Event) {
 			{s.status}
 		</TableBodyCell>
 		<TableBodyCell>
-		  {#if s.network}
-			{#each Object.values(s.network) as net}
-			  {#each net as addr}
-			  <div class="flex items-center justify-between w-full">
-				  {addr}{'\t'}
-				  <!-- <Clipboard bind:value={addr.addr} bind:success={clipboardsuccess} class="">
-					  {#if clipboardsuccess}<CheckOutline />{:else}Copy{/if}
-				  </Clipboard> -->
-			  </div>
-			  {/each}
-			{/each}
-		  {/if}
-		</TableBodyCell>
-		<TableBodyCell>{s.createdAt}</TableBodyCell>
+      {#if s.network}
+        {#each s.network.split(',') as net}
+          <div class="flex items-center justify-between w-full">
+            {net}
+          </div>
+        {/each}
+      {/if}
+    </TableBodyCell>
 		<TableBodyCell>
 		  {#if s.status === 'BUILD' || s.status === 'REBUILD'}
 			<Button disabled size="sm" class="bg-option-500" onclick={() => handleRebuildServer(s)}>Rebuild</Button>

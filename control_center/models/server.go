@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 )
@@ -133,14 +134,30 @@ func (s *Server) ToFrontControlPb() *frontcontrolpb.Server {
 	for k, v := range s.Metadata {
 		metadata[k] = v
 	}
+
+	networkStr := ""
+	ipAddr := ""
+
+	if len(s.Networks) > 0 {
+		networkStr = s.Networks[0]
+		parts := strings.Split(networkStr, ":")
+		if len(parts) > 1 {
+			ipAddr = parts[1]
+		}
+
+		if len(s.Networks) > 1 {
+			networkStr = strings.Join(s.Networks, ",")
+		}
+	}
+
 	return &frontcontrolpb.Server{
 		Id:        s.ID,
 		Name:      s.Name,
 		Status:    s.Status,
 		Image:     s.ImageRef,
 		Flavor:    s.FlavorRef,
-		Network:   "",
-		IpAddress: "",
+		Network:   networkStr,
+		IpAddress: ipAddr,
 		CreatedAt: nil,
 		UpdatedAt: nil,
 		Metadata:  metadata,
