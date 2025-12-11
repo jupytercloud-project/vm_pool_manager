@@ -29,7 +29,6 @@ type Image struct {
 	VirtualSize      int64     `json:"virtual_size"`
 	ImportMethods    string    `json:"import_methods"` // CSV
 	StoreIDs         string    `json:"store_ids"`      // CSV
-	// Metadata et Properties exclus car SQLite ne stocke pas les maps
 }
 
 func (i *Image) ToPb() *pb.Image {

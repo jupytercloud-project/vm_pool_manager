@@ -137,7 +137,7 @@ function normalizeKeys(obj: any, type: Type) {
             try {
                 const arr = JSON.parse(normalized.networks);
                 if (Array.isArray(arr) && arr.length > 0) {
-                    const entry = arr[0]; // Suppose qu’il y a un seul réseau
+                    const entry = arr[0];
                     if (typeof entry === "string") {
                         const [net, ip] = entry.split(":");
                     
@@ -156,7 +156,6 @@ function normalizeKeys(obj: any, type: Type) {
         if (normalized.networks !== undefined) {
             try {
                 let raw = normalized.networks;
-                // Parse JSON si string
                 if (typeof raw === "string") {
                     const arr = JSON.parse(raw);
                     if (Array.isArray(arr) && arr.length > 0) {
@@ -164,7 +163,6 @@ function normalizeKeys(obj: any, type: Type) {
                     }
                 }
                 if (typeof raw === "string") {
-                    // Si "network:ip" → ne garder que network
                     if (raw.includes(":")) {
                         raw = raw.split(":")[0];
                     }
@@ -172,13 +170,12 @@ function normalizeKeys(obj: any, type: Type) {
                 }
             } catch (e) {
                 console.warn("❌ Erreur parsing networks:", normalized.networks, e);
-                normalized.network = normalized.networks; // fallback
+                normalized.network = normalized.networks;
             }
             delete normalized.networks;
         }
     }
 
-    // Normalisation name → ne remplace PAS si déjà défini
     for (const key of ["serverpool_id"]) {
         if (!normalized.name && normalized[key] !== undefined) {
             normalized.name = normalized[key];

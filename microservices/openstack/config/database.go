@@ -69,7 +69,7 @@ func SyncImage(ctx context.Context) {
 }
 
 func SyncFlavor(ctx context.Context) {
-	allFlavors := utils.GetallFlavors(ctx) // À adapter au bon nom
+	allFlavors := utils.GetallFlavors(ctx)
 
 	for _, fl := range allFlavors {
 		var extraSpecsJSON string

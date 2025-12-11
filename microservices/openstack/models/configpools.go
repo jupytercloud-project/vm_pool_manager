@@ -4,7 +4,6 @@ import (
 	"PoolManagerVM/backend/events"
 	"PoolManagerVM/backend/notifier"
 	"PoolManagerVM/backend/pb"
-	"PoolManagerVM/backend/websockethandler"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -29,25 +28,16 @@ func (c *ConfigPool) ToMap() map[string]string {
 }
 
 func (c *ConfigPool) AfterCreate(tx *gorm.DB) (err error) {
-	if c.UserID != "admin" {
-		websockethandler.SendMessageToUser(c.UserID, "created", c, "config")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "created", Type: pb.Type_CONFIG, Ressource: *c}
-	}
+	notifier.GlobalChan <- events.RessourceEvent{Action: "created", Type: pb.Type_CONFIG, Ressource: *c}
 	return nil
 }
 
 func (c *ConfigPool) AfterUpdate(tx *gorm.DB) (err error) {
-	if c.UserID != "admin" {
-		websockethandler.SendMessageToUser(c.UserID, "updated", c, "config")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "updated", Type: pb.Type_CONFIG, Ressource: *c}
-	}
+	notifier.GlobalChan <- events.RessourceEvent{Action: "updated", Type: pb.Type_CONFIG, Ressource: *c}
 	return nil
 }
 
 func (c *ConfigPool) AfterDelete(tx *gorm.DB) (err error) {
-	if c.UserID != "admin" {
-		websockethandler.SendMessageToUser(c.UserID, "deleted", c, "config")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "deleted", Type: pb.Type_CONFIG, Ressource: *c}
-	}
+	notifier.GlobalChan <- events.RessourceEvent{Action: "deleted", Type: pb.Type_CONFIG, Ressource: *c}
 	return nil
 }

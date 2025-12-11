@@ -51,7 +51,7 @@ func CreateVM(workerID int, job models.Job) error {
 	var networks models.JSONStringSlice
 	if err := networks.Scan(job.Data["networks"]); err != nil {
 		log.Println("Failed to parse networks:", err)
-		networks = models.JSONStringSlice{} // fallback
+		networks = models.JSONStringSlice{}
 	}
 
 	paramID := utils.ParseInt(job.Data["ID"])
