@@ -2,15 +2,30 @@
   import '../app.css';
   import favicon from '$lib/assets/favicon.svg';
   import logo from '$lib/assets/IDCS.png'
-  import { loadAll, login, logout, resetAll } from '$lib/index'
+  import {
+    loadAll,
+    login,
+    logout,
+    resetAll,
+    subscribeUserUpdate,
+  } from '$lib/index'
   import { authStore } from '$lib/store';
-  import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button } from 'flowbite-svelte';
+  import {
+    Navbar,
+    NavBrand,
+    NavLi,
+    NavUl,
+    NavHamburger,
+    Button
+  } from 'flowbite-svelte';
   import { Modal, Label, Input } from 'flowbite-svelte';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { browser } from '$app/environment';
-  import { createUser, authenticateUser } from '$lib/grpc/authService/authService';
-  import { subscribeUserUpdate } from '$lib/grpc/userUpdateService/userService';
+  import {
+    createUser,
+    authenticateUser,
+  } from '$lib/grpc/authService/authService';
 
   
   let { children } = $props();
@@ -134,26 +149,52 @@
 
 <!-- NavBar -->
 <div class="min-h-screen bg-primary-500">
-	<Navbar class=" sticky start-0 top-0 z-20 w-ful bg-tertiary-500 backdrop-blur-md shadow-md rounded-b-2xl">
+	<Navbar class="sticky start-0 top-0 z-20 w-ful bg-tertiary-500
+    backdrop-blur-md shadow-md rounded-b-2xl">
 		<NavBrand href="/">
 			<img src={logo} class="me-3 h-6 sm:h-9" alt="ICDS Logo" />
-			<span class="self-center text-xl font-semibold whitespace-nowrap text-gray-300 dark:text-white">CloudPoolManager</span>
+			<span class="self-center text-xl font-semibold
+        whitespace-nowrap text-gray-300 dark:text-white">
+        CloudPoolManager
+      </span>
 		</NavBrand>
 	<div class="flex md:order-2 gap-2">
 		{#if $authStore}
 			<Button size="sm" color="red" onclick={logout}>Deconnexion</Button>
 		{:else}
-		<Button size="sm" class="bg-secondary-500 border-white hover:bg-secondary-600" onclick={() => (loginModal = true)}>Login</Button>
-		<Button size="sm" class="bg-option-500 border-white hover:bg-option-600" onclick={() => (createAccountModal = true)}>Create Account</Button>
+		<Button
+      size="sm"
+      class="bg-secondary-500 border-white hover:bg-secondary-600"
+      onclick={() => (loginModal = true)}>
+      Login
+    </Button>
+		<Button
+      size="sm"
+      class="bg-option-500 border-white hover:bg-option-600"
+      onclick={() => (createAccountModal = true)}>
+      Create Account
+    </Button>
 		{/if}
 		<NavHamburger />
 	</div>
 	<NavUl>
 		<NavLi href="/" class="text-gray-300 text-xl">Home</NavLi>
 		{#if $authStore}
-		<NavLi href="/profile" class="text-gray-300 text-xl">Profil</NavLi>
-		<NavLi href="/serverpool" class="text-gray-300 text-xl">Mes Serverpools</NavLi>
-		<NavLi href="/config" class="text-gray-300 text-xl">Mes Configurations</NavLi>
+		<NavLi
+      href="/profile"
+      class="text-gray-300 text-xl">
+      Profil
+    </NavLi>
+    <NavLi
+      href="/serverpool"
+      class="text-gray-300 text-xl">
+      Mes Serverpools
+    </NavLi>
+		<NavLi
+      href="/config"
+      class="text-gray-300 text-xl">
+      Mes Configurations
+    </NavLi>
 		{/if}
 		<NavLi href="/" class="text-gray-300 text-xl">About</NavLi>
 	</NavUl>
@@ -171,11 +212,19 @@
 			{/if}
 			<Label class="space-y-2 text-xl">
 				<span>Email</span>
-				<Input type="email" name="email" placeholder="name@company.com" required/>
+				<Input
+          type="email"
+          name="email"
+          placeholder="name@company.com"
+          required/>
 			</Label>
 			<Label class="space-y-2 text-xl">
 				<span>Password</span>
-				<Input type="password" name="password" placeholder="votre mot de passe" required/>
+				<Input
+          type="password"
+          name="password"
+          placeholder="votre mot de passe"
+          required/>
 			</Label>
 			<Button type="submit">Se connecter</Button>
 		</form>
@@ -184,7 +233,9 @@
 	<!-- Create Account Modal -->
 	<Modal bind:open={createAccountModal} class="bg-gray-400">
 		<form class="flex flex-col space-y-6" onsubmit={tryCreate}>
-			<h3 class="mb-4 text-2xl font-medium text-gray-800">Creer votre compte</h3>
+    <h3 class="mb-4 text-2xl font-medium text-gray-800">
+      Creer votre compte
+    </h3>
 			{#if createAccountError}
 				<Label color="red">{createAccountError}</Label>
 			{/if}
@@ -197,15 +248,27 @@
 			</Label>
 			<Label class="space-y-2 text-xl">
 				<span>Email</span>
-				<Input type="email" name="email" placeholder="name@company.com" required/>
+				<Input 
+          type="email" 
+          name="email" 
+          placeholder="name@company.com"
+          required/>
 			</Label>
 			<Label class="space-y-2 text-xl">
 				<span>Password</span>
-				<Input type="password" name="password" placeholder="votre mot de passe" required/>
+				<Input
+          type="password"
+          name="password"
+          placeholder="votre mot de passe"
+          required/>
 			</Label>
 			<Label class="space-y-2 text-xl">
 				<span>Confirme Password</span>
-				<Input type="password" name="confirmpassword" placeholder="Confirmez votre mot de passe" required/>
+				<Input 
+          type="password" 
+          name="confirmpassword" 
+          placeholder="Confirmez votre mot de passe" 
+          required/>
 			</Label>
 			<Button type="submit" class="bg-option-500">Creer</Button>
 		</form>

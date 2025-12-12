@@ -1,7 +1,22 @@
 <script lang="ts">
-  import { authStore, configs, serverPools, flavors, images, networks } from '$lib/store';
+  import { 
+    authStore,
+    configs,
+    serverPools,
+    flavors,
+    images,
+    networks,
+  } from '$lib/store';
   import { goto } from '$app/navigation';
-  import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Button } from "flowbite-svelte";
+  import { 
+    Table,
+    TableBody,
+    TableBodyCell,
+    TableBodyRow,
+    TableHead,
+    TableHeadCell,
+    Button,
+  } from "flowbite-svelte";
 
   let token: string | null = null;
   $: token = $authStore?.token ?? null;
@@ -11,7 +26,9 @@
 <Table shadow hoverable={true} class="w-full text-tertiary-50">
     <caption class="text-2xl text-left font-bold mb-4 pl-4">
       Profil de l'utilisateur
-      <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>Email :</strong> {$authStore?.email}</p>
+      <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400">
+        <strong>Email :</strong> {$authStore?.email}
+      </p>
     </caption>
 
     {#if !$serverPools || $serverPools.length === 0}
@@ -28,14 +45,27 @@
       </TableHead>
       <TableBody>
         {#each $serverPools as sp, i}
-          <TableBodyRow class={i % 2 === 0 ? 'bg-tertiary-400 hover:bg-tertiary-200' : 'bg-tertiary-300 hover:bg-tertiary-200'}>
+          <TableBodyRow class={i % 2 === 0 ? 
+            'bg-tertiary-400 hover:bg-tertiary-200' :
+            'bg-tertiary-300 hover:bg-tertiary-200'}>
             <TableBodyCell>{sp.name}</TableBodyCell>
-            <TableBodyCell>{$images.find(img => img.id === sp.image)?.name ?? sp.image}</TableBodyCell>
-            <TableBodyCell>{$flavors.find(f => f.id === sp.flavor)?.name ?? sp.flavor}</TableBodyCell>
-            <TableBodyCell>{$networks.find(n => n.id === sp.network)?.name ?? sp.network}</TableBodyCell>
+            <TableBodyCell>
+              {$images.find(img => img.id === sp.image)?.name ?? sp.image}
+            </TableBodyCell>
+            <TableBodyCell>
+              {$flavors.find(f => f.id === sp.flavor)?.name ?? sp.flavor}
+            </TableBodyCell>
+            <TableBodyCell>
+              {$networks.find(n => n.id === sp.network)?.name ?? sp.network}
+            </TableBodyCell>
             <TableBodyCell>{sp.minVm}</TableBodyCell>
             <TableBodyCell>{sp.maxVm}</TableBodyCell>
-            <TableBodyCell class="flex justify-center"><Button class="bg-option-500"onclick={() => goto(`/serverpool/${sp.name}`)}>Inspect</Button></TableBodyCell>
+            <TableBodyCell class="flex justify-center">
+              <Button class="bg-option-500"
+                onclick={() => goto(`/serverpool/${sp.name}`)}>
+                Inspect
+              </Button>
+            </TableBodyCell>
           </TableBodyRow>
         {/each}
       </TableBody>

@@ -28,11 +28,14 @@ const transport = createGrpcWebTransport({
 const authClient = createClient(AuthService, transport);
 
 
-export async function createUser(username: string, email: string, password: string) {
-  const req: CreateUserRequest = create(CreateUserRequestSchema, { username, email, password });
-
+export async function createUser(
+  username: string, 
+  email: string, 
+  password: string,
+) {
+  const req: CreateUserRequest = create(CreateUserRequestSchema, {
+     username, email, password });
   try {
-    // Appel RPC direct comme fonction
     const res: CreateUserResponse = await authClient.createUser(req);
     return res;
   } catch (err) {
@@ -41,11 +44,15 @@ export async function createUser(username: string, email: string, password: stri
   }
 }
 
-export async function authenticateUser(email: string, password: string) {
-  const req: AuthenticateUserRequest = create(AuthenticateUserRequestSchema, { email, password });
-
+export async function authenticateUser(
+  email: string, 
+  password: string,
+) {
+  const req: AuthenticateUserRequest = create(AuthenticateUserRequestSchema, {
+     email, password });
   try {
-    const res: AuthenticateUserResponse = await authClient.authenticateUser(req);
+    const res: AuthenticateUserResponse
+      = await authClient.authenticateUser(req);
     return res;
   } catch (err) {
     console.error("Erreur authentification :", err);

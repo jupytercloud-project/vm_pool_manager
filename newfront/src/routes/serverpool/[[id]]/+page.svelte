@@ -1,13 +1,56 @@
 <script lang="ts">
-import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect, Spinner, Clipboard } from 'flowbite-svelte';
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  Table,
+  TableBody,
+  TableHead,
+  TableBodyCell,
+  TableBodyRow,
+  TableHeadCell,
+  Modal,
+  Label,
+  Input,
+  Select,
+  MultiSelect,
+  Spinner,
+  Clipboard,
+} from 'flowbite-svelte';
 import { CheckOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
-import { rebuildServer, RebuildServerRequestSchema, CreatePoolRequestSchema, DeletePoolRequestSchema, deletePool, createPool, addServer } from '$lib/index';
-import type { ServerPool, Server, CreatePoolRequest, DeletePoolRequest, RebuildServerRequest, Image} from '$lib/type';
-import { authStore, serverPools, servers, configs, images, flavors, networks} from '$lib/store';
+import {
+  rebuildServer,
+  RebuildServerRequestSchema,
+  CreatePoolRequestSchema,
+  DeletePoolRequestSchema,
+  deletePool,
+  createPool,
+  addServer,
+} from '$lib/index';
+import type {
+  ServerPool,
+  Server,
+  CreatePoolRequest,
+  DeletePoolRequest,
+  RebuildServerRequest,
+  Image
+} from '$lib/type';
+import {
+  authStore,
+  serverPools,
+  servers,
+  configs,
+  images,
+  flavors,
+  networks
+} from '$lib/store';
 import { onMount } from 'svelte';
 import { page } from '$app/state';
 import { create } from '@bufbuild/protobuf';
-import type { DeletePoolResponse, RebuildServerResponse } from '$lib/grpc/frontcontrol_pb';
+import type {
+  DeletePoolResponse,
+  RebuildServerResponse,
+} from '$lib/grpc/frontcontrol_pb';
 
 let token: string | null = null;
 let selectedsp: string = 'Choisissez le serverpool';
@@ -69,19 +112,23 @@ $: networkOptions = $networks.map(net => ({
   }));
   
   $: sortedFlavors = [...$flavors].sort((a, b) =>
-  a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+  a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity:"base"})
 );
 
 async function handleRebuildServer(serv: Server) {
 	if (!confirm(`Voulez-vous rebuild le serveur ${serv.name} ?`)) {
 		return;
 	}
-	const req: RebuildServerRequest = create(RebuildServerRequestSchema, {user: $authStore?.email, poolId: serv.metadata?.serverpool_id, serverId: serv.name})
+	const req: RebuildServerRequest = create(RebuildServerRequestSchema,{
+    user: $authStore?.email,
+    poolId: serv.metadata?.serverpool_id,
+    serverId: serv.name
+  });
 	console.log("Rebuild request: ", req);
   try {
 		const res: RebuildServerResponse = await rebuildServer(req);
 		if (!res.success) {
-			
+      console.error("Erreur rebuild server");
 		}
 	} catch (err) {
 		console.error("Erreur rebuild server: ", err);
@@ -93,7 +140,10 @@ async function handleDeleteServerpool(sp: ServerPool) {
 	if (!confirm(`Voulez-vous supprimer le serveur ${sp.name} ?`)) {
 		return;
 	}
-	const req: DeletePoolRequest = create(DeletePoolRequestSchema, {user: $authStore?.email, poolId: sp.name})
+	const req: DeletePoolRequest = create(DeletePoolRequestSchema,{
+    user: $authStore?.email,
+    poolId: sp.name
+  });
 	try {
 		const res: DeletePoolResponse = await deletePool(req);
 		if (res.success) {
@@ -143,7 +193,7 @@ export function getUniqueFirstAlphaBlocks(images: Image[]): string[] {
   return Array.from(new Set(prefixes));
 }
 
-export function filterImagesByPrefix(images: Image[], prefix: string): Image[] {
+export function filterImagesByPrefix(images: Image[], prefix:string): Image[] {
   return images.filter(img => img.name.startsWith(prefix));
 }
 
@@ -214,12 +264,24 @@ async function handleCreateServerpool(event: Event) {
 
 <!-- Table -->
 {#if serversp.length > 0}
-  <Table hoverable={true} striped={false} class="mt-4 w-full text-tertiary-50">
+  <Table
+    hoverable={true}
+    striped={false}
+    class="mt-4 w-full text-tertiary-50">
   <caption class="text-left mb-2">
 	{selectedsp}
-	<p class="text-sm font-normal">Flavor: {$flavors.find(img => img.id === selectedPool?.flavor)?.name ?? selectedPool?.flavor}</p>
-	<p class="text-sm font-normal">Image: {$images.find(img => img.id === selectedPool?.image)?.name ?? selectedPool?.image}</p>
-  <p class="text-sm font-normal">Network: {$networks.find(img => img.id === selectedPool?.network)?.name ?? selectedPool?.network}</p>
+	<p class="text-sm font-normal">
+    Flavor: {$flavors.find(img => img.id === selectedPool?.flavor)?.name 
+      ?? selectedPool?.flavor}
+  </p>
+	<p class="text-sm font-normal">
+    Image: {$images.find(img => img.id === selectedPool?.image)?.name
+      ?? selectedPool?.image}
+  </p>
+  <p class="text-sm font-normal">
+    Network: {$networks.find(img => img.id === selectedPool?.network)?.name
+      ?? selectedPool?.network}
+  </p>
   </caption>
 
   <TableHead class="bg-tertiary-500 text-white">
@@ -231,7 +293,9 @@ async function handleCreateServerpool(event: Event) {
 
   <TableBody>
 	{#each serversp as s, i}
-	  <TableBodyRow class={i % 2 === 0 ? 'bg-tertiary-400 hover:bg-tertiary-200' : 'bg-tertiary-300 hover:bg-tertiary-200'}>
+	  <TableBodyRow class={i % 2 === 0
+    ? 'bg-tertiary-400 hover:bg-tertiary-200'
+    : 'bg-tertiary-300 hover:bg-tertiary-200'}>
 		<TableBodyCell>{s.name}</TableBodyCell>
 		<TableBodyCell>
 		  {#if s.status === 'BUILD' || s.status === 'REBUILD'}
@@ -242,9 +306,20 @@ async function handleCreateServerpool(event: Event) {
 		<TableBodyCell>{s.ipAddress}</TableBodyCell>
 		<TableBodyCell>
 		  {#if s.status === 'BUILD' || s.status === 'REBUILD'}
-			<Button disabled size="sm" class="bg-option-500" onclick={() => handleRebuildServer(s)}>Rebuild</Button>
+			<Button
+        disabled
+        size="sm"
+        class="bg-option-500"
+        onclick={() => handleRebuildServer(s)}>
+          Rebuild
+      </Button>
 		  {:else}
-			<Button size="sm" class="bg-option-500" onclick={() => handleRebuildServer(s)}>Rebuild</Button>
+			<Button
+        size="sm"
+        class="bg-option-500"
+        onclick={() => handleRebuildServer(s)}>
+          Rebuild
+      </Button>
 		  {/if}
 		</TableBodyCell>
 	  </TableBodyRow>
@@ -253,11 +328,15 @@ async function handleCreateServerpool(event: Event) {
 </Table>
 
 {#if selectedPool}
-	<Button class="bg-tertiary-500 mt-4" onclick={() => handleDeleteServerpool(selectedPool)}>
-		Supprimer le serverpool
+	<Button
+    class="bg-tertiary-500 mt-4"
+    onclick={() => handleDeleteServerpool(selectedPool)}>
+		  Supprimer le serverpool
 	</Button>
-  <Button class="bg-option-400 mt-4" onclick={() => handleCreateServer(selectedPool)}>
-    Ajouter un serveur au serverpool
+  <Button
+  class="bg-option-400 mt-4"
+  onclick={() => handleCreateServer(selectedPool)}>
+      Ajouter un serveur au serverpool
   </Button>
 {/if}
 
@@ -266,14 +345,22 @@ async function handleCreateServerpool(event: Event) {
 {/if}
 
 <!-- Modal -->
-<Button size="md" class="bg-option-500 mt-4" onclick={() => createspModal = true}>Créer un serverpool</Button>
+<Button
+  size="md"
+  class="bg-option-500 mt-4"
+  onclick={() => createspModal = true}>
+    Créer un serverpool
+</Button>
 
 {#if createspModal}
-  <Modal bind:open={createspModal} class="bg-gray-500 bg-opacity-50" focustrap>
-    <form
-      class="flex flex-col space-y-6 p-6 bg-white rounded-lg"
-      on:submit|preventDefault={handleCreateServerpool}
-    >
+  <Modal
+    bind:open={createspModal}
+    class="bg-gray-500 bg-opacity-50"
+    focustrap>
+      <form
+        class="flex flex-col space-y-6 p-6 bg-white rounded-lg"
+        on:submit|preventDefault={handleCreateServerpool}
+      >
       <h3 class="text-xl font-medium text-gray-800">Créer un Serverpool</h3>
 
       {#if createError}
@@ -293,7 +380,7 @@ async function handleCreateServerpool(event: Event) {
       <Label>
         <span>Image</span>
         <Select bind:value={selectedGroupImage} required>
-          <option disabled selected value="">Choisir une famille d’images</option>
+          <option disabled selected value="">Choisir un groupe d’images</option>
           {#each getUniqueFirstAlphaBlocks($images) as prefix}
             <option value={prefix}>{prefix}</option>
           {/each}
@@ -357,8 +444,11 @@ async function handleCreateServerpool(event: Event) {
 
       <!-- ACTIONS -->
       <div class="flex justify-end gap-4 pt-4">
-        <Button type="button" class="bg-gray-400" onclick={() => createspModal = false}>
-          Annuler
+        <Button
+          type="button"
+          class="bg-gray-400"
+          onclick={() => createspModal = false}>
+            Annuler
         </Button>
         <Button type="submit" class="bg-option-500">
           Créer

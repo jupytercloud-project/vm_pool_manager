@@ -31,8 +31,13 @@ const transport = createGrpcWebTransport({
 
 const configClient = createClient(ConfigService, transport);
 
-export async function createConfig(user: string, key: string, value: string): Promise<boolean> {
-    const req : CreateConfigRequest = create(CreateConfigRequestSchema, {user, key, value});
+export async function createConfig(
+    user: string, 
+    key: string, 
+    value: string,
+): Promise<boolean> {
+    const req : CreateConfigRequest = create(CreateConfigRequestSchema, {
+        user, key, value});
     try {
         const res: CreateConfigResponse = await configClient.createConfig(req);
         return res.success;
@@ -42,8 +47,13 @@ export async function createConfig(user: string, key: string, value: string): Pr
     }
 }
 
-export async function updateConfig(user: string, key: string, value: string): Promise<boolean> {
-    const req : UpdateConfigRequest = create(UpdateConfigRequestSchema, {user, key, value});
+export async function updateConfig(
+    user: string, 
+    key: string, 
+    value: string,
+): Promise<boolean> {
+    const req : UpdateConfigRequest = create(UpdateConfigRequestSchema, {
+        user, key, value});
     try {
         const res: UpdateConfigResponse = await configClient.updateConfig(req);
         return res.success;
@@ -53,10 +63,15 @@ export async function updateConfig(user: string, key: string, value: string): Pr
     }
 }
 
-export async function deleteConfig(user: string, key: string): Promise<boolean> {
-    const req : DeleteConfigRequest= create(DeleteConfigRequestSchema, {user, key});
-    try {
-        const res: DeleteConfigResponse = await configClient.deleteConfig(req);
+export async function deleteConfig(
+    user: string, 
+    key: string,
+): Promise<boolean> {
+    const req : DeleteConfigRequest= create(DeleteConfigRequestSchema, {
+        user, key});
+        try {
+            const res: DeleteConfigResponse = 
+                await configClient.deleteConfig(req);
         return res.success;
     } catch (err) {
         console.error("Erreur delete config: ", err);
@@ -64,7 +79,10 @@ export async function deleteConfig(user: string, key: string): Promise<boolean> 
     }
 }
 
-export async function getConfig(user: string, key: string): Promise<GetConfigResponse> {
+export async function getConfig(
+    user: string, 
+    key: string
+): Promise<GetConfigResponse> {
     const req : GetConfigRequest = create(GetConfigRequestSchema, {user, key});
     try {
         const res: GetConfigResponse = await configClient.getConfig(req);

@@ -72,13 +72,9 @@ function isSameKey(a: any, b: any) {
 
 function applyStoreMutation(store: Writable<any[]>, status: Status, obj: any) {
     if (!hasRequiredKey(obj)) return;
-
     store.update(items => {
         if (!Array.isArray(items)) items = [];
-
         const idx = items.findIndex(i => isSameKey(i, obj));
-        console.log("key composite recherchée :", { user_id: obj.user_id, name: obj.name }, "-> index trouvée :", idx);
-
         switch (status) {
             case Status.CREATE:
                 if (idx === -1) {
@@ -86,52 +82,42 @@ function applyStoreMutation(store: Writable<any[]>, status: Status, obj: any) {
                     items.push(obj);
                 }
                 break;
-
             case Status.UPDATE:
                 if (idx !== -1) {
                     console.log("🟡 UPDATE :", obj);
                     items[idx] = { ...items[idx], ...obj };
                 }
                 break;
-
             case Status.DELETE:
                 if (idx !== -1) {
                     console.log("🔴 DELETE :", obj);
                     items.splice(idx, 1);
                 }
                 break;
-
             default:
                 console.warn("❓ Status inconnu :", status);
         }
-
         return [...items];
     });
 }
 
 function normalizeKeys(obj: any, type: Type) {
     if (!obj) return obj;
-
     const normalized = { ...obj };
-
-    // Normalisation user_id
     for (const key of ["user_id", "userId", "userid", "userID"]) {
         if (normalized[key] !== undefined) {
             normalized.user_id = normalized[key];
             if (key !== "user_id") delete normalized[key];
         }
     }
-
     if (normalized.image_ref !== undefined) {
         normalized.image = normalized.image_ref;
         delete normalized.image_ref;
     }
-
     if (normalized.flavor_ref !== undefined) {
         normalized.flavor = normalized.flavor_ref;
         delete normalized.flavor_ref;
     }
-
     if (type === Type.SERVER) {
         if (normalized.networks !== undefined) {
             try {
@@ -139,19 +125,17 @@ function normalizeKeys(obj: any, type: Type) {
                 if (Array.isArray(arr) && arr.length > 0) {
                     const entry = arr[0];
                     if (typeof entry === "string") {
-                        const [net, ip] = entry.split(":");
-                    
+                        const [net, ip] = entry.split(":");               
                         if (net) normalized.network = net;
                         if (ip) normalized.ipAddress = ip;
                     }
                 }
             } catch (e) {
-                console.warn("❌ Erreur parsing networks:", normalized.networks, e);
+                console.warn("❌ Erreur networks:", normalized.networks, e);
             }
             delete normalized.networks;
         }
     }
-
     if (type === Type.SERVERPOOL) {
         if (normalized.networks !== undefined) {
             try {
@@ -169,7 +153,7 @@ function normalizeKeys(obj: any, type: Type) {
                     normalized.network = raw;
                 }
             } catch (e) {
-                console.warn("❌ Erreur parsing networks:", normalized.networks, e);
+                console.warn("❌ Erreur networks:", normalized.networks, e);
                 normalized.network = normalized.networks;
             }
             delete normalized.networks;

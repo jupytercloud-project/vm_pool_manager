@@ -31,7 +31,9 @@ const transport = createGrpcWebTransport({
 
 const poolClient = createClient(PoolService, transport);
 
-export async function createPool(req: CreatePoolRequest): Promise<CreatePoolResponse> {
+export async function createPool(
+    req: CreatePoolRequest
+): Promise<CreatePoolResponse> {
     try {
         const res: CreatePoolResponse = await poolClient.createPool(req);
         return res;
@@ -41,7 +43,9 @@ export async function createPool(req: CreatePoolRequest): Promise<CreatePoolResp
     }
 }
 
-export async function getPool(req: GetPoolRequest): Promise<GetPoolResponse> {
+export async function getPool(
+    req: GetPoolRequest
+): Promise<GetPoolResponse> {
     try {
         const res: GetPoolResponse = await poolClient.getPool(req);
         return res;
@@ -51,7 +55,9 @@ export async function getPool(req: GetPoolRequest): Promise<GetPoolResponse> {
     }
 }
 
-export async function deletePool(req: DeletePoolRequest): Promise<DeletePoolResponse> {
+export async function deletePool(
+    req: DeletePoolRequest
+): Promise<DeletePoolResponse> {
     try {
         const res: DeletePoolResponse = await poolClient.deletePool(req);
         return res;
@@ -61,7 +67,9 @@ export async function deletePool(req: DeletePoolRequest): Promise<DeletePoolResp
     }
 }
 
-export async function rebuildServer (req: RebuildServerRequest): Promise<RebuildServerResponse> {
+export async function rebuildServer(
+    req: RebuildServerRequest
+): Promise<RebuildServerResponse> {
     try {
         const res: RebuildServerResponse = await poolClient.rebuildServer(req);
         return res;
@@ -71,7 +79,9 @@ export async function rebuildServer (req: RebuildServerRequest): Promise<Rebuild
     }
 }
 
-export async function addServer (req: CreatePoolRequest): Promise<RebuildServerResponse> {
+export async function addServer (
+    req: CreatePoolRequest
+): Promise<RebuildServerResponse> {
     try {
         const res: RebuildServerResponse = await poolClient.addServer(req);
         return res;

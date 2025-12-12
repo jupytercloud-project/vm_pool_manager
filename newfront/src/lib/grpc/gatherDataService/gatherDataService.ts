@@ -18,11 +18,11 @@ import type {
 } from "../frontcontrol_pb"
 
 const transport = createGrpcWebTransport({
-  baseUrl: "http://localhost:80", // l'URL de ton proxy gRPC-Web
-  useBinaryFormat: true,             // recommandé pour gRPC-Web
-  interceptors: [],                  // tu peux ajouter des middlewares si besoin
-  fetch: globalThis.fetch,           // le fetch du navigateur
-  jsonOptions: {},                   // options pour JSON, si tu veux
+  baseUrl: "http://localhost:80",
+  useBinaryFormat: true,
+  interceptors: [],
+  fetch: globalThis.fetch,
+  jsonOptions: {},
 });
 
 const gatherClient = createClient(GatherDataService, transport);

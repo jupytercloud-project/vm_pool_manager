@@ -30,3 +30,4 @@ export { RebuildServerRequestSchema,
     CreatePoolRequestSchema,
     DeletePoolRequestSchema,
 } from '$lib/grpc/frontcontrol_pb'
+export { subscribeUserUpdate } from './grpc/userUpdateService/userService';
