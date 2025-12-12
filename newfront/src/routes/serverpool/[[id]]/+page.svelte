@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect, Spinner, Clipboard } from 'flowbite-svelte';
 import { CheckOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
-import { rebuildServer, RebuildServerRequestSchema, CreatePoolRequestSchema, DeletePoolRequestSchema, deletePool, createPool } from '$lib/index';
+import { rebuildServer, RebuildServerRequestSchema, CreatePoolRequestSchema, DeletePoolRequestSchema, deletePool, createPool, addServer } from '$lib/index';
 import type { ServerPool, Server, CreatePoolRequest, DeletePoolRequest, RebuildServerRequest, Image} from '$lib/type';
 import { authStore, serverPools, servers, configs, images, flavors, networks} from '$lib/store';
 import { onMount } from 'svelte';
@@ -103,6 +103,33 @@ async function handleDeleteServerpool(sp: ServerPool) {
 		console.error("Erreur lors de la suppression du pool: ", err);
 		throw err;
 	}
+}
+
+async function handleCreateServer(sp: ServerPool) {
+  if (!confirm(`Voulez-vous ajouter un serveur au serverpool ${sp.name} ?`)) {
+    return;
+  }
+  const req: CreatePoolRequest = create(CreatePoolRequestSchema, {
+    user: $authStore?.email,
+    name: sp.name,
+    image: sp.image,
+    flavor: sp.flavor,
+    network: sp.network,
+    minVm: String(sp.minVm),
+    maxVm: String(sp.maxVm),
+    config: sp.config,
+  });
+
+  try {
+    const res: RebuildServerResponse = await addServer(req);
+    if (res.success) {
+      console.log("Serveur ajouté avec succès au serverpool.");
+    } else {
+      console.error("Erreur lors de l'ajout du serveur au serverpool.");
+    }
+  } catch (err) {
+    console.error("Impossible d'ajouter le serveur au serverpool.", err);
+  }
 }
 
 export function getUniqueFirstAlphaBlocks(images: Image[]): string[] {
@@ -229,6 +256,9 @@ async function handleCreateServerpool(event: Event) {
 	<Button class="bg-tertiary-500 mt-4" onclick={() => handleDeleteServerpool(selectedPool)}>
 		Supprimer le serverpool
 	</Button>
+  <Button class="bg-option-400 mt-4" onclick={() => handleCreateServer(selectedPool)}>
+    Ajouter un serveur au serverpool
+  </Button>
 {/if}
 
 {:else}
