@@ -49,10 +49,14 @@ func CheckAndCreate() {
 	res_servs := config.Database.Find(&servs)
 	if res_servs.Error != nil {
 		log.Println(res_servs.Error)
+		config.DBmu.Unlock()
+		return
 	}
 	res_pools := config.Database.Find(&pools)
 	if res_pools.Error != nil {
 		log.Println(res_pools.Error)
+		config.DBmu.Unlock()
+		return
 	}
 
 	countadmin := 0
@@ -70,13 +74,15 @@ func CheckAndCreate() {
 			}
 		}
 		missing := p.MinVM - (count + p.PendingJobs)
+		println("missing server for pool ", p.ServerpoolID, " : ", missing)
 		for i := 0; i < missing; i++ {
 			if p.ImageRef == os.Getenv("SERVER_IMAGE_REF") &&
 				p.FlavorRef == os.Getenv("SERVER_FLAVOR_REF") &&
 				len(p.Networks) == 1 &&
 				p.Networks[0] == os.Getenv("NETWORK_ID") &&
-				countadmin > 0 && p.UserID != "admin" {
-				log.Println("Attributing VM for pool:", p.ServerpoolID)
+				countadmin > 0 && p.UserID != "admin" &&
+				p.PendingJobs < missing {
+				log.Println("Attributing VM for pool: ", p.ServerpoolID, "with pending jobs:", p.PendingJobs)
 				jobs.IncrementPending(p.ID)
 				worker.AddJob((*worker.CreateJob(models.AttribVM,
 					map[string]string{
@@ -124,6 +130,7 @@ func CheckAndCreate() {
 			jobs.IncrementPending(base_p.ID)
 		}
 	}
+	log.Println("CheckAndCreate completed")
 	config.DBmu.Unlock()
 }
 
@@ -164,6 +171,7 @@ func CreateServerpoolFromEnv() (models.Serverpool, error) {
 		MinVM:        minVM,
 		MaxVM:        maxVM,
 		PendingJobs:  0,
+		NetworkUuid:  os.Getenv("NETWORK_ID"),
 	}
 	log.Println(pool.Networks)
 

@@ -22,6 +22,9 @@ func BuildDataMap(kv []string) map[string]string {
 
 func FlatstringSP(p models.Serverpool) []string {
 	var flat []string
+	if p.NetworkUuid != "" {
+		p.Networks = []string{p.NetworkUuid}
+	}
 	flat = append(flat,
 		"ID", fmt.Sprint(p.ID),
 		"serverpool_id", p.ServerpoolID,

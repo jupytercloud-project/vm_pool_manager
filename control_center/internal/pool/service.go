@@ -2,7 +2,6 @@ package pool
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"control_center/frontcontrolpb"
@@ -42,9 +41,6 @@ func (s *Service) CreatePool(
 		Networks:     models.JSONStringSlice{req.GetNetwork()},
 		ConfigID:     req.GetConfig(),
 	}
-
-	log.Printf("pool to map: %v", pool.ToMap())
-
 	rep, err := s.pm.SendRessources(
 		context.Background(),
 		&pb.RessourceRequest{

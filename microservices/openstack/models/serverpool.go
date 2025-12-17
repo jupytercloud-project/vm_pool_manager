@@ -22,6 +22,7 @@ type Serverpool struct {
 	PendingJobs  int
 	ListServ     []Server `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
 	ConfigID     int
+	NetworkUuid  string
 }
 
 func (sp *Serverpool) ToMap() map[string]string {

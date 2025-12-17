@@ -69,6 +69,12 @@ func FromGopherServer(s servers.Server) Server {
 			}
 		}
 	}
+	if raw, ok := s.Metadata["network_uuid"]; ok {
+		var arr []string
+		if err := json.Unmarshal([]byte(raw), &arr); err == nil && len(arr) > 0 {
+			networks = []string{arr[0]}
+		}
+	}
 	metadata := make(map[string]string)
 	for k, v := range s.Metadata {
 		metadata[k] = v

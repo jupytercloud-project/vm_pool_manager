@@ -35,6 +35,7 @@ func AttribVM(workerID int, job models.Job) error {
 
 	var target *servers.Server
 	config.DBmu.Lock()
+	println("coucou")
 	for i := range allServers {
 		srv := &allServers[i]
 		if srv.Metadata["user_id"] == "admin" &&
@@ -82,6 +83,12 @@ func AttribVM(workerID int, job models.Job) error {
 		return fmt.Errorf("erreur mise à jour serveur: %w", err)
 	}
 	DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
+	//dire a la DB que le serveur a ete modifie
+	config.DBmu.Lock()
+	config.Database.Model(&models.Server{}).Where("id = ?", target.ID).Update("serverpool_id", job.Data["serverpool_id"])
+	config.DBmu.Unlock()
+
+	log.Println("Successfully attributed VM", target.ID)
 
 	return nil
 }

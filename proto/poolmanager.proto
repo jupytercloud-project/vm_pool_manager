@@ -64,7 +64,7 @@ message Image {
     string schema = 18;
     int64 virtual_size = 19;
     string import_methods = 20; // CSV format
-    string store_ids = 21;      // CSV format
+    string store_ids = 21; // CSV format
 }
 
 message Flavor {
@@ -91,17 +91,24 @@ message Network {
     string project_id = 7;
     bool shared = 8;
     int32 revision_number = 9;
-    string subnets = 10;                  // CSV
-    string availability_zone_hints = 11;  // CSV
-    string tags = 12;                     // CSV
+    string subnets = 10; // CSV
+    string availability_zone_hints = 11; // CSV
+    string tags = 12; // CSV
 }
 
+// PoolManager service provides operations for managing cloud resources including images, flavors, and networks.
 service PoolManager {
+    // SendRessources allows clients to send resource requests to the server.
     rpc SendRessources( RessourceRequest ) returns ( RessourceResponse );
+    // GetStreamRessources streams resource updates to the client.
     rpc GetStreamRessources ( google.protobuf.Empty ) returns (stream StreamRessourceResponse);
+    // Unused: GetStreamRessourcesUser streams resource updates for a specific user.
     rpc GetStreamRessourcesUser ( UserRequest ) returns (stream StreamRessourceResponse);
+    // GetAllImages streams all available images to the client.
     rpc GetAllImages (google.protobuf.Empty ) returns (stream Image);
+    // GetAllFlavors streams all available flavors to the client.
     rpc GetAllFlavors (google.protobuf.Empty ) returns (stream Flavor);
+    // GetAllNetworks streams all available networks to the client.
     rpc GetAllNetworks (google.protobuf.Empty ) returns (stream Network);
 }
 

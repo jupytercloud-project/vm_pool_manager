@@ -99,13 +99,6 @@ func (s *Service) UpdateDataUser(
 				stringData[k] = fmt.Sprintf("%v", v)
 			}
 
-			log.Printf("[STREAM OUT] User=%s Type=%s Status=%s Data=%v",
-				user,
-				typ.String(),
-				status.String(),
-				stringData,
-			)
-
 			resp := &frontcontrolpb.UpdateDataUserResponse{
 				User:   user,
 				Status: status,
