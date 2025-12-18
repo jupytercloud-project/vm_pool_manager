@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 type Serverpool struct {
@@ -19,6 +20,11 @@ type Serverpool struct {
 	MaxVM        int
 	PendingJobs  int
 	ConfigID     string
+	Timewindow   *time.Duration `gorm:"type:bigint"`
+	TimeStart    *time.Time     `gorm:"type:timestamptz"`
+	Keypublist   []string       `gorm:"type:text[]"`
+	Keypubuser   string
+	Status       string
 }
 
 func (sp *Serverpool) FromPb(pbs *pb.StreamRessourceResponse) error {

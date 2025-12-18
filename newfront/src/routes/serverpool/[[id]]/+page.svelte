@@ -62,6 +62,9 @@ let selectedConfigFile: string = "";
 let createspModal: boolean = false;
 let createError: string = "";
 let createSuccess = false;
+let scheduleDay: string = "";
+let scheduleTime: string = "";
+let scheduleWindowHours: number = 1; // optionnel
 
 type CreateServerPoolForm = {
     name: string;
@@ -440,6 +443,45 @@ async function handleCreateServerpool(event: Event) {
             <option value={c.name}>{c.name}</option>
           {/each}
         </Select>
+      </Label>
+
+      <!-- SCHEDULE -->
+      <Label>
+        <span>Schedule</span>
+      
+        <div class="grid grid-cols-3 gap-3 mt-1">
+          <!-- Jour -->
+          <Select bind:value={scheduleDay} required>
+            <option disabled selected value="">Jour</option>
+            <option value="1">Lundi</option>
+            <option value="2">Mardi</option>
+            <option value="3">Mercredi</option>
+            <option value="4">Jeudi</option>
+            <option value="5">Vendredi</option>
+            <option value="6">Samedi</option>
+            <option value="0">Dimanche</option>
+          </Select>
+        
+          <!-- Heure -->
+          <Input
+            type="time"
+            bind:value={scheduleTime}
+            required
+          />
+        
+          <!-- Fenêtre -->
+          <Input
+            type="number"
+            min="1"
+            max="24"
+            bind:value={scheduleWindowHours}
+            placeholder="Durée (h)"
+          />
+        </div>
+      
+        <p class="text-xs text-gray-500 mt-1">
+          Ex: Tous les lundis à 02:00 pendant 2h
+        </p>
       </Label>
 
       <!-- ACTIONS -->

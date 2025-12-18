@@ -73,7 +73,6 @@ func CheckAndCreate() {
 			}
 		}
 		missing := p.MinVM - (count + p.PendingJobs)
-		println("missing server for pool ", p.ServerpoolID, " : ", missing)
 		for i := 0; i < missing; i++ {
 			if p.ImageRef == os.Getenv("SERVER_IMAGE_REF") &&
 				p.FlavorRef == os.Getenv("SERVER_FLAVOR_REF") &&

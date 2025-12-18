@@ -42,7 +42,7 @@ func (s *Service) CreatePool(
 		ConfigID:     req.GetConfig(),
 	}
 	rep, err := s.pm.SendRessources(
-		context.Background(),
+		ctx,
 		&pb.RessourceRequest{
 			User:   req.GetUser(),
 			Data:   pool.ToMap(),
@@ -70,7 +70,7 @@ func (s *Service) DeletePool(
 	}
 
 	rep, err := s.pm.SendRessources(
-		context.Background(),
+		ctx,
 		&pb.RessourceRequest{
 			User:   req.GetUser(),
 			Data:   pool.ToMap(),
@@ -123,7 +123,7 @@ func (s *Service) RebuildServer(
 	data["serverpool_id"] = req.GetPoolId()
 
 	rep, err := s.pm.SendRessources(
-		context.Background(),
+		ctx,
 		&pb.RessourceRequest{
 			User:   req.GetUser(),
 			Data:   data,
@@ -163,7 +163,7 @@ func (s *Service) AddServer(
 	data["config_id"] = pool.ConfigID
 
 	rep, err := s.pm.SendRessources(
-		context.Background(),
+		ctx,
 		&pb.RessourceRequest{
 			User:   req.GetUser(),
 			Data:   data,

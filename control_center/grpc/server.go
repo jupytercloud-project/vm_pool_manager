@@ -7,6 +7,7 @@ import (
 	"control_center/internal/auth"
 	"control_center/internal/configpool"
 	"control_center/internal/gatherdata"
+	"control_center/internal/monitoring"
 	"control_center/internal/pool"
 	"control_center/internal/user"
 	"control_center/pb"
@@ -64,8 +65,8 @@ func Start_grpc(ctx context.Context) {
 		gatherdata.New(client, config.Database))
 	frontcontrolpb.RegisterConfigServiceServer(s,
 		configpool.New(client, config.Database))
-	frontcontrolpb.RegisterPoolServiceServer(s,
-		pool.New(config.Database, client))
+	poolService := pool.New(config.Database, client)
+	frontcontrolpb.RegisterPoolServiceServer(s, poolService)
 	frontcontrolpb.RegisterUserServiceServer(s,
 		user.New(config.Database, config.Broker))
 
@@ -78,6 +79,7 @@ func Start_grpc(ctx context.Context) {
 	}()
 
 	log.Println("Serveur gRPC lancé sur le port 50051")
+	go monitoring.Start_Monitoring(ctx, poolService)
 
 	<-ctx.Done()
 	log.Println("Arrêt du serveur gRPC demandé...")
