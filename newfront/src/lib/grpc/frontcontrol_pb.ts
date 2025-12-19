@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontcontrol.proto.
  */
 export const file_frontcontrol: GenFile = /*@__PURE__*/
-  fileDesc("ChJmcm9udGNvbnRyb2wucHJvdG8SDGZyb250Y29udHJvbCJGChFDcmVhdGVVc2VyUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRINCgVlbWFpbBgDIAEoCSI2ChJDcmVhdGVVc2VyUmVzcG9uc2USDwoHdXNlcl9pZBgBIAEoCRIPCgdzdWNjZXNzGAIgASgIIjoKF0F1dGhlbnRpY2F0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjoKGEF1dGhlbnRpY2F0ZVVzZXJSZXNwb25zZRINCgV0b2tlbhgBIAEoCRIPCgdzdWNjZXNzGAIgASgIItADCgVJbWFnZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIMCgR0YWdzGAQgASgJEhgKEGNvbnRhaW5lcl9mb3JtYXQYBSABKAkSEwoLZGlza19mb3JtYXQYBiABKAkSGgoSbWluX2Rpc2tfZ2lnYWJ5dGVzGAcgASgFEhkKEW1pbl9yYW1fbWVnYWJ5dGVzGAggASgFEg0KBW93bmVyGAkgASgJEhEKCXByb3RlY3RlZBgKIAEoCBISCgp2aXNpYmlsaXR5GAsgASgJEg4KBmhpZGRlbhgMIAEoCBIQCghjaGVja3N1bRgNIAEoCRISCgpzaXplX2J5dGVzGA4gASgDEi4KCmNyZWF0ZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGZpbGUYESABKAkSDgoGc2NoZW1hGBIgASgJEhQKDHZpcnR1YWxfc2l6ZRgTIAEoAxIWCg5pbXBvcnRfbWV0aG9kcxgUIAEoCRIRCglzdG9yZV9pZHMYFSABKAkivwEKBkZsYXZvchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGRpc2sYAyABKAUSCwoDcmFtGAQgASgFEg0KBXZjcHVzGAUgASgFEhMKC3J4dHhfZmFjdG9yGAYgASgBEgwKBHN3YXAYByABKAUSEQoJZXBoZW1lcmFsGAggASgFEhEKCWlzX3B1YmxpYxgJIAEoCBITCgtkZXNjcmlwdGlvbhgKIAEoCRITCgtleHRyYV9zcGVjcxgLIAEoCSLwAQoHTmV0d29yaxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhYKDmFkbWluX3N0YXRlX3VwGAQgASgIEg4KBnN0YXR1cxgFIAEoCRIRCgl0ZW5hbnRfaWQYBiABKAkSEgoKcHJvamVjdF9pZBgHIAEoCRIOCgZzaGFyZWQYCCABKAgSFwoPcmV2aXNpb25fbnVtYmVyGAkgASgFEg8KB3N1Ym5ldHMYCiABKAkSHwoXYXZhaWxhYmlsaXR5X3pvbmVfaGludHMYCyABKAkSDAoEdGFncxgMIAEoCSI/ChNDcmVhdGVDb25maWdSZXF1ZXN0EgwKBHVzZXIYASABKAkSCwoDa2V5GAIgASgJEg0KBXZhbHVlGAMgASgJIicKFENyZWF0ZUNvbmZpZ1Jlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiPwoTVXBkYXRlQ29uZmlnUmVxdWVzdBIMCgR1c2VyGAEgASgJEgsKA2tleRgCIAEoCRINCgV2YWx1ZRgDIAEoCSInChRVcGRhdGVDb25maWdSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIjAKE0RlbGV0ZUNvbmZpZ1JlcXVlc3QSDAoEdXNlchgBIAEoCRILCgNrZXkYAiABKAkiJwoURGVsZXRlQ29uZmlnUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCItChBHZXRDb25maWdSZXF1ZXN0EgwKBHVzZXIYASABKAkSCwoDa2V5GAIgASgJIi8KEUdldENvbmZpZ1Jlc3BvbnNlEg0KBXZhbHVlGAEgASgJEgsKA2tleRgCIAEoCSKBAgoRQ3JlYXRlUG9vbFJlcXVlc3QSDAoEdXNlchgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg4KBmZsYXZvchgEIAEoCRIPCgduZXR3b3JrGAUgASgJEg4KBmNvbmZpZxgGIAEoCRIOCgZtaW5fdm0YByABKAkSDgoGbWF4X3ZtGAggASgJEj8KCG1ldGFkYXRhGAkgAygLMi0uZnJvbnRjb250cm9sLkNyZWF0ZVBvb2xSZXF1ZXN0Lk1ldGFkYXRhRW50cnkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjYKEkNyZWF0ZVBvb2xSZXNwb25zZRIPCgdwb29sX2lkGAEgASgJEg8KB3N1Y2Nlc3MYAiABKAgiMgoRRGVsZXRlUG9vbFJlcXVlc3QSDAoEdXNlchgBIAEoCRIPCgdwb29sX2lkGAIgASgJIiUKEkRlbGV0ZVBvb2xSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIi8KDkdldFBvb2xSZXF1ZXN0EgwKBHVzZXIYASABKAkSDwoHcG9vbF9pZBgCIAEoCSKFAQoPR2V0UG9vbFJlc3BvbnNlEgwKBG5hbWUYASABKAkSDQoFaW1hZ2UYAiABKAkSDgoGZmxhdm9yGAMgASgJEg8KB25ldHdvcmsYBCABKAkSDgoGY29uZmlnGAUgASgJEg4KBm1pbl92bRgGIAEoBRIOCgZtYXhfdm0YByABKAVKBAgIEAkiJQoVVXBkYXRlRGF0YVVzZXJSZXF1ZXN0EgwKBHVzZXIYASABKAki2QEKFlVwZGF0ZURhdGFVc2VyUmVzcG9uc2USDAoEdXNlchgBIAEoCRIkCgZzdGF0dXMYAiABKA4yFC5mcm9udGNvbnRyb2wuU3RhdHVzEiAKBHR5cGUYAyABKA4yEi5mcm9udGNvbnRyb2wuVHlwZRI8CgRkYXRhGAQgAygLMi4uZnJvbnRjb250cm9sLlVwZGF0ZURhdGFVc2VyUmVzcG9uc2UuRGF0YUVudHJ5GisKCURhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkgKFFJlYnVpbGRTZXJ2ZXJSZXF1ZXN0EgwKBHVzZXIYASABKAkSDwoHcG9vbF9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiKAoVUmVidWlsZFNlcnZlclJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiGwoLVXNlclJlcXVlc3QSDAoEdXNlchgBIAEoCSLOAgoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGc3RhdHVzGAMgASgJEg0KBWltYWdlGAQgASgJEg4KBmZsYXZvchgFIAEoCRIPCgduZXR3b3JrGAYgASgJEhIKCmlwX2FkZHJlc3MYByABKAkSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNAoIbWV0YWRhdGEYCiADKAsyIi5mcm9udGNvbnRyb2wuU2VydmVyLk1ldGFkYXRhRW50cnkSDwoHdXNlcl9pZBgLIAEoCRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiggIKClNlcnZlclBvb2wSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbWFnZRgDIAEoCRIOCgZmbGF2b3IYBCABKAkSDwoHbmV0d29yaxgFIAEoCRIOCgZjb25maWcYBiABKAkSDgoGbWluX3ZtGAcgASgFEg4KBm1heF92bRgIIAEoBRI4CghtZXRhZGF0YRgJIAMoCzImLmZyb250Y29udHJvbC5TZXJ2ZXJQb29sLk1ldGFkYXRhRW50cnkSDwoHdXNlcl9pZBgKIAEoCRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiNQoGQ29uZmlnEg8KB3VzZXJfaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgRkYXRhGAMgASgJIhoKCUV4aXN0RGF0YRINCgVleGlzdBgBIAEoCCpACgZTdGF0dXMSEgoOU1RBVFVTX1VOS05PV04QABIKCgZDUkVBVEUQARIKCgZVUERBVEUQAhIKCgZERUxFVEUQAypACgRUeXBlEhAKDFRZUEVfVU5LTk9XThAAEg4KClNFUlZFUlBPT0wQARIKCgZTRVJWRVIQAhIKCgZDT05GSUcQAzLBAQoLQXV0aFNlcnZpY2USTwoKQ3JlYXRlVXNlchIfLmZyb250Y29udHJvbC5DcmVhdGVVc2VyUmVxdWVzdBogLmZyb250Y29udHJvbC5DcmVhdGVVc2VyUmVzcG9uc2USYQoQQXV0aGVudGljYXRlVXNlchIlLmZyb250Y29udHJvbC5BdXRoZW50aWNhdGVVc2VyUmVxdWVzdBomLmZyb250Y29udHJvbC5BdXRoZW50aWNhdGVVc2VyUmVzcG9uc2UyggUKEUdhdGhlckRhdGFTZXJ2aWNlEkAKDEdldEFsbEltYWdlcxIZLmZyb250Y29udHJvbC5Vc2VyUmVxdWVzdBoTLmZyb250Y29udHJvbC5JbWFnZTABEkIKDUdldEFsbEZsYXZvcnMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuRmxhdm9yMAESRAoOR2V0QWxsTmV0d29ya3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFS5mcm9udGNvbnRyb2wuTmV0d29yazABEkEKC0V4aXN0U2VydmVyEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhcuZnJvbnRjb250cm9sLkV4aXN0RGF0YRJGChBFeGlzdFNlcnZlclBvb2xzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhcuZnJvbnRjb250cm9sLkV4aXN0RGF0YRJCCgxFeGlzdENvbmZpZ3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFy5mcm9udGNvbnRyb2wuRXhpc3REYXRhEkIKDUdldEFsbFNlcnZlcnMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuU2VydmVyMAESSgoRR2V0QWxsU2VydmVyUG9vbHMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaGC5mcm9udGNvbnRyb2wuU2VydmVyUG9vbDABEkIKDUdldEFsbENvbmZpZ3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuQ29uZmlnMAEy4gIKDUNvbmZpZ1NlcnZpY2USVQoMQ3JlYXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLkNyZWF0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuQ3JlYXRlQ29uZmlnUmVzcG9uc2USVQoMVXBkYXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLlVwZGF0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuVXBkYXRlQ29uZmlnUmVzcG9uc2USVQoMRGVsZXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLkRlbGV0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuRGVsZXRlQ29uZmlnUmVzcG9uc2USTAoJR2V0Q29uZmlnEh4uZnJvbnRjb250cm9sLkdldENvbmZpZ1JlcXVlc3QaHy5mcm9udGNvbnRyb2wuR2V0Q29uZmlnUmVzcG9uc2Uy8gMKC1Bvb2xTZXJ2aWNlEk8KCkNyZWF0ZVBvb2wSHy5mcm9udGNvbnRyb2wuQ3JlYXRlUG9vbFJlcXVlc3QaIC5mcm9udGNvbnRyb2wuQ3JlYXRlUG9vbFJlc3BvbnNlEkYKB0dldFBvb2wSHC5mcm9udGNvbnRyb2wuR2V0UG9vbFJlcXVlc3QaHS5mcm9udGNvbnRyb2wuR2V0UG9vbFJlc3BvbnNlEkwKC0dldEFsbFBvb2xzEhwuZnJvbnRjb250cm9sLkdldFBvb2xSZXF1ZXN0Gh0uZnJvbnRjb250cm9sLkdldFBvb2xSZXNwb25zZTABEk8KCkRlbGV0ZVBvb2wSHy5mcm9udGNvbnRyb2wuRGVsZXRlUG9vbFJlcXVlc3QaIC5mcm9udGNvbnRyb2wuRGVsZXRlUG9vbFJlc3BvbnNlElgKDVJlYnVpbGRTZXJ2ZXISIi5mcm9udGNvbnRyb2wuUmVidWlsZFNlcnZlclJlcXVlc3QaIy5mcm9udGNvbnRyb2wuUmVidWlsZFNlcnZlclJlc3BvbnNlElEKCUFkZFNlcnZlchIfLmZyb250Y29udHJvbC5DcmVhdGVQb29sUmVxdWVzdBojLmZyb250Y29udHJvbC5SZWJ1aWxkU2VydmVyUmVzcG9uc2UybAoLVXNlclNlcnZpY2USXQoOVXBkYXRlRGF0YVVzZXISIy5mcm9udGNvbnRyb2wuVXBkYXRlRGF0YVVzZXJSZXF1ZXN0GiQuZnJvbnRjb250cm9sLlVwZGF0ZURhdGFVc2VyUmVzcG9uc2UwAUISWhAuL2Zyb250Y29udHJvbHBiYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChJmcm9udGNvbnRyb2wucHJvdG8SDGZyb250Y29udHJvbCJGChFDcmVhdGVVc2VyUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRINCgVlbWFpbBgDIAEoCSI2ChJDcmVhdGVVc2VyUmVzcG9uc2USDwoHdXNlcl9pZBgBIAEoCRIPCgdzdWNjZXNzGAIgASgIIjoKF0F1dGhlbnRpY2F0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjoKGEF1dGhlbnRpY2F0ZVVzZXJSZXNwb25zZRINCgV0b2tlbhgBIAEoCRIPCgdzdWNjZXNzGAIgASgIItADCgVJbWFnZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIMCgR0YWdzGAQgASgJEhgKEGNvbnRhaW5lcl9mb3JtYXQYBSABKAkSEwoLZGlza19mb3JtYXQYBiABKAkSGgoSbWluX2Rpc2tfZ2lnYWJ5dGVzGAcgASgFEhkKEW1pbl9yYW1fbWVnYWJ5dGVzGAggASgFEg0KBW93bmVyGAkgASgJEhEKCXByb3RlY3RlZBgKIAEoCBISCgp2aXNpYmlsaXR5GAsgASgJEg4KBmhpZGRlbhgMIAEoCBIQCghjaGVja3N1bRgNIAEoCRISCgpzaXplX2J5dGVzGA4gASgDEi4KCmNyZWF0ZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGZpbGUYESABKAkSDgoGc2NoZW1hGBIgASgJEhQKDHZpcnR1YWxfc2l6ZRgTIAEoAxIWCg5pbXBvcnRfbWV0aG9kcxgUIAEoCRIRCglzdG9yZV9pZHMYFSABKAkivwEKBkZsYXZvchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGRpc2sYAyABKAUSCwoDcmFtGAQgASgFEg0KBXZjcHVzGAUgASgFEhMKC3J4dHhfZmFjdG9yGAYgASgBEgwKBHN3YXAYByABKAUSEQoJZXBoZW1lcmFsGAggASgFEhEKCWlzX3B1YmxpYxgJIAEoCBITCgtkZXNjcmlwdGlvbhgKIAEoCRITCgtleHRyYV9zcGVjcxgLIAEoCSLwAQoHTmV0d29yaxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhYKDmFkbWluX3N0YXRlX3VwGAQgASgIEg4KBnN0YXR1cxgFIAEoCRIRCgl0ZW5hbnRfaWQYBiABKAkSEgoKcHJvamVjdF9pZBgHIAEoCRIOCgZzaGFyZWQYCCABKAgSFwoPcmV2aXNpb25fbnVtYmVyGAkgASgFEg8KB3N1Ym5ldHMYCiABKAkSHwoXYXZhaWxhYmlsaXR5X3pvbmVfaGludHMYCyABKAkSDAoEdGFncxgMIAEoCSI/ChNDcmVhdGVDb25maWdSZXF1ZXN0EgwKBHVzZXIYASABKAkSCwoDa2V5GAIgASgJEg0KBXZhbHVlGAMgASgJIicKFENyZWF0ZUNvbmZpZ1Jlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiPwoTVXBkYXRlQ29uZmlnUmVxdWVzdBIMCgR1c2VyGAEgASgJEgsKA2tleRgCIAEoCRINCgV2YWx1ZRgDIAEoCSInChRVcGRhdGVDb25maWdSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIjAKE0RlbGV0ZUNvbmZpZ1JlcXVlc3QSDAoEdXNlchgBIAEoCRILCgNrZXkYAiABKAkiJwoURGVsZXRlQ29uZmlnUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCItChBHZXRDb25maWdSZXF1ZXN0EgwKBHVzZXIYASABKAkSCwoDa2V5GAIgASgJIi8KEUdldENvbmZpZ1Jlc3BvbnNlEg0KBXZhbHVlGAEgASgJEgsKA2tleRgCIAEoCSLGAgoRQ3JlYXRlUG9vbFJlcXVlc3QSDAoEdXNlchgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg4KBmZsYXZvchgEIAEoCRIPCgduZXR3b3JrGAUgASgJEg4KBmNvbmZpZxgGIAEoCRIOCgZtaW5fdm0YByABKAkSDgoGbWF4X3ZtGAggASgJEj8KCG1ldGFkYXRhGAkgAygLMi0uZnJvbnRjb250cm9sLkNyZWF0ZVBvb2xSZXF1ZXN0Lk1ldGFkYXRhRW50cnkSLgoKc3RhcnRfdGltZRgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEwoLdGltZV93aW5kb3cYCyABKAUaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjYKEkNyZWF0ZVBvb2xSZXNwb25zZRIPCgdwb29sX2lkGAEgASgJEg8KB3N1Y2Nlc3MYAiABKAgiMgoRRGVsZXRlUG9vbFJlcXVlc3QSDAoEdXNlchgBIAEoCRIPCgdwb29sX2lkGAIgASgJIiUKEkRlbGV0ZVBvb2xSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIi8KDkdldFBvb2xSZXF1ZXN0EgwKBHVzZXIYASABKAkSDwoHcG9vbF9pZBgCIAEoCSKFAQoPR2V0UG9vbFJlc3BvbnNlEgwKBG5hbWUYASABKAkSDQoFaW1hZ2UYAiABKAkSDgoGZmxhdm9yGAMgASgJEg8KB25ldHdvcmsYBCABKAkSDgoGY29uZmlnGAUgASgJEg4KBm1pbl92bRgGIAEoBRIOCgZtYXhfdm0YByABKAVKBAgIEAkiJQoVVXBkYXRlRGF0YVVzZXJSZXF1ZXN0EgwKBHVzZXIYASABKAki2QEKFlVwZGF0ZURhdGFVc2VyUmVzcG9uc2USDAoEdXNlchgBIAEoCRIkCgZzdGF0dXMYAiABKA4yFC5mcm9udGNvbnRyb2wuU3RhdHVzEiAKBHR5cGUYAyABKA4yEi5mcm9udGNvbnRyb2wuVHlwZRI8CgRkYXRhGAQgAygLMi4uZnJvbnRjb250cm9sLlVwZGF0ZURhdGFVc2VyUmVzcG9uc2UuRGF0YUVudHJ5GisKCURhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkgKFFJlYnVpbGRTZXJ2ZXJSZXF1ZXN0EgwKBHVzZXIYASABKAkSDwoHcG9vbF9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiKAoVUmVidWlsZFNlcnZlclJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiGwoLVXNlclJlcXVlc3QSDAoEdXNlchgBIAEoCSLOAgoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGc3RhdHVzGAMgASgJEg0KBWltYWdlGAQgASgJEg4KBmZsYXZvchgFIAEoCRIPCgduZXR3b3JrGAYgASgJEhIKCmlwX2FkZHJlc3MYByABKAkSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNAoIbWV0YWRhdGEYCiADKAsyIi5mcm9udGNvbnRyb2wuU2VydmVyLk1ldGFkYXRhRW50cnkSDwoHdXNlcl9pZBgLIAEoCRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiggIKClNlcnZlclBvb2wSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbWFnZRgDIAEoCRIOCgZmbGF2b3IYBCABKAkSDwoHbmV0d29yaxgFIAEoCRIOCgZjb25maWcYBiABKAkSDgoGbWluX3ZtGAcgASgFEg4KBm1heF92bRgIIAEoBRI4CghtZXRhZGF0YRgJIAMoCzImLmZyb250Y29udHJvbC5TZXJ2ZXJQb29sLk1ldGFkYXRhRW50cnkSDwoHdXNlcl9pZBgKIAEoCRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiNQoGQ29uZmlnEg8KB3VzZXJfaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgRkYXRhGAMgASgJIhoKCUV4aXN0RGF0YRINCgVleGlzdBgBIAEoCCpACgZTdGF0dXMSEgoOU1RBVFVTX1VOS05PV04QABIKCgZDUkVBVEUQARIKCgZVUERBVEUQAhIKCgZERUxFVEUQAypACgRUeXBlEhAKDFRZUEVfVU5LTk9XThAAEg4KClNFUlZFUlBPT0wQARIKCgZTRVJWRVIQAhIKCgZDT05GSUcQAzLBAQoLQXV0aFNlcnZpY2USTwoKQ3JlYXRlVXNlchIfLmZyb250Y29udHJvbC5DcmVhdGVVc2VyUmVxdWVzdBogLmZyb250Y29udHJvbC5DcmVhdGVVc2VyUmVzcG9uc2USYQoQQXV0aGVudGljYXRlVXNlchIlLmZyb250Y29udHJvbC5BdXRoZW50aWNhdGVVc2VyUmVxdWVzdBomLmZyb250Y29udHJvbC5BdXRoZW50aWNhdGVVc2VyUmVzcG9uc2UyggUKEUdhdGhlckRhdGFTZXJ2aWNlEkAKDEdldEFsbEltYWdlcxIZLmZyb250Y29udHJvbC5Vc2VyUmVxdWVzdBoTLmZyb250Y29udHJvbC5JbWFnZTABEkIKDUdldEFsbEZsYXZvcnMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuRmxhdm9yMAESRAoOR2V0QWxsTmV0d29ya3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFS5mcm9udGNvbnRyb2wuTmV0d29yazABEkEKC0V4aXN0U2VydmVyEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhcuZnJvbnRjb250cm9sLkV4aXN0RGF0YRJGChBFeGlzdFNlcnZlclBvb2xzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhcuZnJvbnRjb250cm9sLkV4aXN0RGF0YRJCCgxFeGlzdENvbmZpZ3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFy5mcm9udGNvbnRyb2wuRXhpc3REYXRhEkIKDUdldEFsbFNlcnZlcnMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuU2VydmVyMAESSgoRR2V0QWxsU2VydmVyUG9vbHMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaGC5mcm9udGNvbnRyb2wuU2VydmVyUG9vbDABEkIKDUdldEFsbENvbmZpZ3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuQ29uZmlnMAEy4gIKDUNvbmZpZ1NlcnZpY2USVQoMQ3JlYXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLkNyZWF0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuQ3JlYXRlQ29uZmlnUmVzcG9uc2USVQoMVXBkYXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLlVwZGF0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuVXBkYXRlQ29uZmlnUmVzcG9uc2USVQoMRGVsZXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLkRlbGV0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuRGVsZXRlQ29uZmlnUmVzcG9uc2USTAoJR2V0Q29uZmlnEh4uZnJvbnRjb250cm9sLkdldENvbmZpZ1JlcXVlc3QaHy5mcm9udGNvbnRyb2wuR2V0Q29uZmlnUmVzcG9uc2Uy8gMKC1Bvb2xTZXJ2aWNlEk8KCkNyZWF0ZVBvb2wSHy5mcm9udGNvbnRyb2wuQ3JlYXRlUG9vbFJlcXVlc3QaIC5mcm9udGNvbnRyb2wuQ3JlYXRlUG9vbFJlc3BvbnNlEkYKB0dldFBvb2wSHC5mcm9udGNvbnRyb2wuR2V0UG9vbFJlcXVlc3QaHS5mcm9udGNvbnRyb2wuR2V0UG9vbFJlc3BvbnNlEkwKC0dldEFsbFBvb2xzEhwuZnJvbnRjb250cm9sLkdldFBvb2xSZXF1ZXN0Gh0uZnJvbnRjb250cm9sLkdldFBvb2xSZXNwb25zZTABEk8KCkRlbGV0ZVBvb2wSHy5mcm9udGNvbnRyb2wuRGVsZXRlUG9vbFJlcXVlc3QaIC5mcm9udGNvbnRyb2wuRGVsZXRlUG9vbFJlc3BvbnNlElgKDVJlYnVpbGRTZXJ2ZXISIi5mcm9udGNvbnRyb2wuUmVidWlsZFNlcnZlclJlcXVlc3QaIy5mcm9udGNvbnRyb2wuUmVidWlsZFNlcnZlclJlc3BvbnNlElEKCUFkZFNlcnZlchIfLmZyb250Y29udHJvbC5DcmVhdGVQb29sUmVxdWVzdBojLmZyb250Y29udHJvbC5SZWJ1aWxkU2VydmVyUmVzcG9uc2UybAoLVXNlclNlcnZpY2USXQoOVXBkYXRlRGF0YVVzZXISIy5mcm9udGNvbnRyb2wuVXBkYXRlRGF0YVVzZXJSZXF1ZXN0GiQuZnJvbnRjb250cm9sLlVwZGF0ZURhdGFVc2VyUmVzcG9uc2UwAUISWhAuL2Zyb250Y29udHJvbHBiYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message frontcontrol.CreateUserRequest
@@ -596,6 +596,16 @@ export type CreatePoolRequest = Message<"frontcontrol.CreatePoolRequest"> & {
    * @generated from field: map<string, string> metadata = 9;
    */
   metadata: { [key: string]: string };
+
+  /**
+   * @generated from field: google.protobuf.Timestamp start_time = 10;
+   */
+  startTime?: Timestamp;
+
+  /**
+   * @generated from field: int32 time_window = 11;
+   */
+  timeWindow: number;
 };
 
 /**
@@ -1081,10 +1091,16 @@ export const TypeSchema: GenEnum<Type> = /*@__PURE__*/
   enumDesc(file_frontcontrol, 1);
 
 /**
+ * -------------------- Services --------------------
+ * AuthService manages user authentication and creation.
+ * Might change to use OIDC in the future.
+ *
  * @generated from service frontcontrol.AuthService
  */
 export const AuthService: GenService<{
   /**
+   * CreateUser creates a new user with the provided details.
+   *
    * @generated from rpc frontcontrol.AuthService.CreateUser
    */
   createUser: {
@@ -1093,6 +1109,8 @@ export const AuthService: GenService<{
     output: typeof CreateUserResponseSchema;
   },
   /**
+   * AuthenticateUser verifies user credentials and returns an authentication token.
+   *
    * @generated from rpc frontcontrol.AuthService.AuthenticateUser
    */
   authenticateUser: {
@@ -1104,10 +1122,15 @@ export const AuthService: GenService<{
   serviceDesc(file_frontcontrol, 0);
 
 /**
+ * GatherDataService retrieves various resources associated with a user
+ * and populates stores with datas (like images, flavors, networks).
+ *
  * @generated from service frontcontrol.GatherDataService
  */
 export const GatherDataService: GenService<{
   /**
+   * GetAllImages retrieves all images
+   *
    * @generated from rpc frontcontrol.GatherDataService.GetAllImages
    */
   getAllImages: {
@@ -1116,6 +1139,8 @@ export const GatherDataService: GenService<{
     output: typeof ImageSchema;
   },
   /**
+   * GetAllFlavors retrieves all flavors
+   *
    * @generated from rpc frontcontrol.GatherDataService.GetAllFlavors
    */
   getAllFlavors: {
@@ -1124,6 +1149,8 @@ export const GatherDataService: GenService<{
     output: typeof FlavorSchema;
   },
   /**
+   * GetAllNetworks retrieves all networks
+   *
    * @generated from rpc frontcontrol.GatherDataService.GetAllNetworks
    */
   getAllNetworks: {
@@ -1132,6 +1159,8 @@ export const GatherDataService: GenService<{
     output: typeof NetworkSchema;
   },
   /**
+   * ExistServer checks if a server exists for a user to open a stream
+   *
    * @generated from rpc frontcontrol.GatherDataService.ExistServer
    */
   existServer: {
@@ -1140,6 +1169,8 @@ export const GatherDataService: GenService<{
     output: typeof ExistDataSchema;
   },
   /**
+   * ExistServerPools checks if server pools exist for a user to open a stream
+   *
    * @generated from rpc frontcontrol.GatherDataService.ExistServerPools
    */
   existServerPools: {
@@ -1148,6 +1179,8 @@ export const GatherDataService: GenService<{
     output: typeof ExistDataSchema;
   },
   /**
+   * ExistConfigs checks if configs exist for a user to open a stream
+   *
    * @generated from rpc frontcontrol.GatherDataService.ExistConfigs
    */
   existConfigs: {
@@ -1156,6 +1189,8 @@ export const GatherDataService: GenService<{
     output: typeof ExistDataSchema;
   },
   /**
+   * GetAllServers retrieves all servers for a user
+   *
    * @generated from rpc frontcontrol.GatherDataService.GetAllServers
    */
   getAllServers: {
@@ -1164,6 +1199,8 @@ export const GatherDataService: GenService<{
     output: typeof ServerSchema;
   },
   /**
+   * GetAllServerPools retrieves all server pools for a user
+   *
    * @generated from rpc frontcontrol.GatherDataService.GetAllServerPools
    */
   getAllServerPools: {
@@ -1172,6 +1209,8 @@ export const GatherDataService: GenService<{
     output: typeof ServerPoolSchema;
   },
   /**
+   * GetAllConfigs retrieves all configs for a user
+   *
    * @generated from rpc frontcontrol.GatherDataService.GetAllConfigs
    */
   getAllConfigs: {
@@ -1183,10 +1222,14 @@ export const GatherDataService: GenService<{
   serviceDesc(file_frontcontrol, 1);
 
 /**
+ * ConfigService manages configuration settings for users.
+ *
  * @generated from service frontcontrol.ConfigService
  */
 export const ConfigService: GenService<{
   /**
+   * CreateConfig creates a new configuration entry for a user.
+   *
    * @generated from rpc frontcontrol.ConfigService.CreateConfig
    */
   createConfig: {
@@ -1195,6 +1238,8 @@ export const ConfigService: GenService<{
     output: typeof CreateConfigResponseSchema;
   },
   /**
+   * UpdateConfig updates an existing configuration entry for a user.
+   *
    * @generated from rpc frontcontrol.ConfigService.UpdateConfig
    */
   updateConfig: {
@@ -1203,6 +1248,8 @@ export const ConfigService: GenService<{
     output: typeof UpdateConfigResponseSchema;
   },
   /**
+   * DeleteConfig deletes a configuration entry for a user.
+   *
    * @generated from rpc frontcontrol.ConfigService.DeleteConfig
    */
   deleteConfig: {
@@ -1211,6 +1258,8 @@ export const ConfigService: GenService<{
     output: typeof DeleteConfigResponseSchema;
   },
   /**
+   * GetConfig retrieves a configuration entry for a user.
+   *
    * @generated from rpc frontcontrol.ConfigService.GetConfig
    */
   getConfig: {
@@ -1222,10 +1271,14 @@ export const ConfigService: GenService<{
   serviceDesc(file_frontcontrol, 2);
 
 /**
+ * PoolService manages server pools and associated operations.
+ *
  * @generated from service frontcontrol.PoolService
  */
 export const PoolService: GenService<{
   /**
+   * CreatePool creates a new server pool for a user.
+   *
    * @generated from rpc frontcontrol.PoolService.CreatePool
    */
   createPool: {
@@ -1234,6 +1287,8 @@ export const PoolService: GenService<{
     output: typeof CreatePoolResponseSchema;
   },
   /**
+   * GetPool retrieves details of a specific server pool for a user.
+   *
    * @generated from rpc frontcontrol.PoolService.GetPool
    */
   getPool: {
@@ -1242,6 +1297,8 @@ export const PoolService: GenService<{
     output: typeof GetPoolResponseSchema;
   },
   /**
+   * GetAllPools retrieves all server pools for a user.
+   *
    * @generated from rpc frontcontrol.PoolService.GetAllPools
    */
   getAllPools: {
@@ -1250,6 +1307,8 @@ export const PoolService: GenService<{
     output: typeof GetPoolResponseSchema;
   },
   /**
+   * DeletePool deletes a specific server pool for a user.
+   *
    * @generated from rpc frontcontrol.PoolService.DeletePool
    */
   deletePool: {
@@ -1258,6 +1317,8 @@ export const PoolService: GenService<{
     output: typeof DeletePoolResponseSchema;
   },
   /**
+   * RebuildServer rebuilds a server within a pool for a user.
+   *
    * @generated from rpc frontcontrol.PoolService.RebuildServer
    */
   rebuildServer: {
@@ -1266,6 +1327,8 @@ export const PoolService: GenService<{
     output: typeof RebuildServerResponseSchema;
   },
   /**
+   * AddServer adds a new server to a pool for a user.
+   *
    * @generated from rpc frontcontrol.PoolService.AddServer
    */
   addServer: {
@@ -1277,10 +1340,14 @@ export const PoolService: GenService<{
   serviceDesc(file_frontcontrol, 3);
 
 /**
+ * UserService streams updates related to user data such as server pools, servers, and configurations.
+ *
  * @generated from service frontcontrol.UserService
  */
 export const UserService: GenService<{
   /**
+   * UpdateDataUser streams updates related to user data.
+   *
    * @generated from rpc frontcontrol.UserService.UpdateDataUser
    */
   updateDataUser: {

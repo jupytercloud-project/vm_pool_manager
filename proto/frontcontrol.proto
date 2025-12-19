@@ -129,6 +129,8 @@ message CreatePoolRequest {
     string min_vm = 7;
     string max_vm = 8;
     map<string, string> metadata = 9;
+    google.protobuf.Timestamp start_time = 10;
+    int32 time_window = 11;
 }
 
 message CreatePoolResponse {

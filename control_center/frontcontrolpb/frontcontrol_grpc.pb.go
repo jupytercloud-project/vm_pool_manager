@@ -26,8 +26,14 @@ const (
 // AuthServiceClient is the client API for AuthService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// -------------------- Services --------------------
+// AuthService manages user authentication and creation.
+// Might change to use OIDC in the future.
 type AuthServiceClient interface {
+	// CreateUser creates a new user with the provided details.
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
+	// AuthenticateUser verifies user credentials and returns an authentication token.
 	AuthenticateUser(ctx context.Context, in *AuthenticateUserRequest, opts ...grpc.CallOption) (*AuthenticateUserResponse, error)
 }
 
@@ -62,8 +68,14 @@ func (c *authServiceClient) AuthenticateUser(ctx context.Context, in *Authentica
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
+//
+// -------------------- Services --------------------
+// AuthService manages user authentication and creation.
+// Might change to use OIDC in the future.
 type AuthServiceServer interface {
+	// CreateUser creates a new user with the provided details.
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
+	// AuthenticateUser verifies user credentials and returns an authentication token.
 	AuthenticateUser(context.Context, *AuthenticateUserRequest) (*AuthenticateUserResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
@@ -173,15 +185,27 @@ const (
 // GatherDataServiceClient is the client API for GatherDataService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// GatherDataService retrieves various resources associated with a user
+// and populates stores with datas (like images, flavors, networks).
 type GatherDataServiceClient interface {
+	// GetAllImages retrieves all images
 	GetAllImages(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Image], error)
+	// GetAllFlavors retrieves all flavors
 	GetAllFlavors(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Flavor], error)
+	// GetAllNetworks retrieves all networks
 	GetAllNetworks(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Network], error)
+	// ExistServer checks if a server exists for a user to open a stream
 	ExistServer(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error)
+	// ExistServerPools checks if server pools exist for a user to open a stream
 	ExistServerPools(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error)
+	// ExistConfigs checks if configs exist for a user to open a stream
 	ExistConfigs(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*ExistData, error)
+	// GetAllServers retrieves all servers for a user
 	GetAllServers(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Server], error)
+	// GetAllServerPools retrieves all server pools for a user
 	GetAllServerPools(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ServerPool], error)
+	// GetAllConfigs retrieves all configs for a user
 	GetAllConfigs(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Config], error)
 }
 
@@ -340,15 +364,27 @@ type GatherDataService_GetAllConfigsClient = grpc.ServerStreamingClient[Config]
 // GatherDataServiceServer is the server API for GatherDataService service.
 // All implementations must embed UnimplementedGatherDataServiceServer
 // for forward compatibility.
+//
+// GatherDataService retrieves various resources associated with a user
+// and populates stores with datas (like images, flavors, networks).
 type GatherDataServiceServer interface {
+	// GetAllImages retrieves all images
 	GetAllImages(*UserRequest, grpc.ServerStreamingServer[Image]) error
+	// GetAllFlavors retrieves all flavors
 	GetAllFlavors(*UserRequest, grpc.ServerStreamingServer[Flavor]) error
+	// GetAllNetworks retrieves all networks
 	GetAllNetworks(*UserRequest, grpc.ServerStreamingServer[Network]) error
+	// ExistServer checks if a server exists for a user to open a stream
 	ExistServer(context.Context, *UserRequest) (*ExistData, error)
+	// ExistServerPools checks if server pools exist for a user to open a stream
 	ExistServerPools(context.Context, *UserRequest) (*ExistData, error)
+	// ExistConfigs checks if configs exist for a user to open a stream
 	ExistConfigs(context.Context, *UserRequest) (*ExistData, error)
+	// GetAllServers retrieves all servers for a user
 	GetAllServers(*UserRequest, grpc.ServerStreamingServer[Server]) error
+	// GetAllServerPools retrieves all server pools for a user
 	GetAllServerPools(*UserRequest, grpc.ServerStreamingServer[ServerPool]) error
+	// GetAllConfigs retrieves all configs for a user
 	GetAllConfigs(*UserRequest, grpc.ServerStreamingServer[Config]) error
 	mustEmbedUnimplementedGatherDataServiceServer()
 }
@@ -593,10 +629,16 @@ const (
 // ConfigServiceClient is the client API for ConfigService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ConfigService manages configuration settings for users.
 type ConfigServiceClient interface {
+	// CreateConfig creates a new configuration entry for a user.
 	CreateConfig(ctx context.Context, in *CreateConfigRequest, opts ...grpc.CallOption) (*CreateConfigResponse, error)
+	// UpdateConfig updates an existing configuration entry for a user.
 	UpdateConfig(ctx context.Context, in *UpdateConfigRequest, opts ...grpc.CallOption) (*UpdateConfigResponse, error)
+	// DeleteConfig deletes a configuration entry for a user.
 	DeleteConfig(ctx context.Context, in *DeleteConfigRequest, opts ...grpc.CallOption) (*DeleteConfigResponse, error)
+	// GetConfig retrieves a configuration entry for a user.
 	GetConfig(ctx context.Context, in *GetConfigRequest, opts ...grpc.CallOption) (*GetConfigResponse, error)
 }
 
@@ -651,10 +693,16 @@ func (c *configServiceClient) GetConfig(ctx context.Context, in *GetConfigReques
 // ConfigServiceServer is the server API for ConfigService service.
 // All implementations must embed UnimplementedConfigServiceServer
 // for forward compatibility.
+//
+// ConfigService manages configuration settings for users.
 type ConfigServiceServer interface {
+	// CreateConfig creates a new configuration entry for a user.
 	CreateConfig(context.Context, *CreateConfigRequest) (*CreateConfigResponse, error)
+	// UpdateConfig updates an existing configuration entry for a user.
 	UpdateConfig(context.Context, *UpdateConfigRequest) (*UpdateConfigResponse, error)
+	// DeleteConfig deletes a configuration entry for a user.
 	DeleteConfig(context.Context, *DeleteConfigRequest) (*DeleteConfigResponse, error)
+	// GetConfig retrieves a configuration entry for a user.
 	GetConfig(context.Context, *GetConfigRequest) (*GetConfigResponse, error)
 	mustEmbedUnimplementedConfigServiceServer()
 }
@@ -811,12 +859,20 @@ const (
 // PoolServiceClient is the client API for PoolService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// PoolService manages server pools and associated operations.
 type PoolServiceClient interface {
+	// CreatePool creates a new server pool for a user.
 	CreatePool(ctx context.Context, in *CreatePoolRequest, opts ...grpc.CallOption) (*CreatePoolResponse, error)
+	// GetPool retrieves details of a specific server pool for a user.
 	GetPool(ctx context.Context, in *GetPoolRequest, opts ...grpc.CallOption) (*GetPoolResponse, error)
+	// GetAllPools retrieves all server pools for a user.
 	GetAllPools(ctx context.Context, in *GetPoolRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetPoolResponse], error)
+	// DeletePool deletes a specific server pool for a user.
 	DeletePool(ctx context.Context, in *DeletePoolRequest, opts ...grpc.CallOption) (*DeletePoolResponse, error)
+	// RebuildServer rebuilds a server within a pool for a user.
 	RebuildServer(ctx context.Context, in *RebuildServerRequest, opts ...grpc.CallOption) (*RebuildServerResponse, error)
+	// AddServer adds a new server to a pool for a user.
 	AddServer(ctx context.Context, in *CreatePoolRequest, opts ...grpc.CallOption) (*RebuildServerResponse, error)
 }
 
@@ -900,12 +956,20 @@ func (c *poolServiceClient) AddServer(ctx context.Context, in *CreatePoolRequest
 // PoolServiceServer is the server API for PoolService service.
 // All implementations must embed UnimplementedPoolServiceServer
 // for forward compatibility.
+//
+// PoolService manages server pools and associated operations.
 type PoolServiceServer interface {
+	// CreatePool creates a new server pool for a user.
 	CreatePool(context.Context, *CreatePoolRequest) (*CreatePoolResponse, error)
+	// GetPool retrieves details of a specific server pool for a user.
 	GetPool(context.Context, *GetPoolRequest) (*GetPoolResponse, error)
+	// GetAllPools retrieves all server pools for a user.
 	GetAllPools(*GetPoolRequest, grpc.ServerStreamingServer[GetPoolResponse]) error
+	// DeletePool deletes a specific server pool for a user.
 	DeletePool(context.Context, *DeletePoolRequest) (*DeletePoolResponse, error)
+	// RebuildServer rebuilds a server within a pool for a user.
 	RebuildServer(context.Context, *RebuildServerRequest) (*RebuildServerResponse, error)
+	// AddServer adds a new server to a pool for a user.
 	AddServer(context.Context, *CreatePoolRequest) (*RebuildServerResponse, error)
 	mustEmbedUnimplementedPoolServiceServer()
 }
@@ -1102,7 +1166,10 @@ const (
 // UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// UserService streams updates related to user data such as server pools, servers, and configurations.
 type UserServiceClient interface {
+	// UpdateDataUser streams updates related to user data.
 	UpdateDataUser(ctx context.Context, in *UpdateDataUserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UpdateDataUserResponse], error)
 }
 
@@ -1136,7 +1203,10 @@ type UserService_UpdateDataUserClient = grpc.ServerStreamingClient[UpdateDataUse
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
+//
+// UserService streams updates related to user data such as server pools, servers, and configurations.
 type UserServiceServer interface {
+	// UpdateDataUser streams updates related to user data.
 	UpdateDataUser(*UpdateDataUserRequest, grpc.ServerStreamingServer[UpdateDataUserResponse]) error
 	mustEmbedUnimplementedUserServiceServer()
 }

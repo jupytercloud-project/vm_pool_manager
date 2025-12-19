@@ -48,7 +48,7 @@ message Image {
     string schema = 18;
     int64 virtual_size = 19;
     string import_methods = 20; // CSV format
-    string store_ids = 21;      // CSV format
+    string store_ids = 21; // CSV format
 }
 
 message Flavor {
@@ -75,9 +75,9 @@ message Network {
     string project_id = 7;
     bool shared = 8;
     int32 revision_number = 9;
-    string subnets = 10;                  // CSV
-    string availability_zone_hints = 11;  // CSV
-    string tags = 12;                     // CSV
+    string subnets = 10; // CSV
+    string availability_zone_hints = 11; // CSV
+    string tags = 12; // CSV
 }
 
 message CreateConfigRequest {
@@ -129,6 +129,8 @@ message CreatePoolRequest {
     string min_vm = 7;
     string max_vm = 8;
     map<string, string> metadata = 9;
+    google.protobuf.Timestamp start_time = 10;
+    int32 time_window = 11;
 }
 
 message CreatePoolResponse {
@@ -237,40 +239,70 @@ message ExistData {
     bool exist = 1;
 }
 
+// -------------------- Services --------------------
+// AuthService manages user authentication and creation.
+// Might change to use OIDC in the future.
 service AuthService {
+    // CreateUser creates a new user with the provided details.
     rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+    // AuthenticateUser verifies user credentials and returns an authentication token.
     rpc AuthenticateUser (AuthenticateUserRequest) returns (AuthenticateUserResponse);
 }
 
+// GatherDataService retrieves various resources associated with a user
+// and populates stores with datas (like images, flavors, networks).
 service GatherDataService {
+    // GetAllImages retrieves all images
     rpc GetAllImages ( UserRequest ) returns (stream Image);
+    // GetAllFlavors retrieves all flavors
     rpc GetAllFlavors ( UserRequest ) returns (stream Flavor);
+    // GetAllNetworks retrieves all networks
     rpc GetAllNetworks ( UserRequest ) returns (stream Network);
+    // ExistServer checks if a server exists for a user to open a stream
     rpc ExistServer ( UserRequest ) returns ( ExistData );
+    // ExistServerPools checks if server pools exist for a user to open a stream
     rpc ExistServerPools ( UserRequest ) returns ( ExistData );
+    // ExistConfigs checks if configs exist for a user to open a stream
     rpc ExistConfigs ( UserRequest ) returns ( ExistData );
+    // GetAllServers retrieves all servers for a user
     rpc GetAllServers ( UserRequest ) returns (stream Server);
+    // GetAllServerPools retrieves all server pools for a user
     rpc GetAllServerPools ( UserRequest ) returns (stream ServerPool);
+    // GetAllConfigs retrieves all configs for a user
     rpc GetAllConfigs ( UserRequest ) returns (stream Config);
 
 }
 
+// ConfigService manages configuration settings for users.
 service ConfigService {
+    // CreateConfig creates a new configuration entry for a user.
     rpc CreateConfig (CreateConfigRequest) returns (CreateConfigResponse);
+    // UpdateConfig updates an existing configuration entry for a user.
     rpc UpdateConfig (UpdateConfigRequest) returns (UpdateConfigResponse);
+    // DeleteConfig deletes a configuration entry for a user.
     rpc DeleteConfig (DeleteConfigRequest) returns (DeleteConfigResponse);
+    // GetConfig retrieves a configuration entry for a user.
     rpc GetConfig (GetConfigRequest) returns (GetConfigResponse);
 }
 
+// PoolService manages server pools and associated operations.
 service PoolService {
+    // CreatePool creates a new server pool for a user.
     rpc CreatePool (CreatePoolRequest) returns (CreatePoolResponse);
+    // GetPool retrieves details of a specific server pool for a user.
     rpc GetPool (GetPoolRequest) returns (GetPoolResponse);
+    // GetAllPools retrieves all server pools for a user.
     rpc GetAllPools (GetPoolRequest) returns (stream GetPoolResponse);
+    // DeletePool deletes a specific server pool for a user.
     rpc DeletePool (DeletePoolRequest) returns (DeletePoolResponse);
+    // RebuildServer rebuilds a server within a pool for a user.
     rpc RebuildServer (RebuildServerRequest) returns (RebuildServerResponse);
+    // AddServer adds a new server to a pool for a user.
     rpc AddServer (CreatePoolRequest) returns (RebuildServerResponse);
 }
 
+// UserService streams updates related to user data such as server pools, servers, and configurations.
 service UserService {
+    // UpdateDataUser streams updates related to user data.
     rpc UpdateDataUser (UpdateDataUserRequest) returns (stream UpdateDataUserResponse);
 }

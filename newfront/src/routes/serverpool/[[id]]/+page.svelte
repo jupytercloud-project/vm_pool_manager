@@ -52,6 +52,7 @@ import type {
   RebuildServerResponse,
 } from '$lib/grpc/frontcontrol_pb';
 
+
 let token: string | null = null;
 let selectedsp: string = 'Choisissez le serverpool';
 let serversp: Server[] = [];
@@ -220,12 +221,17 @@ async function handleCreateServerpool(event: Event) {
         config: selectedConfigFile,
     };
 
+    
     if (!data.image || !data.flavor || !data.config) {
-        createError = "Veuillez remplir tous les champs obligatoires.";
-        return;
+      createError = "Veuillez remplir tous les champs obligatoires.";
+      return;
     }
-
+    
     console.log("📤 Creating pool:", data);
+    const startDate = computeNextSchedule(
+      Number(scheduleDay),
+      scheduleTime
+    );
 
     const req: CreatePoolRequest = create(CreatePoolRequestSchema, {
         user: $authStore?.email,
@@ -236,7 +242,14 @@ async function handleCreateServerpool(event: Event) {
         minVm: String(data.minVm),
         maxVm: String(data.maxVm),
         config: data.config,
+        startTime: {
+          seconds: BigInt(Math.floor(startDate.getTime()/1000)),
+          nanos: (startDate.getDate() % 1000) * 1_000_000,
+        },
+        timeWindow: scheduleWindowHours,
     });
+
+    console.log(req)
 
     try {
         createError = "";
@@ -253,6 +266,25 @@ async function handleCreateServerpool(event: Event) {
         createError = "Impossible de créer le serverpool.";
     }
 }
+
+function computeNextSchedule(dayOfWeek: number, time: string): Date {
+  const [hours, minutes] = time.split(":").map(Number);
+  const now = new Date();
+
+  const target = new Date(now);
+  target.setHours(hours, minutes, 0, 0);
+
+  let delta = dayOfWeek - now.getDay();
+  if (delta < 0 || (delta === 0 && target < now)) {
+    // Si le jour est déjà passé cette semaine, on ajoute 7 jours
+    delta += 7;
+  }
+
+  target.setDate(now.getDate() + delta);
+  return target;
+}
+
+
 </script>
 
 <!-- Dropdown -->
@@ -476,6 +508,7 @@ async function handleCreateServerpool(event: Event) {
             max="24"
             bind:value={scheduleWindowHours}
             placeholder="Durée (h)"
+            required
           />
         </div>
       

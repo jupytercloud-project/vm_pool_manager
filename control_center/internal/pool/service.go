@@ -3,7 +3,9 @@ package pool
 import (
 	"context"
 	"strconv"
+	"time"
 
+	"control_center/config"
 	"control_center/frontcontrolpb"
 	"control_center/models"
 	"control_center/pb"
@@ -40,21 +42,35 @@ func (s *Service) CreatePool(
 		MaxVM:        maxVM,
 		Networks:     models.JSONStringSlice{req.GetNetwork()},
 		ConfigID:     req.GetConfig(),
+		Status:       "scheduled",
 	}
-	rep, err := s.pm.SendRessources(
-		ctx,
-		&pb.RessourceRequest{
-			User:   req.GetUser(),
-			Data:   pool.ToMap(),
-			Status: pb.Status_CREATE,
-			Type:   pb.Type_SERVERPOOL,
-		},
-	)
+	pool.TimeStart = new(time.Time)
+	*pool.TimeStart = req.GetStartTime().AsTime()
 
-	if err != nil || rep.GetSuccess() == false {
+	tw := time.Duration(req.GetTimeWindow()) * time.Hour
+	pool.Timewindow = new(time.Duration)
+	*pool.Timewindow = tw
+
+	// rep, err := s.pm.SendRessources(
+	// 	ctx,
+	// 	&pb.RessourceRequest{
+	// 		User:   req.GetUser(),
+	// 		Data:   pool.ToMap(),
+	// 		Status: pb.Status_CREATE,
+	// 		Type:   pb.Type_SERVERPOOL,
+	// 	},
+	// )
+
+	// if err != nil || rep.GetSuccess() == false {
+	// 	return &frontcontrolpb.CreatePoolResponse{Success: false}, err
+	// }
+
+	// return &frontcontrolpb.CreatePoolResponse{Success: true}, nil
+
+	err := config.Database.Create(&pool).Error
+	if err != nil {
 		return &frontcontrolpb.CreatePoolResponse{Success: false}, err
 	}
-
 	return &frontcontrolpb.CreatePoolResponse{Success: true}, nil
 }
 
