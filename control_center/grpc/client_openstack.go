@@ -96,6 +96,7 @@ func handleDBServerEvent(server *models.Server, status pb.Status) {
 func handleDBServerpoolEvent(serverpool *models.Serverpool, status pb.Status) {
 	switch status {
 	case pb.Status_CREATE:
+		// pas sur !
 		_ = config.Database.Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(serverpool).Error
 	case pb.Status_UPDATE:

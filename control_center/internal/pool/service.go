@@ -50,28 +50,7 @@ func (s *Service) CreatePool(
 	tw := time.Duration(req.GetTimeWindow()) * time.Hour
 	pool.Timewindow = new(time.Duration)
 	*pool.Timewindow = tw
-
-	// rep, err := s.pm.SendRessources(
-	// 	ctx,
-	// 	&pb.RessourceRequest{
-	// 		User:   req.GetUser(),
-	// 		Data:   pool.ToMap(),
-	// 		Status: pb.Status_CREATE,
-	// 		Type:   pb.Type_SERVERPOOL,
-	// 	},
-	// )
-
-	// if err != nil || rep.GetSuccess() == false {
-	// 	return &frontcontrolpb.CreatePoolResponse{Success: false}, err
-	// }
-
-	// log.Println("coucou: ,", pool)
-	// err := config.Database.FirstOrCreate(&pool).Error
 	res := config.Database.Create(&pool)
-
-	// log.Println("RowsAffected:", res.RowsAffected)
-	// log.Println("Error:", res.Error)
-	// log.Println("ID after:", pool.ID)
 	if res.Error != nil {
 		return &frontcontrolpb.CreatePoolResponse{Success: false}, res.Error
 	}

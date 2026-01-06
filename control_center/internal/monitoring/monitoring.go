@@ -3,17 +3,15 @@ package monitoring
 import (
 	"context"
 	"control_center/config"
-	"control_center/frontcontrolpb"
-	"control_center/internal/pool"
 	"control_center/models"
+	"control_center/pb"
 	"log"
-	"strconv"
 	"time"
 )
 
 func Start_Monitoring(
 	ctx context.Context,
-	poolService *pool.Service,
+	clientMicroservice pb.PoolManagerClient,
 ) {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -25,12 +23,12 @@ func Start_Monitoring(
 			return
 		case <-ticker.C:
 			log.Println("Monitoring tick...")
-			checkallpools(poolService)
+			checkallpool(clientMicroservice)
 		}
 	}
 }
 
-func checkallpools(poolService *pool.Service) {
+func checkallpool(client pb.PoolManagerClient) {
 	var pools []models.Serverpool
 	err := config.Database.Find(&pools).Error
 	if err != nil {
@@ -38,26 +36,26 @@ func checkallpools(poolService *pool.Service) {
 		return
 	}
 	for _, pool := range pools {
-		checkpool(&pool, poolService)
+		checkpool(&pool, client)
 	}
 }
 
-func checkpool(pool *models.Serverpool, poolService *pool.Service) {
+func checkpool(pool *models.Serverpool, client pb.PoolManagerClient) {
 	now := time.Now().UTC()
 
 	switch pool.Status {
 	case "scheduled":
 		if shouldStartPool(pool, now) {
-			startPool(pool, poolService)
+			startPool(pool, client)
 		}
 	case "running":
 		if shouldDeletePool(pool, now) {
-			deletePool(pool, poolService)
+			deletePool(pool, client)
 		}
 	}
 }
 
-func startPool(pool *models.Serverpool, poolService *pool.Service) {
+func startPool(pool *models.Serverpool, client pb.PoolManagerClient) {
 	log.Printf("Starting pool ID %s as per schedule", pool.ServerpoolID)
 	err := config.Database.Model(pool).
 		Where("status = ?", "scheduled").
@@ -66,7 +64,7 @@ func startPool(pool *models.Serverpool, poolService *pool.Service) {
 		log.Println("Failed to change pool status:", err)
 		return
 	}
-	go launchCreatePool(pool, poolService)
+	go launchCreatePool(pool, client)
 }
 
 func shouldDeletePool(pool *models.Serverpool, now time.Time) bool {
@@ -78,7 +76,7 @@ func shouldDeletePool(pool *models.Serverpool, now time.Time) bool {
 	return now.After(endTime)
 }
 
-func deletePool(pool *models.Serverpool, poolService *pool.Service) {
+func deletePool(pool *models.Serverpool, client pb.PoolManagerClient) {
 	log.Printf("Deleting pool ID %s as per schedule", pool.ServerpoolID)
 	err := config.Database.Model(pool).
 		Where("status = ?", "running").
@@ -88,7 +86,7 @@ func deletePool(pool *models.Serverpool, poolService *pool.Service) {
 		return
 	}
 
-	go launchDeletePool(pool, poolService)
+	go launchDeletePool(pool, client)
 }
 
 func shouldStartPool(pool *models.Serverpool, now time.Time) bool {
@@ -100,33 +98,29 @@ func shouldStartPool(pool *models.Serverpool, now time.Time) bool {
 	return now.After(startWindow) && now.Before(*pool.TimeStart)
 }
 
-// erreur ici
-func launchCreatePool(p *models.Serverpool, poolService *pool.Service) {
+func launchCreatePool(p *models.Serverpool, client pb.PoolManagerClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	req := &frontcontrolpb.CreatePoolRequest{
-		User:    p.UserID,
-		Name:    p.ServerpoolID,
-		Image:   p.ImageRef,
-		Flavor:  p.FlavorRef,
-		Network: p.Networks[0],
-		MinVm:   strconv.Itoa(p.MinVM),
-		MaxVm:   strconv.Itoa(p.MaxVM),
-		Config:  p.ConfigID,
-	}
-	resp, err := poolService.CreatePool(ctx, req)
-	if err != nil || !resp.GetSuccess() {
-		log.Printf("Failed to create pool ID %s: %v", p.ServerpoolID, err)
+	rep, err := client.SendRessources(
+		ctx,
+		&pb.RessourceRequest{
+			User:   p.UserID,
+			Data:   p.ToMap(),
+			Status: pb.Status_CREATE,
+			Type:   pb.Type_SERVERPOOL,
+		},
+	)
+	if err != nil || rep.GetSuccess() == false {
+		log.Println("Error on creating pool as planned")
 		err := config.Database.Model(p).
 			Where("status = ?", "creating").
-			Update("status", "scheduled").Error
+			Update("status", "schedlued").Error
 		if err != nil {
-			log.Println("Failed to update pool status to error:", err)
+			log.Println("Failed to update pool status:", err)
 		}
 		return
 	}
-
 	log.Printf("Pool ID %s created successfully", p.ServerpoolID)
 	err = config.Database.Model(p).
 		Where("status = ?", "creating").
@@ -136,31 +130,34 @@ func launchCreatePool(p *models.Serverpool, poolService *pool.Service) {
 	}
 }
 
-func launchDeletePool(p *models.Serverpool, poolService *pool.Service) {
+func launchDeletePool(p *models.Serverpool, client pb.PoolManagerClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	req := &frontcontrolpb.DeletePoolRequest{
-		User:   p.UserID,
-		PoolId: p.ServerpoolID,
-	}
-	resp, err := poolService.DeletePool(ctx, req)
-	if err != nil || !resp.GetSuccess() {
-		log.Printf("Failed to delete pool ID %s: %v", p.ServerpoolID, err)
+	rep, err := client.SendRessources(
+		ctx,
+		&pb.RessourceRequest{
+			User:   p.UserID,
+			Data:   p.ToMap(),
+			Status: pb.Status_DELETE,
+			Type:   pb.Type_SERVERPOOL,
+		},
+	)
+	if err != nil || rep.GetSuccess() == false {
+		log.Println("Error on deleting pool as planned")
 		err := config.Database.Model(p).
 			Where("status = ?", "deleting").
 			Update("status", "running").Error
 		if err != nil {
-			log.Println("Failed to update pool status to error:", err)
+			log.Println("Failed to update pool status:", err)
 		}
 		return
 	}
-
 	log.Printf("Pool ID %s deleted successfully", p.ServerpoolID)
 	err = config.Database.Model(p).
 		Where("status = ?", "deleting").
-		Update("status", "deleted").Error
+		Update("status", "scheduled").Error
 	if err != nil {
-		log.Println("Failed to update pool status to deleted:", err)
+		log.Println("Failed to update pool status:", err)
 	}
 }

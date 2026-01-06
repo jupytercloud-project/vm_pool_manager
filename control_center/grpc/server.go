@@ -79,7 +79,7 @@ func Start_grpc(ctx context.Context) {
 	}()
 
 	log.Println("Serveur gRPC lancé sur le port 50051")
-	go monitoring.Start_Monitoring(ctx, poolService)
+	go monitoring.Start_Monitoring(ctx, client)
 
 	<-ctx.Done()
 	log.Println("Arrêt du serveur gRPC demandé...")
