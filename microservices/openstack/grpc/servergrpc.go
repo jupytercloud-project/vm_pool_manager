@@ -76,6 +76,15 @@ func (s *ServerMicroOpenstack) handleServerpool(
 	data := req.GetData()
 	switch req.GetStatus() {
 	case pb.Status_CREATE:
+		var conf models.ConfigPool
+		err := db.Model(models.ConfigPool{}).Where("name = ? AND user_id = ?", data["config_id"], req.GetUser()).First(&conf).Error
+		if err != nil {
+			log.Println("cannot find conf_file")
+			conf = models.ConfigPool{
+				ID:   0,
+				Data: "#!/bin/bash\n",
+			}
+		}
 		pool := models.Serverpool{
 			ServerpoolID: data["serverpool_id"],
 			UserID:       req.GetUser(),
@@ -84,6 +93,7 @@ func (s *ServerMicroOpenstack) handleServerpool(
 			Networks:     models.ParseJSONStringSlice(data["networks"]),
 			MinVM:        parseInt(data["min_vm"]),
 			MaxVM:        parseInt(data["max_vm"]),
+			ConfigID:     int(conf.ID),
 		}
 		return db.Create(&pool).Error
 	case pb.Status_UPDATE:

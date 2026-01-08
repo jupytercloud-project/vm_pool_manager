@@ -39,6 +39,7 @@ func FlatstringSP(p models.Serverpool) []string {
 			return string(b)
 		}(),
 		"min_vm", fmt.Sprint(p.MinVM),
-		"max_vm", fmt.Sprint(p.MaxVM))
+		"max_vm", fmt.Sprint(p.MaxVM),
+		"config_id", fmt.Sprint(p.ConfigID))
 	return flat
 }

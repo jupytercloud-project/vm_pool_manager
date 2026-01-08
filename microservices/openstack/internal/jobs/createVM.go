@@ -39,7 +39,7 @@ func CreateVM(workerID int, job models.Job) error {
 
 	paramID := utils.ParseInt(job.Data["ID"])
 	fmt.Println("Worker ", workerID, " takes the job of creating a VM")
-
+	log.Printf("job.data[config_id]:%s", job.Data["config_id"])
 	serv := models.Server{
 		FlavorRef:    job.Data["flavor_ref"],
 		ImageRef:     job.Data["image_ref"],
@@ -51,15 +51,15 @@ func CreateVM(workerID int, job models.Job) error {
 	}
 
 	var conf_file models.ConfigPool
-	conferr := config.Database.Where("Name = ? && UserID = ?",
-		serv.ConfigID, serv.UserID).First(&conf_file).Error
+	conferr := config.Database.Model(&models.ConfigPool{}).Where("id = ?", job.Data["config_id"]).First(&conf_file).Error
 	if conferr != nil {
 		log.Println("Error fetching config file:", conferr)
 		conf_file = models.ConfigPool{
 			Data: "#!/bin/bash\n",
 		}
+	} else {
+		log.Printf("Found config file : \n%s\n", conf_file.Data)
 	}
-
 	createOpts := servers.CreateOpts{
 		Name:      fmt.Sprintf(`%s-%s`, serv.ServerpoolID, uuid.New().String()),
 		FlavorRef: serv.FlavorRef,

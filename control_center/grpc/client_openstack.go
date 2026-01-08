@@ -122,9 +122,7 @@ func handleDBServerpoolEvent(serverpoolID, userID string, data map[string]string
 			Updates(updates).Error
 
 	case pb.Status_DELETE:
-		_ = config.Database.
-			Where("serverpool_id = ? AND user_id = ?", serverpoolID, userID).
-			Delete(&models.Serverpool{}).Error
+		log.Println("Pool deleted in microservice")
 	}
 }
 
