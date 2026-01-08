@@ -5,8 +5,10 @@ import (
 	"control_center/config"
 	"control_center/models"
 	"control_center/pb"
+	"encoding/json"
 	"io"
 	"log"
+	"strconv"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -60,7 +62,7 @@ func HandleStreamEvent(resp *pb.StreamRessourceResponse) {
 	case pb.Type_SERVERPOOL:
 		var pool models.Serverpool
 		pool.FromPb(resp)
-		handleDBServerpoolEvent(&pool, resp.Status)
+		handleDBServerpoolEvent(resp.GetData()["serverpool_id"], resp.GetUser(), resp.Data, resp.Status)
 	case pb.Type_CONFIG:
 		var conf models.ConfigPool
 		conf.FromPb(resp)
@@ -93,29 +95,36 @@ func handleDBServerEvent(server *models.Server, status pb.Status) {
 	}
 }
 
-func handleDBServerpoolEvent(serverpool *models.Serverpool, status pb.Status) {
+func handleDBServerpoolEvent(serverpoolID, userID string, data map[string]string, status pb.Status) {
 	switch status {
+
 	case pb.Status_CREATE:
-		// pas sur !
-		_ = config.Database.Clauses(clause.OnConflict{UpdateAll: true}).
-			Create(serverpool).Error
+		updates := serverpoolUpdatesFromMap(data)
+		updates["serverpool_id"] = serverpoolID
+		updates["user_id"] = userID
+
+		_ = config.Database.
+			Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "serverpool_id"}, {Name: "user_id"}},
+				DoUpdates: clause.Assignments(updates),
+			}).
+			Create(&models.Serverpool{}).Error
+
 	case pb.Status_UPDATE:
-		_ = config.Database.Model(&models.Serverpool{}).
-			Where("user_id = ? AND serverpool_id = ?",
-				serverpool.UserID, serverpool.ServerpoolID).
-			Updates(serverpool).Error
-	case pb.Status_DELETE:
-		if serverpool.Status != "deleting" && serverpool.Status != "deleted" {
-			_ = config.Database.Delete(serverpool).Error
-		} else {
-			err := config.Database.Model(&serverpool).
-				Where("user_id = ? AND serverpool_id = ?",
-					serverpool.UserID, serverpool.ServerpoolID).
-				Update("status", "scheduled").Error
-			if err != nil {
-				log.Printf("Erreur DELETE %T : %v", serverpool, err)
-			}
+		updates := serverpoolUpdatesFromMap(data)
+		if len(updates) == 0 {
+			return
 		}
+
+		_ = config.Database.
+			Model(&models.Serverpool{}).
+			Where("serverpool_id = ? AND user_id = ?", serverpoolID, userID).
+			Updates(updates).Error
+
+	case pb.Status_DELETE:
+		_ = config.Database.
+			Where("serverpool_id = ? AND user_id = ?", serverpoolID, userID).
+			Delete(&models.Serverpool{}).Error
 	}
 }
 
@@ -216,4 +225,48 @@ func PopulateDBNetworkMicroOpen() {
 		_ = config.Database.Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(&network).Error
 	}
+}
+
+func serverpoolUpdatesFromMap(data map[string]string) map[string]any {
+	updates := map[string]any{}
+
+	for k, v := range data {
+		switch k {
+
+		case "image_ref":
+			updates["image_ref"] = v
+
+		case "flavor_ref":
+			updates["flavor_ref"] = v
+
+		case "min_vm":
+			if i, err := strconv.Atoi(v); err == nil {
+				updates["min_vm"] = i
+			}
+
+		case "max_vm":
+			if i, err := strconv.Atoi(v); err == nil {
+				updates["max_vm"] = i
+			}
+
+		case "pending_jobs":
+			if i, err := strconv.Atoi(v); err == nil {
+				updates["pending_jobs"] = i
+			}
+
+		case "config_id":
+			updates["config_id"] = v
+
+		case "networks":
+			var networks models.JSONStringSlice
+			if err := json.Unmarshal([]byte(v), &networks); err == nil {
+				updates["networks"] = networks
+			}
+
+		case "status":
+			updates["status"] = v
+		}
+	}
+
+	return updates
 }

@@ -47,6 +47,7 @@ func (s *Service) CreatePool(
 	pool.TimeStart = new(time.Time)
 	*pool.TimeStart = req.GetStartTime().AsTime()
 
+	// modif here to test timewindow and delete
 	tw := time.Duration(req.GetTimeWindow()) * time.Hour
 	pool.Timewindow = new(time.Duration)
 	*pool.Timewindow = tw
