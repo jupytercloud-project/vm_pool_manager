@@ -854,6 +854,7 @@ const (
 	PoolService_DeletePool_FullMethodName    = "/frontcontrol.PoolService/DeletePool"
 	PoolService_RebuildServer_FullMethodName = "/frontcontrol.PoolService/RebuildServer"
 	PoolService_AddServer_FullMethodName     = "/frontcontrol.PoolService/AddServer"
+	PoolService_AddSSHKeys_FullMethodName    = "/frontcontrol.PoolService/AddSSHKeys"
 )
 
 // PoolServiceClient is the client API for PoolService service.
@@ -874,6 +875,8 @@ type PoolServiceClient interface {
 	RebuildServer(ctx context.Context, in *RebuildServerRequest, opts ...grpc.CallOption) (*RebuildServerResponse, error)
 	// AddServer adds a new server to a pool for a user.
 	AddServer(ctx context.Context, in *CreatePoolRequest, opts ...grpc.CallOption) (*RebuildServerResponse, error)
+	// AddSSHKeys adds SSH public keys to a server pool for a user.
+	AddSSHKeys(ctx context.Context, in *ListSSHPublicKeysRequest, opts ...grpc.CallOption) (*ListSSHPublicKeysResponse, error)
 }
 
 type poolServiceClient struct {
@@ -953,6 +956,16 @@ func (c *poolServiceClient) AddServer(ctx context.Context, in *CreatePoolRequest
 	return out, nil
 }
 
+func (c *poolServiceClient) AddSSHKeys(ctx context.Context, in *ListSSHPublicKeysRequest, opts ...grpc.CallOption) (*ListSSHPublicKeysResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSSHPublicKeysResponse)
+	err := c.cc.Invoke(ctx, PoolService_AddSSHKeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PoolServiceServer is the server API for PoolService service.
 // All implementations must embed UnimplementedPoolServiceServer
 // for forward compatibility.
@@ -971,6 +984,8 @@ type PoolServiceServer interface {
 	RebuildServer(context.Context, *RebuildServerRequest) (*RebuildServerResponse, error)
 	// AddServer adds a new server to a pool for a user.
 	AddServer(context.Context, *CreatePoolRequest) (*RebuildServerResponse, error)
+	// AddSSHKeys adds SSH public keys to a server pool for a user.
+	AddSSHKeys(context.Context, *ListSSHPublicKeysRequest) (*ListSSHPublicKeysResponse, error)
 	mustEmbedUnimplementedPoolServiceServer()
 }
 
@@ -998,6 +1013,9 @@ func (UnimplementedPoolServiceServer) RebuildServer(context.Context, *RebuildSer
 }
 func (UnimplementedPoolServiceServer) AddServer(context.Context, *CreatePoolRequest) (*RebuildServerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddServer not implemented")
+}
+func (UnimplementedPoolServiceServer) AddSSHKeys(context.Context, *ListSSHPublicKeysRequest) (*ListSSHPublicKeysResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddSSHKeys not implemented")
 }
 func (UnimplementedPoolServiceServer) mustEmbedUnimplementedPoolServiceServer() {}
 func (UnimplementedPoolServiceServer) testEmbeddedByValue()                     {}
@@ -1121,6 +1139,24 @@ func _PoolService_AddServer_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PoolService_AddSSHKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSSHPublicKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PoolServiceServer).AddSSHKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PoolService_AddSSHKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PoolServiceServer).AddSSHKeys(ctx, req.(*ListSSHPublicKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PoolService_ServiceDesc is the grpc.ServiceDesc for PoolService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1148,6 +1184,10 @@ var PoolService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "AddServer",
 			Handler:    _PoolService_AddServer_Handler,
 		},
+		{
+			MethodName: "AddSSHKeys",
+			Handler:    _PoolService_AddSSHKeys_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -1160,7 +1200,9 @@ var PoolService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	UserService_UpdateDataUser_FullMethodName = "/frontcontrol.UserService/UpdateDataUser"
+	UserService_UpdateDataUser_FullMethodName    = "/frontcontrol.UserService/UpdateDataUser"
+	UserService_AddPersonalSSHKey_FullMethodName = "/frontcontrol.UserService/AddPersonalSSHKey"
+	UserService_AttribVMinPool_FullMethodName    = "/frontcontrol.UserService/AttribVMinPool"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -1171,6 +1213,10 @@ const (
 type UserServiceClient interface {
 	// UpdateDataUser streams updates related to user data.
 	UpdateDataUser(ctx context.Context, in *UpdateDataUserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UpdateDataUserResponse], error)
+	// AddPersonalSSHKey adds a personal SSH key for a user.
+	AddPersonalSSHKey(ctx context.Context, in *AddPersonalSSHKeyRequest, opts ...grpc.CallOption) (*AddPersonnalSSHKeyResponse, error)
+	// AttribVMinPool attributes a VM in the pool to a user based on the public key.
+	AttribVMinPool(ctx context.Context, in *AttribVMinPoolRequest, opts ...grpc.CallOption) (*AttribVMinPoolResponse, error)
 }
 
 type userServiceClient struct {
@@ -1200,6 +1246,26 @@ func (c *userServiceClient) UpdateDataUser(ctx context.Context, in *UpdateDataUs
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type UserService_UpdateDataUserClient = grpc.ServerStreamingClient[UpdateDataUserResponse]
 
+func (c *userServiceClient) AddPersonalSSHKey(ctx context.Context, in *AddPersonalSSHKeyRequest, opts ...grpc.CallOption) (*AddPersonnalSSHKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddPersonnalSSHKeyResponse)
+	err := c.cc.Invoke(ctx, UserService_AddPersonalSSHKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) AttribVMinPool(ctx context.Context, in *AttribVMinPoolRequest, opts ...grpc.CallOption) (*AttribVMinPoolResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AttribVMinPoolResponse)
+	err := c.cc.Invoke(ctx, UserService_AttribVMinPool_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -1208,6 +1274,10 @@ type UserService_UpdateDataUserClient = grpc.ServerStreamingClient[UpdateDataUse
 type UserServiceServer interface {
 	// UpdateDataUser streams updates related to user data.
 	UpdateDataUser(*UpdateDataUserRequest, grpc.ServerStreamingServer[UpdateDataUserResponse]) error
+	// AddPersonalSSHKey adds a personal SSH key for a user.
+	AddPersonalSSHKey(context.Context, *AddPersonalSSHKeyRequest) (*AddPersonnalSSHKeyResponse, error)
+	// AttribVMinPool attributes a VM in the pool to a user based on the public key.
+	AttribVMinPool(context.Context, *AttribVMinPoolRequest) (*AttribVMinPoolResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -1220,6 +1290,12 @@ type UnimplementedUserServiceServer struct{}
 
 func (UnimplementedUserServiceServer) UpdateDataUser(*UpdateDataUserRequest, grpc.ServerStreamingServer[UpdateDataUserResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method UpdateDataUser not implemented")
+}
+func (UnimplementedUserServiceServer) AddPersonalSSHKey(context.Context, *AddPersonalSSHKeyRequest) (*AddPersonnalSSHKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddPersonalSSHKey not implemented")
+}
+func (UnimplementedUserServiceServer) AttribVMinPool(context.Context, *AttribVMinPoolRequest) (*AttribVMinPoolResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AttribVMinPool not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -1253,13 +1329,58 @@ func _UserService_UpdateDataUser_Handler(srv interface{}, stream grpc.ServerStre
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type UserService_UpdateDataUserServer = grpc.ServerStreamingServer[UpdateDataUserResponse]
 
+func _UserService_AddPersonalSSHKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddPersonalSSHKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AddPersonalSSHKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AddPersonalSSHKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AddPersonalSSHKey(ctx, req.(*AddPersonalSSHKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_AttribVMinPool_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AttribVMinPoolRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AttribVMinPool(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AttribVMinPool_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AttribVMinPool(ctx, req.(*AttribVMinPoolRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "frontcontrol.UserService",
 	HandlerType: (*UserServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddPersonalSSHKey",
+			Handler:    _UserService_AddPersonalSSHKey_Handler,
+		},
+		{
+			MethodName: "AttribVMinPool",
+			Handler:    _UserService_AttribVMinPool_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "UpdateDataUser",

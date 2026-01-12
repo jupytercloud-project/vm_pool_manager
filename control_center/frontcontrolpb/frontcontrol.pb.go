@@ -238,6 +238,102 @@ func (x *CreateUserResponse) GetSuccess() bool {
 	return false
 }
 
+type AddPersonalSSHKeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	PublicKey     string                 `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddPersonalSSHKeyRequest) Reset() {
+	*x = AddPersonalSSHKeyRequest{}
+	mi := &file_frontcontrol_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddPersonalSSHKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddPersonalSSHKeyRequest) ProtoMessage() {}
+
+func (x *AddPersonalSSHKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_frontcontrol_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddPersonalSSHKeyRequest.ProtoReflect.Descriptor instead.
+func (*AddPersonalSSHKeyRequest) Descriptor() ([]byte, []int) {
+	return file_frontcontrol_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AddPersonalSSHKeyRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AddPersonalSSHKeyRequest) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+type AddPersonnalSSHKeyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddPersonnalSSHKeyResponse) Reset() {
+	*x = AddPersonnalSSHKeyResponse{}
+	mi := &file_frontcontrol_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddPersonnalSSHKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddPersonnalSSHKeyResponse) ProtoMessage() {}
+
+func (x *AddPersonnalSSHKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_frontcontrol_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddPersonnalSSHKeyResponse.ProtoReflect.Descriptor instead.
+func (*AddPersonnalSSHKeyResponse) Descriptor() ([]byte, []int) {
+	return file_frontcontrol_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AddPersonnalSSHKeyResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 type AuthenticateUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
@@ -248,7 +344,7 @@ type AuthenticateUserRequest struct {
 
 func (x *AuthenticateUserRequest) Reset() {
 	*x = AuthenticateUserRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[2]
+	mi := &file_frontcontrol_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -260,7 +356,7 @@ func (x *AuthenticateUserRequest) String() string {
 func (*AuthenticateUserRequest) ProtoMessage() {}
 
 func (x *AuthenticateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[2]
+	mi := &file_frontcontrol_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -273,7 +369,7 @@ func (x *AuthenticateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateUserRequest.ProtoReflect.Descriptor instead.
 func (*AuthenticateUserRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{2}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AuthenticateUserRequest) GetEmail() string {
@@ -300,7 +396,7 @@ type AuthenticateUserResponse struct {
 
 func (x *AuthenticateUserResponse) Reset() {
 	*x = AuthenticateUserResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[3]
+	mi := &file_frontcontrol_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -312,7 +408,7 @@ func (x *AuthenticateUserResponse) String() string {
 func (*AuthenticateUserResponse) ProtoMessage() {}
 
 func (x *AuthenticateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[3]
+	mi := &file_frontcontrol_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -325,7 +421,7 @@ func (x *AuthenticateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticateUserResponse.ProtoReflect.Descriptor instead.
 func (*AuthenticateUserResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{3}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AuthenticateUserResponse) GetToken() string {
@@ -371,7 +467,7 @@ type Image struct {
 
 func (x *Image) Reset() {
 	*x = Image{}
-	mi := &file_frontcontrol_proto_msgTypes[4]
+	mi := &file_frontcontrol_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +479,7 @@ func (x *Image) String() string {
 func (*Image) ProtoMessage() {}
 
 func (x *Image) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[4]
+	mi := &file_frontcontrol_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +492,7 @@ func (x *Image) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Image.ProtoReflect.Descriptor instead.
 func (*Image) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{4}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Image) GetId() string {
@@ -565,7 +661,7 @@ type Flavor struct {
 
 func (x *Flavor) Reset() {
 	*x = Flavor{}
-	mi := &file_frontcontrol_proto_msgTypes[5]
+	mi := &file_frontcontrol_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -577,7 +673,7 @@ func (x *Flavor) String() string {
 func (*Flavor) ProtoMessage() {}
 
 func (x *Flavor) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[5]
+	mi := &file_frontcontrol_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +686,7 @@ func (x *Flavor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Flavor.ProtoReflect.Descriptor instead.
 func (*Flavor) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{5}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Flavor) GetId() string {
@@ -690,7 +786,7 @@ type Network struct {
 
 func (x *Network) Reset() {
 	*x = Network{}
-	mi := &file_frontcontrol_proto_msgTypes[6]
+	mi := &file_frontcontrol_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -702,7 +798,7 @@ func (x *Network) String() string {
 func (*Network) ProtoMessage() {}
 
 func (x *Network) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[6]
+	mi := &file_frontcontrol_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -715,7 +811,7 @@ func (x *Network) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Network.ProtoReflect.Descriptor instead.
 func (*Network) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{6}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Network) GetId() string {
@@ -813,7 +909,7 @@ type CreateConfigRequest struct {
 
 func (x *CreateConfigRequest) Reset() {
 	*x = CreateConfigRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[7]
+	mi := &file_frontcontrol_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -825,7 +921,7 @@ func (x *CreateConfigRequest) String() string {
 func (*CreateConfigRequest) ProtoMessage() {}
 
 func (x *CreateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[7]
+	mi := &file_frontcontrol_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -838,7 +934,7 @@ func (x *CreateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateConfigRequest.ProtoReflect.Descriptor instead.
 func (*CreateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{7}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateConfigRequest) GetUser() string {
@@ -871,7 +967,7 @@ type CreateConfigResponse struct {
 
 func (x *CreateConfigResponse) Reset() {
 	*x = CreateConfigResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[8]
+	mi := &file_frontcontrol_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -883,7 +979,7 @@ func (x *CreateConfigResponse) String() string {
 func (*CreateConfigResponse) ProtoMessage() {}
 
 func (x *CreateConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[8]
+	mi := &file_frontcontrol_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -896,7 +992,7 @@ func (x *CreateConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateConfigResponse.ProtoReflect.Descriptor instead.
 func (*CreateConfigResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{8}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateConfigResponse) GetSuccess() bool {
@@ -917,7 +1013,7 @@ type UpdateConfigRequest struct {
 
 func (x *UpdateConfigRequest) Reset() {
 	*x = UpdateConfigRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[9]
+	mi := &file_frontcontrol_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -929,7 +1025,7 @@ func (x *UpdateConfigRequest) String() string {
 func (*UpdateConfigRequest) ProtoMessage() {}
 
 func (x *UpdateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[9]
+	mi := &file_frontcontrol_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -942,7 +1038,7 @@ func (x *UpdateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpdateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{9}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateConfigRequest) GetUser() string {
@@ -975,7 +1071,7 @@ type UpdateConfigResponse struct {
 
 func (x *UpdateConfigResponse) Reset() {
 	*x = UpdateConfigResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[10]
+	mi := &file_frontcontrol_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -987,7 +1083,7 @@ func (x *UpdateConfigResponse) String() string {
 func (*UpdateConfigResponse) ProtoMessage() {}
 
 func (x *UpdateConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[10]
+	mi := &file_frontcontrol_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1000,7 +1096,7 @@ func (x *UpdateConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateConfigResponse.ProtoReflect.Descriptor instead.
 func (*UpdateConfigResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{10}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateConfigResponse) GetSuccess() bool {
@@ -1020,7 +1116,7 @@ type DeleteConfigRequest struct {
 
 func (x *DeleteConfigRequest) Reset() {
 	*x = DeleteConfigRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[11]
+	mi := &file_frontcontrol_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1032,7 +1128,7 @@ func (x *DeleteConfigRequest) String() string {
 func (*DeleteConfigRequest) ProtoMessage() {}
 
 func (x *DeleteConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[11]
+	mi := &file_frontcontrol_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1045,7 +1141,7 @@ func (x *DeleteConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConfigRequest.ProtoReflect.Descriptor instead.
 func (*DeleteConfigRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{11}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeleteConfigRequest) GetUser() string {
@@ -1071,7 +1167,7 @@ type DeleteConfigResponse struct {
 
 func (x *DeleteConfigResponse) Reset() {
 	*x = DeleteConfigResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[12]
+	mi := &file_frontcontrol_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1083,7 +1179,7 @@ func (x *DeleteConfigResponse) String() string {
 func (*DeleteConfigResponse) ProtoMessage() {}
 
 func (x *DeleteConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[12]
+	mi := &file_frontcontrol_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1096,7 +1192,7 @@ func (x *DeleteConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConfigResponse.ProtoReflect.Descriptor instead.
 func (*DeleteConfigResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{12}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteConfigResponse) GetSuccess() bool {
@@ -1116,7 +1212,7 @@ type GetConfigRequest struct {
 
 func (x *GetConfigRequest) Reset() {
 	*x = GetConfigRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[13]
+	mi := &file_frontcontrol_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1128,7 +1224,7 @@ func (x *GetConfigRequest) String() string {
 func (*GetConfigRequest) ProtoMessage() {}
 
 func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[13]
+	mi := &file_frontcontrol_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1141,7 +1237,7 @@ func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetConfigRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{13}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetConfigRequest) GetUser() string {
@@ -1168,7 +1264,7 @@ type GetConfigResponse struct {
 
 func (x *GetConfigResponse) Reset() {
 	*x = GetConfigResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[14]
+	mi := &file_frontcontrol_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1180,7 +1276,7 @@ func (x *GetConfigResponse) String() string {
 func (*GetConfigResponse) ProtoMessage() {}
 
 func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[14]
+	mi := &file_frontcontrol_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1193,7 +1289,7 @@ func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetConfigResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{14}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetConfigResponse) GetValue() string {
@@ -1229,7 +1325,7 @@ type CreatePoolRequest struct {
 
 func (x *CreatePoolRequest) Reset() {
 	*x = CreatePoolRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[15]
+	mi := &file_frontcontrol_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1241,7 +1337,7 @@ func (x *CreatePoolRequest) String() string {
 func (*CreatePoolRequest) ProtoMessage() {}
 
 func (x *CreatePoolRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[15]
+	mi := &file_frontcontrol_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1254,7 +1350,7 @@ func (x *CreatePoolRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePoolRequest.ProtoReflect.Descriptor instead.
 func (*CreatePoolRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{15}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreatePoolRequest) GetUser() string {
@@ -1344,7 +1440,7 @@ type CreatePoolResponse struct {
 
 func (x *CreatePoolResponse) Reset() {
 	*x = CreatePoolResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[16]
+	mi := &file_frontcontrol_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1356,7 +1452,7 @@ func (x *CreatePoolResponse) String() string {
 func (*CreatePoolResponse) ProtoMessage() {}
 
 func (x *CreatePoolResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[16]
+	mi := &file_frontcontrol_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1369,7 +1465,7 @@ func (x *CreatePoolResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePoolResponse.ProtoReflect.Descriptor instead.
 func (*CreatePoolResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{16}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CreatePoolResponse) GetPoolId() string {
@@ -1396,7 +1492,7 @@ type DeletePoolRequest struct {
 
 func (x *DeletePoolRequest) Reset() {
 	*x = DeletePoolRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[17]
+	mi := &file_frontcontrol_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1408,7 +1504,7 @@ func (x *DeletePoolRequest) String() string {
 func (*DeletePoolRequest) ProtoMessage() {}
 
 func (x *DeletePoolRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[17]
+	mi := &file_frontcontrol_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1421,7 +1517,7 @@ func (x *DeletePoolRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePoolRequest.ProtoReflect.Descriptor instead.
 func (*DeletePoolRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{17}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *DeletePoolRequest) GetUser() string {
@@ -1447,7 +1543,7 @@ type DeletePoolResponse struct {
 
 func (x *DeletePoolResponse) Reset() {
 	*x = DeletePoolResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[18]
+	mi := &file_frontcontrol_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1459,7 +1555,7 @@ func (x *DeletePoolResponse) String() string {
 func (*DeletePoolResponse) ProtoMessage() {}
 
 func (x *DeletePoolResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[18]
+	mi := &file_frontcontrol_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1472,7 +1568,7 @@ func (x *DeletePoolResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePoolResponse.ProtoReflect.Descriptor instead.
 func (*DeletePoolResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{18}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DeletePoolResponse) GetSuccess() bool {
@@ -1492,7 +1588,7 @@ type GetPoolRequest struct {
 
 func (x *GetPoolRequest) Reset() {
 	*x = GetPoolRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[19]
+	mi := &file_frontcontrol_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1504,7 +1600,7 @@ func (x *GetPoolRequest) String() string {
 func (*GetPoolRequest) ProtoMessage() {}
 
 func (x *GetPoolRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[19]
+	mi := &file_frontcontrol_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1517,7 +1613,7 @@ func (x *GetPoolRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPoolRequest.ProtoReflect.Descriptor instead.
 func (*GetPoolRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{19}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetPoolRequest) GetUser() string {
@@ -1549,7 +1645,7 @@ type GetPoolResponse struct {
 
 func (x *GetPoolResponse) Reset() {
 	*x = GetPoolResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[20]
+	mi := &file_frontcontrol_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1561,7 +1657,7 @@ func (x *GetPoolResponse) String() string {
 func (*GetPoolResponse) ProtoMessage() {}
 
 func (x *GetPoolResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[20]
+	mi := &file_frontcontrol_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1574,7 +1670,7 @@ func (x *GetPoolResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPoolResponse.ProtoReflect.Descriptor instead.
 func (*GetPoolResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{20}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetPoolResponse) GetName() string {
@@ -1635,7 +1731,7 @@ type UpdateDataUserRequest struct {
 
 func (x *UpdateDataUserRequest) Reset() {
 	*x = UpdateDataUserRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[21]
+	mi := &file_frontcontrol_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1647,7 +1743,7 @@ func (x *UpdateDataUserRequest) String() string {
 func (*UpdateDataUserRequest) ProtoMessage() {}
 
 func (x *UpdateDataUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[21]
+	mi := &file_frontcontrol_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1660,7 +1756,7 @@ func (x *UpdateDataUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDataUserRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDataUserRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{21}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UpdateDataUserRequest) GetUser() string {
@@ -1682,7 +1778,7 @@ type UpdateDataUserResponse struct {
 
 func (x *UpdateDataUserResponse) Reset() {
 	*x = UpdateDataUserResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[22]
+	mi := &file_frontcontrol_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1694,7 +1790,7 @@ func (x *UpdateDataUserResponse) String() string {
 func (*UpdateDataUserResponse) ProtoMessage() {}
 
 func (x *UpdateDataUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[22]
+	mi := &file_frontcontrol_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1707,7 +1803,7 @@ func (x *UpdateDataUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDataUserResponse.ProtoReflect.Descriptor instead.
 func (*UpdateDataUserResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{22}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *UpdateDataUserResponse) GetUser() string {
@@ -1749,7 +1845,7 @@ type RebuildServerRequest struct {
 
 func (x *RebuildServerRequest) Reset() {
 	*x = RebuildServerRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[23]
+	mi := &file_frontcontrol_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1761,7 +1857,7 @@ func (x *RebuildServerRequest) String() string {
 func (*RebuildServerRequest) ProtoMessage() {}
 
 func (x *RebuildServerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[23]
+	mi := &file_frontcontrol_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1774,7 +1870,7 @@ func (x *RebuildServerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebuildServerRequest.ProtoReflect.Descriptor instead.
 func (*RebuildServerRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{23}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *RebuildServerRequest) GetUser() string {
@@ -1807,7 +1903,7 @@ type RebuildServerResponse struct {
 
 func (x *RebuildServerResponse) Reset() {
 	*x = RebuildServerResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[24]
+	mi := &file_frontcontrol_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1819,7 +1915,7 @@ func (x *RebuildServerResponse) String() string {
 func (*RebuildServerResponse) ProtoMessage() {}
 
 func (x *RebuildServerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[24]
+	mi := &file_frontcontrol_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1832,7 +1928,7 @@ func (x *RebuildServerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebuildServerResponse.ProtoReflect.Descriptor instead.
 func (*RebuildServerResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{24}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *RebuildServerResponse) GetSuccess() bool {
@@ -1851,7 +1947,7 @@ type UserRequest struct {
 
 func (x *UserRequest) Reset() {
 	*x = UserRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[25]
+	mi := &file_frontcontrol_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1863,7 +1959,7 @@ func (x *UserRequest) String() string {
 func (*UserRequest) ProtoMessage() {}
 
 func (x *UserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[25]
+	mi := &file_frontcontrol_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1876,7 +1972,7 @@ func (x *UserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserRequest.ProtoReflect.Descriptor instead.
 func (*UserRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{25}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *UserRequest) GetUser() string {
@@ -1906,7 +2002,7 @@ type Server struct {
 
 func (x *Server) Reset() {
 	*x = Server{}
-	mi := &file_frontcontrol_proto_msgTypes[26]
+	mi := &file_frontcontrol_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1918,7 +2014,7 @@ func (x *Server) String() string {
 func (*Server) ProtoMessage() {}
 
 func (x *Server) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[26]
+	mi := &file_frontcontrol_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1931,7 +2027,7 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Server.ProtoReflect.Descriptor instead.
 func (*Server) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{26}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Server) GetId() string {
@@ -2036,7 +2132,7 @@ type ServerPool struct {
 
 func (x *ServerPool) Reset() {
 	*x = ServerPool{}
-	mi := &file_frontcontrol_proto_msgTypes[27]
+	mi := &file_frontcontrol_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2048,7 +2144,7 @@ func (x *ServerPool) String() string {
 func (*ServerPool) ProtoMessage() {}
 
 func (x *ServerPool) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[27]
+	mi := &file_frontcontrol_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2061,7 +2157,7 @@ func (x *ServerPool) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerPool.ProtoReflect.Descriptor instead.
 func (*ServerPool) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{27}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ServerPool) GetId() string {
@@ -2145,7 +2241,7 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_frontcontrol_proto_msgTypes[28]
+	mi := &file_frontcontrol_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2157,7 +2253,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[28]
+	mi := &file_frontcontrol_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2170,7 +2266,7 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{28}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *Config) GetUserId() string {
@@ -2203,7 +2299,7 @@ type ExistData struct {
 
 func (x *ExistData) Reset() {
 	*x = ExistData{}
-	mi := &file_frontcontrol_proto_msgTypes[29]
+	mi := &file_frontcontrol_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2215,7 +2311,7 @@ func (x *ExistData) String() string {
 func (*ExistData) ProtoMessage() {}
 
 func (x *ExistData) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[29]
+	mi := &file_frontcontrol_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2228,7 +2324,7 @@ func (x *ExistData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExistData.ProtoReflect.Descriptor instead.
 func (*ExistData) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{29}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ExistData) GetExist() bool {
@@ -2249,7 +2345,7 @@ type ListSSHPublicKeysRequest struct {
 
 func (x *ListSSHPublicKeysRequest) Reset() {
 	*x = ListSSHPublicKeysRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[30]
+	mi := &file_frontcontrol_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2261,7 +2357,7 @@ func (x *ListSSHPublicKeysRequest) String() string {
 func (*ListSSHPublicKeysRequest) ProtoMessage() {}
 
 func (x *ListSSHPublicKeysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[30]
+	mi := &file_frontcontrol_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2274,7 +2370,7 @@ func (x *ListSSHPublicKeysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSSHPublicKeysRequest.ProtoReflect.Descriptor instead.
 func (*ListSSHPublicKeysRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{30}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListSSHPublicKeysRequest) GetUserId() string {
@@ -2307,7 +2403,7 @@ type ListSSHPublicKeysResponse struct {
 
 func (x *ListSSHPublicKeysResponse) Reset() {
 	*x = ListSSHPublicKeysResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[31]
+	mi := &file_frontcontrol_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2319,7 +2415,7 @@ func (x *ListSSHPublicKeysResponse) String() string {
 func (*ListSSHPublicKeysResponse) ProtoMessage() {}
 
 func (x *ListSSHPublicKeysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[31]
+	mi := &file_frontcontrol_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2332,7 +2428,7 @@ func (x *ListSSHPublicKeysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSSHPublicKeysResponse.ProtoReflect.Descriptor instead.
 func (*ListSSHPublicKeysResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{31}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListSSHPublicKeysResponse) GetSuccess() bool {
@@ -2352,7 +2448,7 @@ type AttribVMinPoolRequest struct {
 
 func (x *AttribVMinPoolRequest) Reset() {
 	*x = AttribVMinPoolRequest{}
-	mi := &file_frontcontrol_proto_msgTypes[32]
+	mi := &file_frontcontrol_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2364,7 +2460,7 @@ func (x *AttribVMinPoolRequest) String() string {
 func (*AttribVMinPoolRequest) ProtoMessage() {}
 
 func (x *AttribVMinPoolRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[32]
+	mi := &file_frontcontrol_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2377,7 +2473,7 @@ func (x *AttribVMinPoolRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttribVMinPoolRequest.ProtoReflect.Descriptor instead.
 func (*AttribVMinPoolRequest) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{32}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *AttribVMinPoolRequest) GetServerpoolId() string {
@@ -2404,7 +2500,7 @@ type AttribVMinPoolResponse struct {
 
 func (x *AttribVMinPoolResponse) Reset() {
 	*x = AttribVMinPoolResponse{}
-	mi := &file_frontcontrol_proto_msgTypes[33]
+	mi := &file_frontcontrol_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2416,7 +2512,7 @@ func (x *AttribVMinPoolResponse) String() string {
 func (*AttribVMinPoolResponse) ProtoMessage() {}
 
 func (x *AttribVMinPoolResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_frontcontrol_proto_msgTypes[33]
+	mi := &file_frontcontrol_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2429,7 +2525,7 @@ func (x *AttribVMinPoolResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttribVMinPoolResponse.ProtoReflect.Descriptor instead.
 func (*AttribVMinPoolResponse) Descriptor() ([]byte, []int) {
-	return file_frontcontrol_proto_rawDescGZIP(), []int{33}
+	return file_frontcontrol_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *AttribVMinPoolResponse) GetSuccess() bool {
@@ -2457,7 +2553,13 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\x05email\x18\x03 \x01(\tR\x05email\"G\n" +
 	"\x12CreateUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x18\n" +
-	"\asuccess\x18\x02 \x01(\bR\asuccess\"K\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\"R\n" +
+	"\x18AddPersonalSSHKeyRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\tR\tpublicKey\"6\n" +
+	"\x1aAddPersonnalSSHKeyResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"K\n" +
 	"\x17AuthenticateUserRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"J\n" +
@@ -2689,7 +2791,7 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\fCreateConfig\x12!.frontcontrol.CreateConfigRequest\x1a\".frontcontrol.CreateConfigResponse\x12U\n" +
 	"\fUpdateConfig\x12!.frontcontrol.UpdateConfigRequest\x1a\".frontcontrol.UpdateConfigResponse\x12U\n" +
 	"\fDeleteConfig\x12!.frontcontrol.DeleteConfigRequest\x1a\".frontcontrol.DeleteConfigResponse\x12L\n" +
-	"\tGetConfig\x12\x1e.frontcontrol.GetConfigRequest\x1a\x1f.frontcontrol.GetConfigResponse2\xf2\x03\n" +
+	"\tGetConfig\x12\x1e.frontcontrol.GetConfigRequest\x1a\x1f.frontcontrol.GetConfigResponse2\xd1\x04\n" +
 	"\vPoolService\x12O\n" +
 	"\n" +
 	"CreatePool\x12\x1f.frontcontrol.CreatePoolRequest\x1a .frontcontrol.CreatePoolResponse\x12F\n" +
@@ -2698,9 +2800,13 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\n" +
 	"DeletePool\x12\x1f.frontcontrol.DeletePoolRequest\x1a .frontcontrol.DeletePoolResponse\x12X\n" +
 	"\rRebuildServer\x12\".frontcontrol.RebuildServerRequest\x1a#.frontcontrol.RebuildServerResponse\x12Q\n" +
-	"\tAddServer\x12\x1f.frontcontrol.CreatePoolRequest\x1a#.frontcontrol.RebuildServerResponse2l\n" +
+	"\tAddServer\x12\x1f.frontcontrol.CreatePoolRequest\x1a#.frontcontrol.RebuildServerResponse\x12]\n" +
+	"\n" +
+	"AddSSHKeys\x12&.frontcontrol.ListSSHPublicKeysRequest\x1a'.frontcontrol.ListSSHPublicKeysResponse2\xb0\x02\n" +
 	"\vUserService\x12]\n" +
-	"\x0eUpdateDataUser\x12#.frontcontrol.UpdateDataUserRequest\x1a$.frontcontrol.UpdateDataUserResponse0\x01B\x12Z\x10./frontcontrolpbb\x06proto3"
+	"\x0eUpdateDataUser\x12#.frontcontrol.UpdateDataUserRequest\x1a$.frontcontrol.UpdateDataUserResponse0\x01\x12e\n" +
+	"\x11AddPersonalSSHKey\x12&.frontcontrol.AddPersonalSSHKeyRequest\x1a(.frontcontrol.AddPersonnalSSHKeyResponse\x12[\n" +
+	"\x0eAttribVMinPool\x12#.frontcontrol.AttribVMinPoolRequest\x1a$.frontcontrol.AttribVMinPoolResponseB\x12Z\x10./frontcontrolpbb\x06proto3"
 
 var (
 	file_frontcontrol_proto_rawDescOnce sync.Once
@@ -2715,108 +2821,116 @@ func file_frontcontrol_proto_rawDescGZIP() []byte {
 }
 
 var file_frontcontrol_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_frontcontrol_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_frontcontrol_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_frontcontrol_proto_goTypes = []any{
-	(Status)(0),                       // 0: frontcontrol.Status
-	(Type)(0),                         // 1: frontcontrol.Type
-	(*CreateUserRequest)(nil),         // 2: frontcontrol.CreateUserRequest
-	(*CreateUserResponse)(nil),        // 3: frontcontrol.CreateUserResponse
-	(*AuthenticateUserRequest)(nil),   // 4: frontcontrol.AuthenticateUserRequest
-	(*AuthenticateUserResponse)(nil),  // 5: frontcontrol.AuthenticateUserResponse
-	(*Image)(nil),                     // 6: frontcontrol.Image
-	(*Flavor)(nil),                    // 7: frontcontrol.Flavor
-	(*Network)(nil),                   // 8: frontcontrol.Network
-	(*CreateConfigRequest)(nil),       // 9: frontcontrol.CreateConfigRequest
-	(*CreateConfigResponse)(nil),      // 10: frontcontrol.CreateConfigResponse
-	(*UpdateConfigRequest)(nil),       // 11: frontcontrol.UpdateConfigRequest
-	(*UpdateConfigResponse)(nil),      // 12: frontcontrol.UpdateConfigResponse
-	(*DeleteConfigRequest)(nil),       // 13: frontcontrol.DeleteConfigRequest
-	(*DeleteConfigResponse)(nil),      // 14: frontcontrol.DeleteConfigResponse
-	(*GetConfigRequest)(nil),          // 15: frontcontrol.GetConfigRequest
-	(*GetConfigResponse)(nil),         // 16: frontcontrol.GetConfigResponse
-	(*CreatePoolRequest)(nil),         // 17: frontcontrol.CreatePoolRequest
-	(*CreatePoolResponse)(nil),        // 18: frontcontrol.CreatePoolResponse
-	(*DeletePoolRequest)(nil),         // 19: frontcontrol.DeletePoolRequest
-	(*DeletePoolResponse)(nil),        // 20: frontcontrol.DeletePoolResponse
-	(*GetPoolRequest)(nil),            // 21: frontcontrol.GetPoolRequest
-	(*GetPoolResponse)(nil),           // 22: frontcontrol.GetPoolResponse
-	(*UpdateDataUserRequest)(nil),     // 23: frontcontrol.UpdateDataUserRequest
-	(*UpdateDataUserResponse)(nil),    // 24: frontcontrol.UpdateDataUserResponse
-	(*RebuildServerRequest)(nil),      // 25: frontcontrol.RebuildServerRequest
-	(*RebuildServerResponse)(nil),     // 26: frontcontrol.RebuildServerResponse
-	(*UserRequest)(nil),               // 27: frontcontrol.UserRequest
-	(*Server)(nil),                    // 28: frontcontrol.Server
-	(*ServerPool)(nil),                // 29: frontcontrol.ServerPool
-	(*Config)(nil),                    // 30: frontcontrol.Config
-	(*ExistData)(nil),                 // 31: frontcontrol.ExistData
-	(*ListSSHPublicKeysRequest)(nil),  // 32: frontcontrol.ListSSHPublicKeysRequest
-	(*ListSSHPublicKeysResponse)(nil), // 33: frontcontrol.ListSSHPublicKeysResponse
-	(*AttribVMinPoolRequest)(nil),     // 34: frontcontrol.AttribVMinPoolRequest
-	(*AttribVMinPoolResponse)(nil),    // 35: frontcontrol.AttribVMinPoolResponse
-	nil,                               // 36: frontcontrol.CreatePoolRequest.MetadataEntry
-	nil,                               // 37: frontcontrol.UpdateDataUserResponse.DataEntry
-	nil,                               // 38: frontcontrol.Server.MetadataEntry
-	nil,                               // 39: frontcontrol.ServerPool.MetadataEntry
-	(*timestamppb.Timestamp)(nil),     // 40: google.protobuf.Timestamp
+	(Status)(0),                        // 0: frontcontrol.Status
+	(Type)(0),                          // 1: frontcontrol.Type
+	(*CreateUserRequest)(nil),          // 2: frontcontrol.CreateUserRequest
+	(*CreateUserResponse)(nil),         // 3: frontcontrol.CreateUserResponse
+	(*AddPersonalSSHKeyRequest)(nil),   // 4: frontcontrol.AddPersonalSSHKeyRequest
+	(*AddPersonnalSSHKeyResponse)(nil), // 5: frontcontrol.AddPersonnalSSHKeyResponse
+	(*AuthenticateUserRequest)(nil),    // 6: frontcontrol.AuthenticateUserRequest
+	(*AuthenticateUserResponse)(nil),   // 7: frontcontrol.AuthenticateUserResponse
+	(*Image)(nil),                      // 8: frontcontrol.Image
+	(*Flavor)(nil),                     // 9: frontcontrol.Flavor
+	(*Network)(nil),                    // 10: frontcontrol.Network
+	(*CreateConfigRequest)(nil),        // 11: frontcontrol.CreateConfigRequest
+	(*CreateConfigResponse)(nil),       // 12: frontcontrol.CreateConfigResponse
+	(*UpdateConfigRequest)(nil),        // 13: frontcontrol.UpdateConfigRequest
+	(*UpdateConfigResponse)(nil),       // 14: frontcontrol.UpdateConfigResponse
+	(*DeleteConfigRequest)(nil),        // 15: frontcontrol.DeleteConfigRequest
+	(*DeleteConfigResponse)(nil),       // 16: frontcontrol.DeleteConfigResponse
+	(*GetConfigRequest)(nil),           // 17: frontcontrol.GetConfigRequest
+	(*GetConfigResponse)(nil),          // 18: frontcontrol.GetConfigResponse
+	(*CreatePoolRequest)(nil),          // 19: frontcontrol.CreatePoolRequest
+	(*CreatePoolResponse)(nil),         // 20: frontcontrol.CreatePoolResponse
+	(*DeletePoolRequest)(nil),          // 21: frontcontrol.DeletePoolRequest
+	(*DeletePoolResponse)(nil),         // 22: frontcontrol.DeletePoolResponse
+	(*GetPoolRequest)(nil),             // 23: frontcontrol.GetPoolRequest
+	(*GetPoolResponse)(nil),            // 24: frontcontrol.GetPoolResponse
+	(*UpdateDataUserRequest)(nil),      // 25: frontcontrol.UpdateDataUserRequest
+	(*UpdateDataUserResponse)(nil),     // 26: frontcontrol.UpdateDataUserResponse
+	(*RebuildServerRequest)(nil),       // 27: frontcontrol.RebuildServerRequest
+	(*RebuildServerResponse)(nil),      // 28: frontcontrol.RebuildServerResponse
+	(*UserRequest)(nil),                // 29: frontcontrol.UserRequest
+	(*Server)(nil),                     // 30: frontcontrol.Server
+	(*ServerPool)(nil),                 // 31: frontcontrol.ServerPool
+	(*Config)(nil),                     // 32: frontcontrol.Config
+	(*ExistData)(nil),                  // 33: frontcontrol.ExistData
+	(*ListSSHPublicKeysRequest)(nil),   // 34: frontcontrol.ListSSHPublicKeysRequest
+	(*ListSSHPublicKeysResponse)(nil),  // 35: frontcontrol.ListSSHPublicKeysResponse
+	(*AttribVMinPoolRequest)(nil),      // 36: frontcontrol.AttribVMinPoolRequest
+	(*AttribVMinPoolResponse)(nil),     // 37: frontcontrol.AttribVMinPoolResponse
+	nil,                                // 38: frontcontrol.CreatePoolRequest.MetadataEntry
+	nil,                                // 39: frontcontrol.UpdateDataUserResponse.DataEntry
+	nil,                                // 40: frontcontrol.Server.MetadataEntry
+	nil,                                // 41: frontcontrol.ServerPool.MetadataEntry
+	(*timestamppb.Timestamp)(nil),      // 42: google.protobuf.Timestamp
 }
 var file_frontcontrol_proto_depIdxs = []int32{
-	40, // 0: frontcontrol.Image.created_at:type_name -> google.protobuf.Timestamp
-	40, // 1: frontcontrol.Image.updated_at:type_name -> google.protobuf.Timestamp
-	36, // 2: frontcontrol.CreatePoolRequest.metadata:type_name -> frontcontrol.CreatePoolRequest.MetadataEntry
-	40, // 3: frontcontrol.CreatePoolRequest.start_time:type_name -> google.protobuf.Timestamp
+	42, // 0: frontcontrol.Image.created_at:type_name -> google.protobuf.Timestamp
+	42, // 1: frontcontrol.Image.updated_at:type_name -> google.protobuf.Timestamp
+	38, // 2: frontcontrol.CreatePoolRequest.metadata:type_name -> frontcontrol.CreatePoolRequest.MetadataEntry
+	42, // 3: frontcontrol.CreatePoolRequest.start_time:type_name -> google.protobuf.Timestamp
 	0,  // 4: frontcontrol.UpdateDataUserResponse.status:type_name -> frontcontrol.Status
 	1,  // 5: frontcontrol.UpdateDataUserResponse.type:type_name -> frontcontrol.Type
-	37, // 6: frontcontrol.UpdateDataUserResponse.data:type_name -> frontcontrol.UpdateDataUserResponse.DataEntry
-	40, // 7: frontcontrol.Server.created_at:type_name -> google.protobuf.Timestamp
-	40, // 8: frontcontrol.Server.updated_at:type_name -> google.protobuf.Timestamp
-	38, // 9: frontcontrol.Server.metadata:type_name -> frontcontrol.Server.MetadataEntry
-	39, // 10: frontcontrol.ServerPool.metadata:type_name -> frontcontrol.ServerPool.MetadataEntry
+	39, // 6: frontcontrol.UpdateDataUserResponse.data:type_name -> frontcontrol.UpdateDataUserResponse.DataEntry
+	42, // 7: frontcontrol.Server.created_at:type_name -> google.protobuf.Timestamp
+	42, // 8: frontcontrol.Server.updated_at:type_name -> google.protobuf.Timestamp
+	40, // 9: frontcontrol.Server.metadata:type_name -> frontcontrol.Server.MetadataEntry
+	41, // 10: frontcontrol.ServerPool.metadata:type_name -> frontcontrol.ServerPool.MetadataEntry
 	2,  // 11: frontcontrol.AuthService.CreateUser:input_type -> frontcontrol.CreateUserRequest
-	4,  // 12: frontcontrol.AuthService.AuthenticateUser:input_type -> frontcontrol.AuthenticateUserRequest
-	27, // 13: frontcontrol.GatherDataService.GetAllImages:input_type -> frontcontrol.UserRequest
-	27, // 14: frontcontrol.GatherDataService.GetAllFlavors:input_type -> frontcontrol.UserRequest
-	27, // 15: frontcontrol.GatherDataService.GetAllNetworks:input_type -> frontcontrol.UserRequest
-	27, // 16: frontcontrol.GatherDataService.ExistServer:input_type -> frontcontrol.UserRequest
-	27, // 17: frontcontrol.GatherDataService.ExistServerPools:input_type -> frontcontrol.UserRequest
-	27, // 18: frontcontrol.GatherDataService.ExistConfigs:input_type -> frontcontrol.UserRequest
-	27, // 19: frontcontrol.GatherDataService.GetAllServers:input_type -> frontcontrol.UserRequest
-	27, // 20: frontcontrol.GatherDataService.GetAllServerPools:input_type -> frontcontrol.UserRequest
-	27, // 21: frontcontrol.GatherDataService.GetAllConfigs:input_type -> frontcontrol.UserRequest
-	9,  // 22: frontcontrol.ConfigService.CreateConfig:input_type -> frontcontrol.CreateConfigRequest
-	11, // 23: frontcontrol.ConfigService.UpdateConfig:input_type -> frontcontrol.UpdateConfigRequest
-	13, // 24: frontcontrol.ConfigService.DeleteConfig:input_type -> frontcontrol.DeleteConfigRequest
-	15, // 25: frontcontrol.ConfigService.GetConfig:input_type -> frontcontrol.GetConfigRequest
-	17, // 26: frontcontrol.PoolService.CreatePool:input_type -> frontcontrol.CreatePoolRequest
-	21, // 27: frontcontrol.PoolService.GetPool:input_type -> frontcontrol.GetPoolRequest
-	21, // 28: frontcontrol.PoolService.GetAllPools:input_type -> frontcontrol.GetPoolRequest
-	19, // 29: frontcontrol.PoolService.DeletePool:input_type -> frontcontrol.DeletePoolRequest
-	25, // 30: frontcontrol.PoolService.RebuildServer:input_type -> frontcontrol.RebuildServerRequest
-	17, // 31: frontcontrol.PoolService.AddServer:input_type -> frontcontrol.CreatePoolRequest
-	23, // 32: frontcontrol.UserService.UpdateDataUser:input_type -> frontcontrol.UpdateDataUserRequest
-	3,  // 33: frontcontrol.AuthService.CreateUser:output_type -> frontcontrol.CreateUserResponse
-	5,  // 34: frontcontrol.AuthService.AuthenticateUser:output_type -> frontcontrol.AuthenticateUserResponse
-	6,  // 35: frontcontrol.GatherDataService.GetAllImages:output_type -> frontcontrol.Image
-	7,  // 36: frontcontrol.GatherDataService.GetAllFlavors:output_type -> frontcontrol.Flavor
-	8,  // 37: frontcontrol.GatherDataService.GetAllNetworks:output_type -> frontcontrol.Network
-	31, // 38: frontcontrol.GatherDataService.ExistServer:output_type -> frontcontrol.ExistData
-	31, // 39: frontcontrol.GatherDataService.ExistServerPools:output_type -> frontcontrol.ExistData
-	31, // 40: frontcontrol.GatherDataService.ExistConfigs:output_type -> frontcontrol.ExistData
-	28, // 41: frontcontrol.GatherDataService.GetAllServers:output_type -> frontcontrol.Server
-	29, // 42: frontcontrol.GatherDataService.GetAllServerPools:output_type -> frontcontrol.ServerPool
-	30, // 43: frontcontrol.GatherDataService.GetAllConfigs:output_type -> frontcontrol.Config
-	10, // 44: frontcontrol.ConfigService.CreateConfig:output_type -> frontcontrol.CreateConfigResponse
-	12, // 45: frontcontrol.ConfigService.UpdateConfig:output_type -> frontcontrol.UpdateConfigResponse
-	14, // 46: frontcontrol.ConfigService.DeleteConfig:output_type -> frontcontrol.DeleteConfigResponse
-	16, // 47: frontcontrol.ConfigService.GetConfig:output_type -> frontcontrol.GetConfigResponse
-	18, // 48: frontcontrol.PoolService.CreatePool:output_type -> frontcontrol.CreatePoolResponse
-	22, // 49: frontcontrol.PoolService.GetPool:output_type -> frontcontrol.GetPoolResponse
-	22, // 50: frontcontrol.PoolService.GetAllPools:output_type -> frontcontrol.GetPoolResponse
-	20, // 51: frontcontrol.PoolService.DeletePool:output_type -> frontcontrol.DeletePoolResponse
-	26, // 52: frontcontrol.PoolService.RebuildServer:output_type -> frontcontrol.RebuildServerResponse
-	26, // 53: frontcontrol.PoolService.AddServer:output_type -> frontcontrol.RebuildServerResponse
-	24, // 54: frontcontrol.UserService.UpdateDataUser:output_type -> frontcontrol.UpdateDataUserResponse
-	33, // [33:55] is the sub-list for method output_type
-	11, // [11:33] is the sub-list for method input_type
+	6,  // 12: frontcontrol.AuthService.AuthenticateUser:input_type -> frontcontrol.AuthenticateUserRequest
+	29, // 13: frontcontrol.GatherDataService.GetAllImages:input_type -> frontcontrol.UserRequest
+	29, // 14: frontcontrol.GatherDataService.GetAllFlavors:input_type -> frontcontrol.UserRequest
+	29, // 15: frontcontrol.GatherDataService.GetAllNetworks:input_type -> frontcontrol.UserRequest
+	29, // 16: frontcontrol.GatherDataService.ExistServer:input_type -> frontcontrol.UserRequest
+	29, // 17: frontcontrol.GatherDataService.ExistServerPools:input_type -> frontcontrol.UserRequest
+	29, // 18: frontcontrol.GatherDataService.ExistConfigs:input_type -> frontcontrol.UserRequest
+	29, // 19: frontcontrol.GatherDataService.GetAllServers:input_type -> frontcontrol.UserRequest
+	29, // 20: frontcontrol.GatherDataService.GetAllServerPools:input_type -> frontcontrol.UserRequest
+	29, // 21: frontcontrol.GatherDataService.GetAllConfigs:input_type -> frontcontrol.UserRequest
+	11, // 22: frontcontrol.ConfigService.CreateConfig:input_type -> frontcontrol.CreateConfigRequest
+	13, // 23: frontcontrol.ConfigService.UpdateConfig:input_type -> frontcontrol.UpdateConfigRequest
+	15, // 24: frontcontrol.ConfigService.DeleteConfig:input_type -> frontcontrol.DeleteConfigRequest
+	17, // 25: frontcontrol.ConfigService.GetConfig:input_type -> frontcontrol.GetConfigRequest
+	19, // 26: frontcontrol.PoolService.CreatePool:input_type -> frontcontrol.CreatePoolRequest
+	23, // 27: frontcontrol.PoolService.GetPool:input_type -> frontcontrol.GetPoolRequest
+	23, // 28: frontcontrol.PoolService.GetAllPools:input_type -> frontcontrol.GetPoolRequest
+	21, // 29: frontcontrol.PoolService.DeletePool:input_type -> frontcontrol.DeletePoolRequest
+	27, // 30: frontcontrol.PoolService.RebuildServer:input_type -> frontcontrol.RebuildServerRequest
+	19, // 31: frontcontrol.PoolService.AddServer:input_type -> frontcontrol.CreatePoolRequest
+	34, // 32: frontcontrol.PoolService.AddSSHKeys:input_type -> frontcontrol.ListSSHPublicKeysRequest
+	25, // 33: frontcontrol.UserService.UpdateDataUser:input_type -> frontcontrol.UpdateDataUserRequest
+	4,  // 34: frontcontrol.UserService.AddPersonalSSHKey:input_type -> frontcontrol.AddPersonalSSHKeyRequest
+	36, // 35: frontcontrol.UserService.AttribVMinPool:input_type -> frontcontrol.AttribVMinPoolRequest
+	3,  // 36: frontcontrol.AuthService.CreateUser:output_type -> frontcontrol.CreateUserResponse
+	7,  // 37: frontcontrol.AuthService.AuthenticateUser:output_type -> frontcontrol.AuthenticateUserResponse
+	8,  // 38: frontcontrol.GatherDataService.GetAllImages:output_type -> frontcontrol.Image
+	9,  // 39: frontcontrol.GatherDataService.GetAllFlavors:output_type -> frontcontrol.Flavor
+	10, // 40: frontcontrol.GatherDataService.GetAllNetworks:output_type -> frontcontrol.Network
+	33, // 41: frontcontrol.GatherDataService.ExistServer:output_type -> frontcontrol.ExistData
+	33, // 42: frontcontrol.GatherDataService.ExistServerPools:output_type -> frontcontrol.ExistData
+	33, // 43: frontcontrol.GatherDataService.ExistConfigs:output_type -> frontcontrol.ExistData
+	30, // 44: frontcontrol.GatherDataService.GetAllServers:output_type -> frontcontrol.Server
+	31, // 45: frontcontrol.GatherDataService.GetAllServerPools:output_type -> frontcontrol.ServerPool
+	32, // 46: frontcontrol.GatherDataService.GetAllConfigs:output_type -> frontcontrol.Config
+	12, // 47: frontcontrol.ConfigService.CreateConfig:output_type -> frontcontrol.CreateConfigResponse
+	14, // 48: frontcontrol.ConfigService.UpdateConfig:output_type -> frontcontrol.UpdateConfigResponse
+	16, // 49: frontcontrol.ConfigService.DeleteConfig:output_type -> frontcontrol.DeleteConfigResponse
+	18, // 50: frontcontrol.ConfigService.GetConfig:output_type -> frontcontrol.GetConfigResponse
+	20, // 51: frontcontrol.PoolService.CreatePool:output_type -> frontcontrol.CreatePoolResponse
+	24, // 52: frontcontrol.PoolService.GetPool:output_type -> frontcontrol.GetPoolResponse
+	24, // 53: frontcontrol.PoolService.GetAllPools:output_type -> frontcontrol.GetPoolResponse
+	22, // 54: frontcontrol.PoolService.DeletePool:output_type -> frontcontrol.DeletePoolResponse
+	28, // 55: frontcontrol.PoolService.RebuildServer:output_type -> frontcontrol.RebuildServerResponse
+	28, // 56: frontcontrol.PoolService.AddServer:output_type -> frontcontrol.RebuildServerResponse
+	35, // 57: frontcontrol.PoolService.AddSSHKeys:output_type -> frontcontrol.ListSSHPublicKeysResponse
+	26, // 58: frontcontrol.UserService.UpdateDataUser:output_type -> frontcontrol.UpdateDataUserResponse
+	5,  // 59: frontcontrol.UserService.AddPersonalSSHKey:output_type -> frontcontrol.AddPersonnalSSHKeyResponse
+	37, // 60: frontcontrol.UserService.AttribVMinPool:output_type -> frontcontrol.AttribVMinPoolResponse
+	36, // [36:61] is the sub-list for method output_type
+	11, // [11:36] is the sub-list for method input_type
 	11, // [11:11] is the sub-list for extension type_name
 	11, // [11:11] is the sub-list for extension extendee
 	0,  // [0:11] is the sub-list for field type_name
@@ -2833,7 +2947,7 @@ func file_frontcontrol_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_frontcontrol_proto_rawDesc), len(file_frontcontrol_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   38,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

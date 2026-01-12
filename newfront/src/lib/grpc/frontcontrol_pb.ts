@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontcontrol.proto.
  */
 export const file_frontcontrol: GenFile = /*@__PURE__*/
-  fileDesc("ChJmcm9udGNvbnRyb2wucHJvdG8SDGZyb250Y29udHJvbCJGChFDcmVhdGVVc2VyUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRINCgVlbWFpbBgDIAEoCSI2ChJDcmVhdGVVc2VyUmVzcG9uc2USDwoHdXNlcl9pZBgBIAEoCRIPCgdzdWNjZXNzGAIgASgIIjoKF0F1dGhlbnRpY2F0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjoKGEF1dGhlbnRpY2F0ZVVzZXJSZXNwb25zZRINCgV0b2tlbhgBIAEoCRIPCgdzdWNjZXNzGAIgASgIItADCgVJbWFnZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIMCgR0YWdzGAQgASgJEhgKEGNvbnRhaW5lcl9mb3JtYXQYBSABKAkSEwoLZGlza19mb3JtYXQYBiABKAkSGgoSbWluX2Rpc2tfZ2lnYWJ5dGVzGAcgASgFEhkKEW1pbl9yYW1fbWVnYWJ5dGVzGAggASgFEg0KBW93bmVyGAkgASgJEhEKCXByb3RlY3RlZBgKIAEoCBISCgp2aXNpYmlsaXR5GAsgASgJEg4KBmhpZGRlbhgMIAEoCBIQCghjaGVja3N1bRgNIAEoCRISCgpzaXplX2J5dGVzGA4gASgDEi4KCmNyZWF0ZWRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGZpbGUYESABKAkSDgoGc2NoZW1hGBIgASgJEhQKDHZpcnR1YWxfc2l6ZRgTIAEoAxIWCg5pbXBvcnRfbWV0aG9kcxgUIAEoCRIRCglzdG9yZV9pZHMYFSABKAkivwEKBkZsYXZvchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGRpc2sYAyABKAUSCwoDcmFtGAQgASgFEg0KBXZjcHVzGAUgASgFEhMKC3J4dHhfZmFjdG9yGAYgASgBEgwKBHN3YXAYByABKAUSEQoJZXBoZW1lcmFsGAggASgFEhEKCWlzX3B1YmxpYxgJIAEoCBITCgtkZXNjcmlwdGlvbhgKIAEoCRITCgtleHRyYV9zcGVjcxgLIAEoCSLwAQoHTmV0d29yaxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhYKDmFkbWluX3N0YXRlX3VwGAQgASgIEg4KBnN0YXR1cxgFIAEoCRIRCgl0ZW5hbnRfaWQYBiABKAkSEgoKcHJvamVjdF9pZBgHIAEoCRIOCgZzaGFyZWQYCCABKAgSFwoPcmV2aXNpb25fbnVtYmVyGAkgASgFEg8KB3N1Ym5ldHMYCiABKAkSHwoXYXZhaWxhYmlsaXR5X3pvbmVfaGludHMYCyABKAkSDAoEdGFncxgMIAEoCSI/ChNDcmVhdGVDb25maWdSZXF1ZXN0EgwKBHVzZXIYASABKAkSCwoDa2V5GAIgASgJEg0KBXZhbHVlGAMgASgJIicKFENyZWF0ZUNvbmZpZ1Jlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiPwoTVXBkYXRlQ29uZmlnUmVxdWVzdBIMCgR1c2VyGAEgASgJEgsKA2tleRgCIAEoCRINCgV2YWx1ZRgDIAEoCSInChRVcGRhdGVDb25maWdSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIjAKE0RlbGV0ZUNvbmZpZ1JlcXVlc3QSDAoEdXNlchgBIAEoCRILCgNrZXkYAiABKAkiJwoURGVsZXRlQ29uZmlnUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCItChBHZXRDb25maWdSZXF1ZXN0EgwKBHVzZXIYASABKAkSCwoDa2V5GAIgASgJIi8KEUdldENvbmZpZ1Jlc3BvbnNlEg0KBXZhbHVlGAEgASgJEgsKA2tleRgCIAEoCSLGAgoRQ3JlYXRlUG9vbFJlcXVlc3QSDAoEdXNlchgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg4KBmZsYXZvchgEIAEoCRIPCgduZXR3b3JrGAUgASgJEg4KBmNvbmZpZxgGIAEoCRIOCgZtaW5fdm0YByABKAkSDgoGbWF4X3ZtGAggASgJEj8KCG1ldGFkYXRhGAkgAygLMi0uZnJvbnRjb250cm9sLkNyZWF0ZVBvb2xSZXF1ZXN0Lk1ldGFkYXRhRW50cnkSLgoKc3RhcnRfdGltZRgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEwoLdGltZV93aW5kb3cYCyABKAUaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjYKEkNyZWF0ZVBvb2xSZXNwb25zZRIPCgdwb29sX2lkGAEgASgJEg8KB3N1Y2Nlc3MYAiABKAgiMgoRRGVsZXRlUG9vbFJlcXVlc3QSDAoEdXNlchgBIAEoCRIPCgdwb29sX2lkGAIgASgJIiUKEkRlbGV0ZVBvb2xSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIi8KDkdldFBvb2xSZXF1ZXN0EgwKBHVzZXIYASABKAkSDwoHcG9vbF9pZBgCIAEoCSKFAQoPR2V0UG9vbFJlc3BvbnNlEgwKBG5hbWUYASABKAkSDQoFaW1hZ2UYAiABKAkSDgoGZmxhdm9yGAMgASgJEg8KB25ldHdvcmsYBCABKAkSDgoGY29uZmlnGAUgASgJEg4KBm1pbl92bRgGIAEoBRIOCgZtYXhfdm0YByABKAVKBAgIEAkiJQoVVXBkYXRlRGF0YVVzZXJSZXF1ZXN0EgwKBHVzZXIYASABKAki2QEKFlVwZGF0ZURhdGFVc2VyUmVzcG9uc2USDAoEdXNlchgBIAEoCRIkCgZzdGF0dXMYAiABKA4yFC5mcm9udGNvbnRyb2wuU3RhdHVzEiAKBHR5cGUYAyABKA4yEi5mcm9udGNvbnRyb2wuVHlwZRI8CgRkYXRhGAQgAygLMi4uZnJvbnRjb250cm9sLlVwZGF0ZURhdGFVc2VyUmVzcG9uc2UuRGF0YUVudHJ5GisKCURhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkgKFFJlYnVpbGRTZXJ2ZXJSZXF1ZXN0EgwKBHVzZXIYASABKAkSDwoHcG9vbF9pZBgCIAEoCRIRCglzZXJ2ZXJfaWQYAyABKAkiKAoVUmVidWlsZFNlcnZlclJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiGwoLVXNlclJlcXVlc3QSDAoEdXNlchgBIAEoCSLkAgoGU2VydmVyEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGc3RhdHVzGAMgASgJEg0KBWltYWdlGAQgASgJEg4KBmZsYXZvchgFIAEoCRIPCgduZXR3b3JrGAYgASgJEhIKCmlwX2FkZHJlc3MYByABKAkSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNAoIbWV0YWRhdGEYCiADKAsyIi5mcm9udGNvbnRyb2wuU2VydmVyLk1ldGFkYXRhRW50cnkSDwoHdXNlcl9pZBgLIAEoCRIUCgxhZGRyZXNzZWRfaXAYDCABKAkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIoICCgpTZXJ2ZXJQb29sEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFaW1hZ2UYAyABKAkSDgoGZmxhdm9yGAQgASgJEg8KB25ldHdvcmsYBSABKAkSDgoGY29uZmlnGAYgASgJEg4KBm1pbl92bRgHIAEoBRIOCgZtYXhfdm0YCCABKAUSOAoIbWV0YWRhdGEYCSADKAsyJi5mcm9udGNvbnRyb2wuU2VydmVyUG9vbC5NZXRhZGF0YUVudHJ5Eg8KB3VzZXJfaWQYCiABKAkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjUKBkNvbmZpZxIPCgd1c2VyX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEZGF0YRgDIAEoCSIaCglFeGlzdERhdGESDQoFZXhpc3QYASABKAgiUwoYTGlzdFNTSFB1YmxpY0tleXNSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSFQoNc2VydmVycG9vbF9pZBgCIAEoCRIPCgdwdWJrZXlzGAMgAygJIiwKGUxpc3RTU0hQdWJsaWNLZXlzUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCI+ChVBdHRyaWJWTWluUG9vbFJlcXVlc3QSFQoNc2VydmVycG9vbF9pZBgBIAEoCRIOCgZwdWJrZXkYAiABKAkiPwoWQXR0cmliVk1pblBvb2xSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIEhQKDGFkZHJlc3NlZF9pcBgCIAEoCSpACgZTdGF0dXMSEgoOU1RBVFVTX1VOS05PV04QABIKCgZDUkVBVEUQARIKCgZVUERBVEUQAhIKCgZERUxFVEUQAypACgRUeXBlEhAKDFRZUEVfVU5LTk9XThAAEg4KClNFUlZFUlBPT0wQARIKCgZTRVJWRVIQAhIKCgZDT05GSUcQAzLBAQoLQXV0aFNlcnZpY2USTwoKQ3JlYXRlVXNlchIfLmZyb250Y29udHJvbC5DcmVhdGVVc2VyUmVxdWVzdBogLmZyb250Y29udHJvbC5DcmVhdGVVc2VyUmVzcG9uc2USYQoQQXV0aGVudGljYXRlVXNlchIlLmZyb250Y29udHJvbC5BdXRoZW50aWNhdGVVc2VyUmVxdWVzdBomLmZyb250Y29udHJvbC5BdXRoZW50aWNhdGVVc2VyUmVzcG9uc2UyggUKEUdhdGhlckRhdGFTZXJ2aWNlEkAKDEdldEFsbEltYWdlcxIZLmZyb250Y29udHJvbC5Vc2VyUmVxdWVzdBoTLmZyb250Y29udHJvbC5JbWFnZTABEkIKDUdldEFsbEZsYXZvcnMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuRmxhdm9yMAESRAoOR2V0QWxsTmV0d29ya3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFS5mcm9udGNvbnRyb2wuTmV0d29yazABEkEKC0V4aXN0U2VydmVyEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhcuZnJvbnRjb250cm9sLkV4aXN0RGF0YRJGChBFeGlzdFNlcnZlclBvb2xzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhcuZnJvbnRjb250cm9sLkV4aXN0RGF0YRJCCgxFeGlzdENvbmZpZ3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFy5mcm9udGNvbnRyb2wuRXhpc3REYXRhEkIKDUdldEFsbFNlcnZlcnMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuU2VydmVyMAESSgoRR2V0QWxsU2VydmVyUG9vbHMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaGC5mcm9udGNvbnRyb2wuU2VydmVyUG9vbDABEkIKDUdldEFsbENvbmZpZ3MSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaFC5mcm9udGNvbnRyb2wuQ29uZmlnMAEy4gIKDUNvbmZpZ1NlcnZpY2USVQoMQ3JlYXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLkNyZWF0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuQ3JlYXRlQ29uZmlnUmVzcG9uc2USVQoMVXBkYXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLlVwZGF0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuVXBkYXRlQ29uZmlnUmVzcG9uc2USVQoMRGVsZXRlQ29uZmlnEiEuZnJvbnRjb250cm9sLkRlbGV0ZUNvbmZpZ1JlcXVlc3QaIi5mcm9udGNvbnRyb2wuRGVsZXRlQ29uZmlnUmVzcG9uc2USTAoJR2V0Q29uZmlnEh4uZnJvbnRjb250cm9sLkdldENvbmZpZ1JlcXVlc3QaHy5mcm9udGNvbnRyb2wuR2V0Q29uZmlnUmVzcG9uc2Uy8gMKC1Bvb2xTZXJ2aWNlEk8KCkNyZWF0ZVBvb2wSHy5mcm9udGNvbnRyb2wuQ3JlYXRlUG9vbFJlcXVlc3QaIC5mcm9udGNvbnRyb2wuQ3JlYXRlUG9vbFJlc3BvbnNlEkYKB0dldFBvb2wSHC5mcm9udGNvbnRyb2wuR2V0UG9vbFJlcXVlc3QaHS5mcm9udGNvbnRyb2wuR2V0UG9vbFJlc3BvbnNlEkwKC0dldEFsbFBvb2xzEhwuZnJvbnRjb250cm9sLkdldFBvb2xSZXF1ZXN0Gh0uZnJvbnRjb250cm9sLkdldFBvb2xSZXNwb25zZTABEk8KCkRlbGV0ZVBvb2wSHy5mcm9udGNvbnRyb2wuRGVsZXRlUG9vbFJlcXVlc3QaIC5mcm9udGNvbnRyb2wuRGVsZXRlUG9vbFJlc3BvbnNlElgKDVJlYnVpbGRTZXJ2ZXISIi5mcm9udGNvbnRyb2wuUmVidWlsZFNlcnZlclJlcXVlc3QaIy5mcm9udGNvbnRyb2wuUmVidWlsZFNlcnZlclJlc3BvbnNlElEKCUFkZFNlcnZlchIfLmZyb250Y29udHJvbC5DcmVhdGVQb29sUmVxdWVzdBojLmZyb250Y29udHJvbC5SZWJ1aWxkU2VydmVyUmVzcG9uc2UybAoLVXNlclNlcnZpY2USXQoOVXBkYXRlRGF0YVVzZXISIy5mcm9udGNvbnRyb2wuVXBkYXRlRGF0YVVzZXJSZXF1ZXN0GiQuZnJvbnRjb250cm9sLlVwZGF0ZURhdGFVc2VyUmVzcG9uc2UwAUISWhAuL2Zyb250Y29udHJvbHBiYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChJmcm9udGNvbnRyb2wucHJvdG8SDGZyb250Y29udHJvbCJGChFDcmVhdGVVc2VyUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRINCgVlbWFpbBgDIAEoCSI2ChJDcmVhdGVVc2VyUmVzcG9uc2USDwoHdXNlcl9pZBgBIAEoCRIPCgdzdWNjZXNzGAIgASgIIj8KGEFkZFBlcnNvbmFsU1NIS2V5UmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhIKCnB1YmxpY19rZXkYAiABKAkiLQoaQWRkUGVyc29ubmFsU1NIS2V5UmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCI6ChdBdXRoZW50aWNhdGVVc2VyUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSI6ChhBdXRoZW50aWNhdGVVc2VyUmVzcG9uc2USDQoFdG9rZW4YASABKAkSDwoHc3VjY2VzcxgCIAEoCCLQAwoFSW1hZ2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIOCgZzdGF0dXMYAyABKAkSDAoEdGFncxgEIAEoCRIYChBjb250YWluZXJfZm9ybWF0GAUgASgJEhMKC2Rpc2tfZm9ybWF0GAYgASgJEhoKEm1pbl9kaXNrX2dpZ2FieXRlcxgHIAEoBRIZChFtaW5fcmFtX21lZ2FieXRlcxgIIAEoBRINCgVvd25lchgJIAEoCRIRCglwcm90ZWN0ZWQYCiABKAgSEgoKdmlzaWJpbGl0eRgLIAEoCRIOCgZoaWRkZW4YDCABKAgSEAoIY2hlY2tzdW0YDSABKAkSEgoKc2l6ZV9ieXRlcxgOIAEoAxIuCgpjcmVhdGVkX2F0GA8gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GBAgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRmaWxlGBEgASgJEg4KBnNjaGVtYRgSIAEoCRIUCgx2aXJ0dWFsX3NpemUYEyABKAMSFgoOaW1wb3J0X21ldGhvZHMYFCABKAkSEQoJc3RvcmVfaWRzGBUgASgJIr8BCgZGbGF2b3ISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIMCgRkaXNrGAMgASgFEgsKA3JhbRgEIAEoBRINCgV2Y3B1cxgFIAEoBRITCgtyeHR4X2ZhY3RvchgGIAEoARIMCgRzd2FwGAcgASgFEhEKCWVwaGVtZXJhbBgIIAEoBRIRCglpc19wdWJsaWMYCSABKAgSEwoLZGVzY3JpcHRpb24YCiABKAkSEwoLZXh0cmFfc3BlY3MYCyABKAki8AEKB05ldHdvcmsSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIWCg5hZG1pbl9zdGF0ZV91cBgEIAEoCBIOCgZzdGF0dXMYBSABKAkSEQoJdGVuYW50X2lkGAYgASgJEhIKCnByb2plY3RfaWQYByABKAkSDgoGc2hhcmVkGAggASgIEhcKD3JldmlzaW9uX251bWJlchgJIAEoBRIPCgdzdWJuZXRzGAogASgJEh8KF2F2YWlsYWJpbGl0eV96b25lX2hpbnRzGAsgASgJEgwKBHRhZ3MYDCABKAkiPwoTQ3JlYXRlQ29uZmlnUmVxdWVzdBIMCgR1c2VyGAEgASgJEgsKA2tleRgCIAEoCRINCgV2YWx1ZRgDIAEoCSInChRDcmVhdGVDb25maWdSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIj8KE1VwZGF0ZUNvbmZpZ1JlcXVlc3QSDAoEdXNlchgBIAEoCRILCgNrZXkYAiABKAkSDQoFdmFsdWUYAyABKAkiJwoUVXBkYXRlQ29uZmlnUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCIwChNEZWxldGVDb25maWdSZXF1ZXN0EgwKBHVzZXIYASABKAkSCwoDa2V5GAIgASgJIicKFERlbGV0ZUNvbmZpZ1Jlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiLQoQR2V0Q29uZmlnUmVxdWVzdBIMCgR1c2VyGAEgASgJEgsKA2tleRgCIAEoCSIvChFHZXRDb25maWdSZXNwb25zZRINCgV2YWx1ZRgBIAEoCRILCgNrZXkYAiABKAkixgIKEUNyZWF0ZVBvb2xSZXF1ZXN0EgwKBHVzZXIYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbWFnZRgDIAEoCRIOCgZmbGF2b3IYBCABKAkSDwoHbmV0d29yaxgFIAEoCRIOCgZjb25maWcYBiABKAkSDgoGbWluX3ZtGAcgASgJEg4KBm1heF92bRgIIAEoCRI/CghtZXRhZGF0YRgJIAMoCzItLmZyb250Y29udHJvbC5DcmVhdGVQb29sUmVxdWVzdC5NZXRhZGF0YUVudHJ5Ei4KCnN0YXJ0X3RpbWUYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhMKC3RpbWVfd2luZG93GAsgASgFGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI2ChJDcmVhdGVQb29sUmVzcG9uc2USDwoHcG9vbF9pZBgBIAEoCRIPCgdzdWNjZXNzGAIgASgIIjIKEURlbGV0ZVBvb2xSZXF1ZXN0EgwKBHVzZXIYASABKAkSDwoHcG9vbF9pZBgCIAEoCSIlChJEZWxldGVQb29sUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCIvCg5HZXRQb29sUmVxdWVzdBIMCgR1c2VyGAEgASgJEg8KB3Bvb2xfaWQYAiABKAkihQEKD0dldFBvb2xSZXNwb25zZRIMCgRuYW1lGAEgASgJEg0KBWltYWdlGAIgASgJEg4KBmZsYXZvchgDIAEoCRIPCgduZXR3b3JrGAQgASgJEg4KBmNvbmZpZxgFIAEoCRIOCgZtaW5fdm0YBiABKAUSDgoGbWF4X3ZtGAcgASgFSgQICBAJIiUKFVVwZGF0ZURhdGFVc2VyUmVxdWVzdBIMCgR1c2VyGAEgASgJItkBChZVcGRhdGVEYXRhVXNlclJlc3BvbnNlEgwKBHVzZXIYASABKAkSJAoGc3RhdHVzGAIgASgOMhQuZnJvbnRjb250cm9sLlN0YXR1cxIgCgR0eXBlGAMgASgOMhIuZnJvbnRjb250cm9sLlR5cGUSPAoEZGF0YRgEIAMoCzIuLmZyb250Y29udHJvbC5VcGRhdGVEYXRhVXNlclJlc3BvbnNlLkRhdGFFbnRyeRorCglEYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJIChRSZWJ1aWxkU2VydmVyUmVxdWVzdBIMCgR1c2VyGAEgASgJEg8KB3Bvb2xfaWQYAiABKAkSEQoJc2VydmVyX2lkGAMgASgJIigKFVJlYnVpbGRTZXJ2ZXJSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIIhsKC1VzZXJSZXF1ZXN0EgwKBHVzZXIYASABKAki5AIKBlNlcnZlchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg4KBnN0YXR1cxgDIAEoCRINCgVpbWFnZRgEIAEoCRIOCgZmbGF2b3IYBSABKAkSDwoHbmV0d29yaxgGIAEoCRISCgppcF9hZGRyZXNzGAcgASgJEi4KCmNyZWF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjQKCG1ldGFkYXRhGAogAygLMiIuZnJvbnRjb250cm9sLlNlcnZlci5NZXRhZGF0YUVudHJ5Eg8KB3VzZXJfaWQYCyABKAkSFAoMYWRkcmVzc2VkX2lwGAwgASgJGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKCAgoKU2VydmVyUG9vbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg4KBmZsYXZvchgEIAEoCRIPCgduZXR3b3JrGAUgASgJEg4KBmNvbmZpZxgGIAEoCRIOCgZtaW5fdm0YByABKAUSDgoGbWF4X3ZtGAggASgFEjgKCG1ldGFkYXRhGAkgAygLMiYuZnJvbnRjb250cm9sLlNlcnZlclBvb2wuTWV0YWRhdGFFbnRyeRIPCgd1c2VyX2lkGAogASgJGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI1CgZDb25maWcSDwoHdXNlcl9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGRhdGEYAyABKAkiGgoJRXhpc3REYXRhEg0KBWV4aXN0GAEgASgIIlMKGExpc3RTU0hQdWJsaWNLZXlzUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhUKDXNlcnZlcnBvb2xfaWQYAiABKAkSDwoHcHVia2V5cxgDIAMoCSIsChlMaXN0U1NIUHVibGljS2V5c1Jlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiPgoVQXR0cmliVk1pblBvb2xSZXF1ZXN0EhUKDXNlcnZlcnBvb2xfaWQYASABKAkSDgoGcHVia2V5GAIgASgJIj8KFkF0dHJpYlZNaW5Qb29sUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCBIUCgxhZGRyZXNzZWRfaXAYAiABKAkqQAoGU3RhdHVzEhIKDlNUQVRVU19VTktOT1dOEAASCgoGQ1JFQVRFEAESCgoGVVBEQVRFEAISCgoGREVMRVRFEAMqQAoEVHlwZRIQCgxUWVBFX1VOS05PV04QABIOCgpTRVJWRVJQT09MEAESCgoGU0VSVkVSEAISCgoGQ09ORklHEAMywQEKC0F1dGhTZXJ2aWNlEk8KCkNyZWF0ZVVzZXISHy5mcm9udGNvbnRyb2wuQ3JlYXRlVXNlclJlcXVlc3QaIC5mcm9udGNvbnRyb2wuQ3JlYXRlVXNlclJlc3BvbnNlEmEKEEF1dGhlbnRpY2F0ZVVzZXISJS5mcm9udGNvbnRyb2wuQXV0aGVudGljYXRlVXNlclJlcXVlc3QaJi5mcm9udGNvbnRyb2wuQXV0aGVudGljYXRlVXNlclJlc3BvbnNlMoIFChFHYXRoZXJEYXRhU2VydmljZRJACgxHZXRBbGxJbWFnZXMSGS5mcm9udGNvbnRyb2wuVXNlclJlcXVlc3QaEy5mcm9udGNvbnRyb2wuSW1hZ2UwARJCCg1HZXRBbGxGbGF2b3JzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhQuZnJvbnRjb250cm9sLkZsYXZvcjABEkQKDkdldEFsbE5ldHdvcmtzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhUuZnJvbnRjb250cm9sLk5ldHdvcmswARJBCgtFeGlzdFNlcnZlchIZLmZyb250Y29udHJvbC5Vc2VyUmVxdWVzdBoXLmZyb250Y29udHJvbC5FeGlzdERhdGESRgoQRXhpc3RTZXJ2ZXJQb29scxIZLmZyb250Y29udHJvbC5Vc2VyUmVxdWVzdBoXLmZyb250Y29udHJvbC5FeGlzdERhdGESQgoMRXhpc3RDb25maWdzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhcuZnJvbnRjb250cm9sLkV4aXN0RGF0YRJCCg1HZXRBbGxTZXJ2ZXJzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhQuZnJvbnRjb250cm9sLlNlcnZlcjABEkoKEUdldEFsbFNlcnZlclBvb2xzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhguZnJvbnRjb250cm9sLlNlcnZlclBvb2wwARJCCg1HZXRBbGxDb25maWdzEhkuZnJvbnRjb250cm9sLlVzZXJSZXF1ZXN0GhQuZnJvbnRjb250cm9sLkNvbmZpZzABMuICCg1Db25maWdTZXJ2aWNlElUKDENyZWF0ZUNvbmZpZxIhLmZyb250Y29udHJvbC5DcmVhdGVDb25maWdSZXF1ZXN0GiIuZnJvbnRjb250cm9sLkNyZWF0ZUNvbmZpZ1Jlc3BvbnNlElUKDFVwZGF0ZUNvbmZpZxIhLmZyb250Y29udHJvbC5VcGRhdGVDb25maWdSZXF1ZXN0GiIuZnJvbnRjb250cm9sLlVwZGF0ZUNvbmZpZ1Jlc3BvbnNlElUKDERlbGV0ZUNvbmZpZxIhLmZyb250Y29udHJvbC5EZWxldGVDb25maWdSZXF1ZXN0GiIuZnJvbnRjb250cm9sLkRlbGV0ZUNvbmZpZ1Jlc3BvbnNlEkwKCUdldENvbmZpZxIeLmZyb250Y29udHJvbC5HZXRDb25maWdSZXF1ZXN0Gh8uZnJvbnRjb250cm9sLkdldENvbmZpZ1Jlc3BvbnNlMtEECgtQb29sU2VydmljZRJPCgpDcmVhdGVQb29sEh8uZnJvbnRjb250cm9sLkNyZWF0ZVBvb2xSZXF1ZXN0GiAuZnJvbnRjb250cm9sLkNyZWF0ZVBvb2xSZXNwb25zZRJGCgdHZXRQb29sEhwuZnJvbnRjb250cm9sLkdldFBvb2xSZXF1ZXN0Gh0uZnJvbnRjb250cm9sLkdldFBvb2xSZXNwb25zZRJMCgtHZXRBbGxQb29scxIcLmZyb250Y29udHJvbC5HZXRQb29sUmVxdWVzdBodLmZyb250Y29udHJvbC5HZXRQb29sUmVzcG9uc2UwARJPCgpEZWxldGVQb29sEh8uZnJvbnRjb250cm9sLkRlbGV0ZVBvb2xSZXF1ZXN0GiAuZnJvbnRjb250cm9sLkRlbGV0ZVBvb2xSZXNwb25zZRJYCg1SZWJ1aWxkU2VydmVyEiIuZnJvbnRjb250cm9sLlJlYnVpbGRTZXJ2ZXJSZXF1ZXN0GiMuZnJvbnRjb250cm9sLlJlYnVpbGRTZXJ2ZXJSZXNwb25zZRJRCglBZGRTZXJ2ZXISHy5mcm9udGNvbnRyb2wuQ3JlYXRlUG9vbFJlcXVlc3QaIy5mcm9udGNvbnRyb2wuUmVidWlsZFNlcnZlclJlc3BvbnNlEl0KCkFkZFNTSEtleXMSJi5mcm9udGNvbnRyb2wuTGlzdFNTSFB1YmxpY0tleXNSZXF1ZXN0GicuZnJvbnRjb250cm9sLkxpc3RTU0hQdWJsaWNLZXlzUmVzcG9uc2UysAIKC1VzZXJTZXJ2aWNlEl0KDlVwZGF0ZURhdGFVc2VyEiMuZnJvbnRjb250cm9sLlVwZGF0ZURhdGFVc2VyUmVxdWVzdBokLmZyb250Y29udHJvbC5VcGRhdGVEYXRhVXNlclJlc3BvbnNlMAESZQoRQWRkUGVyc29uYWxTU0hLZXkSJi5mcm9udGNvbnRyb2wuQWRkUGVyc29uYWxTU0hLZXlSZXF1ZXN0GiguZnJvbnRjb250cm9sLkFkZFBlcnNvbm5hbFNTSEtleVJlc3BvbnNlElsKDkF0dHJpYlZNaW5Qb29sEiMuZnJvbnRjb250cm9sLkF0dHJpYlZNaW5Qb29sUmVxdWVzdBokLmZyb250Y29udHJvbC5BdHRyaWJWTWluUG9vbFJlc3BvbnNlQhJaEC4vZnJvbnRjb250cm9scGJiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message frontcontrol.CreateUserRequest
@@ -64,6 +64,45 @@ export const CreateUserResponseSchema: GenMessage<CreateUserResponse> = /*@__PUR
   messageDesc(file_frontcontrol, 1);
 
 /**
+ * @generated from message frontcontrol.AddPersonalSSHKeyRequest
+ */
+export type AddPersonalSSHKeyRequest = Message<"frontcontrol.AddPersonalSSHKeyRequest"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string public_key = 2;
+   */
+  publicKey: string;
+};
+
+/**
+ * Describes the message frontcontrol.AddPersonalSSHKeyRequest.
+ * Use `create(AddPersonalSSHKeyRequestSchema)` to create a new message.
+ */
+export const AddPersonalSSHKeyRequestSchema: GenMessage<AddPersonalSSHKeyRequest> = /*@__PURE__*/
+  messageDesc(file_frontcontrol, 2);
+
+/**
+ * @generated from message frontcontrol.AddPersonnalSSHKeyResponse
+ */
+export type AddPersonnalSSHKeyResponse = Message<"frontcontrol.AddPersonnalSSHKeyResponse"> & {
+  /**
+   * @generated from field: bool success = 1;
+   */
+  success: boolean;
+};
+
+/**
+ * Describes the message frontcontrol.AddPersonnalSSHKeyResponse.
+ * Use `create(AddPersonnalSSHKeyResponseSchema)` to create a new message.
+ */
+export const AddPersonnalSSHKeyResponseSchema: GenMessage<AddPersonnalSSHKeyResponse> = /*@__PURE__*/
+  messageDesc(file_frontcontrol, 3);
+
+/**
  * @generated from message frontcontrol.AuthenticateUserRequest
  */
 export type AuthenticateUserRequest = Message<"frontcontrol.AuthenticateUserRequest"> & {
@@ -83,7 +122,7 @@ export type AuthenticateUserRequest = Message<"frontcontrol.AuthenticateUserRequ
  * Use `create(AuthenticateUserRequestSchema)` to create a new message.
  */
 export const AuthenticateUserRequestSchema: GenMessage<AuthenticateUserRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 2);
+  messageDesc(file_frontcontrol, 4);
 
 /**
  * @generated from message frontcontrol.AuthenticateUserResponse
@@ -105,7 +144,7 @@ export type AuthenticateUserResponse = Message<"frontcontrol.AuthenticateUserRes
  * Use `create(AuthenticateUserResponseSchema)` to create a new message.
  */
 export const AuthenticateUserResponseSchema: GenMessage<AuthenticateUserResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 3);
+  messageDesc(file_frontcontrol, 5);
 
 /**
  * @generated from message frontcontrol.Image
@@ -228,7 +267,7 @@ export type Image = Message<"frontcontrol.Image"> & {
  * Use `create(ImageSchema)` to create a new message.
  */
 export const ImageSchema: GenMessage<Image> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 4);
+  messageDesc(file_frontcontrol, 6);
 
 /**
  * @generated from message frontcontrol.Flavor
@@ -297,7 +336,7 @@ export type Flavor = Message<"frontcontrol.Flavor"> & {
  * Use `create(FlavorSchema)` to create a new message.
  */
 export const FlavorSchema: GenMessage<Flavor> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 5);
+  messageDesc(file_frontcontrol, 7);
 
 /**
  * @generated from message frontcontrol.Network
@@ -375,7 +414,7 @@ export type Network = Message<"frontcontrol.Network"> & {
  * Use `create(NetworkSchema)` to create a new message.
  */
 export const NetworkSchema: GenMessage<Network> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 6);
+  messageDesc(file_frontcontrol, 8);
 
 /**
  * @generated from message frontcontrol.CreateConfigRequest
@@ -402,7 +441,7 @@ export type CreateConfigRequest = Message<"frontcontrol.CreateConfigRequest"> & 
  * Use `create(CreateConfigRequestSchema)` to create a new message.
  */
 export const CreateConfigRequestSchema: GenMessage<CreateConfigRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 7);
+  messageDesc(file_frontcontrol, 9);
 
 /**
  * @generated from message frontcontrol.CreateConfigResponse
@@ -419,7 +458,7 @@ export type CreateConfigResponse = Message<"frontcontrol.CreateConfigResponse"> 
  * Use `create(CreateConfigResponseSchema)` to create a new message.
  */
 export const CreateConfigResponseSchema: GenMessage<CreateConfigResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 8);
+  messageDesc(file_frontcontrol, 10);
 
 /**
  * @generated from message frontcontrol.UpdateConfigRequest
@@ -446,7 +485,7 @@ export type UpdateConfigRequest = Message<"frontcontrol.UpdateConfigRequest"> & 
  * Use `create(UpdateConfigRequestSchema)` to create a new message.
  */
 export const UpdateConfigRequestSchema: GenMessage<UpdateConfigRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 9);
+  messageDesc(file_frontcontrol, 11);
 
 /**
  * @generated from message frontcontrol.UpdateConfigResponse
@@ -463,7 +502,7 @@ export type UpdateConfigResponse = Message<"frontcontrol.UpdateConfigResponse"> 
  * Use `create(UpdateConfigResponseSchema)` to create a new message.
  */
 export const UpdateConfigResponseSchema: GenMessage<UpdateConfigResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 10);
+  messageDesc(file_frontcontrol, 12);
 
 /**
  * @generated from message frontcontrol.DeleteConfigRequest
@@ -485,7 +524,7 @@ export type DeleteConfigRequest = Message<"frontcontrol.DeleteConfigRequest"> & 
  * Use `create(DeleteConfigRequestSchema)` to create a new message.
  */
 export const DeleteConfigRequestSchema: GenMessage<DeleteConfigRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 11);
+  messageDesc(file_frontcontrol, 13);
 
 /**
  * @generated from message frontcontrol.DeleteConfigResponse
@@ -502,7 +541,7 @@ export type DeleteConfigResponse = Message<"frontcontrol.DeleteConfigResponse"> 
  * Use `create(DeleteConfigResponseSchema)` to create a new message.
  */
 export const DeleteConfigResponseSchema: GenMessage<DeleteConfigResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 12);
+  messageDesc(file_frontcontrol, 14);
 
 /**
  * @generated from message frontcontrol.GetConfigRequest
@@ -524,7 +563,7 @@ export type GetConfigRequest = Message<"frontcontrol.GetConfigRequest"> & {
  * Use `create(GetConfigRequestSchema)` to create a new message.
  */
 export const GetConfigRequestSchema: GenMessage<GetConfigRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 13);
+  messageDesc(file_frontcontrol, 15);
 
 /**
  * @generated from message frontcontrol.GetConfigResponse
@@ -546,7 +585,7 @@ export type GetConfigResponse = Message<"frontcontrol.GetConfigResponse"> & {
  * Use `create(GetConfigResponseSchema)` to create a new message.
  */
 export const GetConfigResponseSchema: GenMessage<GetConfigResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 14);
+  messageDesc(file_frontcontrol, 16);
 
 /**
  * @generated from message frontcontrol.CreatePoolRequest
@@ -613,7 +652,7 @@ export type CreatePoolRequest = Message<"frontcontrol.CreatePoolRequest"> & {
  * Use `create(CreatePoolRequestSchema)` to create a new message.
  */
 export const CreatePoolRequestSchema: GenMessage<CreatePoolRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 15);
+  messageDesc(file_frontcontrol, 17);
 
 /**
  * @generated from message frontcontrol.CreatePoolResponse
@@ -635,7 +674,7 @@ export type CreatePoolResponse = Message<"frontcontrol.CreatePoolResponse"> & {
  * Use `create(CreatePoolResponseSchema)` to create a new message.
  */
 export const CreatePoolResponseSchema: GenMessage<CreatePoolResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 16);
+  messageDesc(file_frontcontrol, 18);
 
 /**
  * @generated from message frontcontrol.DeletePoolRequest
@@ -657,7 +696,7 @@ export type DeletePoolRequest = Message<"frontcontrol.DeletePoolRequest"> & {
  * Use `create(DeletePoolRequestSchema)` to create a new message.
  */
 export const DeletePoolRequestSchema: GenMessage<DeletePoolRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 17);
+  messageDesc(file_frontcontrol, 19);
 
 /**
  * @generated from message frontcontrol.DeletePoolResponse
@@ -674,7 +713,7 @@ export type DeletePoolResponse = Message<"frontcontrol.DeletePoolResponse"> & {
  * Use `create(DeletePoolResponseSchema)` to create a new message.
  */
 export const DeletePoolResponseSchema: GenMessage<DeletePoolResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 18);
+  messageDesc(file_frontcontrol, 20);
 
 /**
  * @generated from message frontcontrol.GetPoolRequest
@@ -696,7 +735,7 @@ export type GetPoolRequest = Message<"frontcontrol.GetPoolRequest"> & {
  * Use `create(GetPoolRequestSchema)` to create a new message.
  */
 export const GetPoolRequestSchema: GenMessage<GetPoolRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 19);
+  messageDesc(file_frontcontrol, 21);
 
 /**
  * @generated from message frontcontrol.GetPoolResponse
@@ -743,7 +782,7 @@ export type GetPoolResponse = Message<"frontcontrol.GetPoolResponse"> & {
  * Use `create(GetPoolResponseSchema)` to create a new message.
  */
 export const GetPoolResponseSchema: GenMessage<GetPoolResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 20);
+  messageDesc(file_frontcontrol, 22);
 
 /**
  * @generated from message frontcontrol.UpdateDataUserRequest
@@ -760,7 +799,7 @@ export type UpdateDataUserRequest = Message<"frontcontrol.UpdateDataUserRequest"
  * Use `create(UpdateDataUserRequestSchema)` to create a new message.
  */
 export const UpdateDataUserRequestSchema: GenMessage<UpdateDataUserRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 21);
+  messageDesc(file_frontcontrol, 23);
 
 /**
  * @generated from message frontcontrol.UpdateDataUserResponse
@@ -792,7 +831,7 @@ export type UpdateDataUserResponse = Message<"frontcontrol.UpdateDataUserRespons
  * Use `create(UpdateDataUserResponseSchema)` to create a new message.
  */
 export const UpdateDataUserResponseSchema: GenMessage<UpdateDataUserResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 22);
+  messageDesc(file_frontcontrol, 24);
 
 /**
  * @generated from message frontcontrol.RebuildServerRequest
@@ -819,7 +858,7 @@ export type RebuildServerRequest = Message<"frontcontrol.RebuildServerRequest"> 
  * Use `create(RebuildServerRequestSchema)` to create a new message.
  */
 export const RebuildServerRequestSchema: GenMessage<RebuildServerRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 23);
+  messageDesc(file_frontcontrol, 25);
 
 /**
  * @generated from message frontcontrol.RebuildServerResponse
@@ -836,7 +875,7 @@ export type RebuildServerResponse = Message<"frontcontrol.RebuildServerResponse"
  * Use `create(RebuildServerResponseSchema)` to create a new message.
  */
 export const RebuildServerResponseSchema: GenMessage<RebuildServerResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 24);
+  messageDesc(file_frontcontrol, 26);
 
 /**
  * @generated from message frontcontrol.UserRequest
@@ -853,7 +892,7 @@ export type UserRequest = Message<"frontcontrol.UserRequest"> & {
  * Use `create(UserRequestSchema)` to create a new message.
  */
 export const UserRequestSchema: GenMessage<UserRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 25);
+  messageDesc(file_frontcontrol, 27);
 
 /**
  * @generated from message frontcontrol.Server
@@ -925,7 +964,7 @@ export type Server = Message<"frontcontrol.Server"> & {
  * Use `create(ServerSchema)` to create a new message.
  */
 export const ServerSchema: GenMessage<Server> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 26);
+  messageDesc(file_frontcontrol, 28);
 
 /**
  * @generated from message frontcontrol.ServerPool
@@ -987,7 +1026,7 @@ export type ServerPool = Message<"frontcontrol.ServerPool"> & {
  * Use `create(ServerPoolSchema)` to create a new message.
  */
 export const ServerPoolSchema: GenMessage<ServerPool> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 27);
+  messageDesc(file_frontcontrol, 29);
 
 /**
  * @generated from message frontcontrol.Config
@@ -1014,7 +1053,7 @@ export type Config = Message<"frontcontrol.Config"> & {
  * Use `create(ConfigSchema)` to create a new message.
  */
 export const ConfigSchema: GenMessage<Config> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 28);
+  messageDesc(file_frontcontrol, 30);
 
 /**
  * @generated from message frontcontrol.ExistData
@@ -1031,7 +1070,7 @@ export type ExistData = Message<"frontcontrol.ExistData"> & {
  * Use `create(ExistDataSchema)` to create a new message.
  */
 export const ExistDataSchema: GenMessage<ExistData> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 29);
+  messageDesc(file_frontcontrol, 31);
 
 /**
  * @generated from message frontcontrol.ListSSHPublicKeysRequest
@@ -1058,7 +1097,7 @@ export type ListSSHPublicKeysRequest = Message<"frontcontrol.ListSSHPublicKeysRe
  * Use `create(ListSSHPublicKeysRequestSchema)` to create a new message.
  */
 export const ListSSHPublicKeysRequestSchema: GenMessage<ListSSHPublicKeysRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 30);
+  messageDesc(file_frontcontrol, 32);
 
 /**
  * @generated from message frontcontrol.ListSSHPublicKeysResponse
@@ -1075,7 +1114,7 @@ export type ListSSHPublicKeysResponse = Message<"frontcontrol.ListSSHPublicKeysR
  * Use `create(ListSSHPublicKeysResponseSchema)` to create a new message.
  */
 export const ListSSHPublicKeysResponseSchema: GenMessage<ListSSHPublicKeysResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 31);
+  messageDesc(file_frontcontrol, 33);
 
 /**
  * @generated from message frontcontrol.AttribVMinPoolRequest
@@ -1097,7 +1136,7 @@ export type AttribVMinPoolRequest = Message<"frontcontrol.AttribVMinPoolRequest"
  * Use `create(AttribVMinPoolRequestSchema)` to create a new message.
  */
 export const AttribVMinPoolRequestSchema: GenMessage<AttribVMinPoolRequest> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 32);
+  messageDesc(file_frontcontrol, 34);
 
 /**
  * @generated from message frontcontrol.AttribVMinPoolResponse
@@ -1119,7 +1158,7 @@ export type AttribVMinPoolResponse = Message<"frontcontrol.AttribVMinPoolRespons
  * Use `create(AttribVMinPoolResponseSchema)` to create a new message.
  */
 export const AttribVMinPoolResponseSchema: GenMessage<AttribVMinPoolResponse> = /*@__PURE__*/
-  messageDesc(file_frontcontrol, 33);
+  messageDesc(file_frontcontrol, 35);
 
 /**
  * @generated from enum frontcontrol.Status
@@ -1429,6 +1468,16 @@ export const PoolService: GenService<{
     input: typeof CreatePoolRequestSchema;
     output: typeof RebuildServerResponseSchema;
   },
+  /**
+   * AddSSHKeys adds SSH public keys to a server pool for a user.
+   *
+   * @generated from rpc frontcontrol.PoolService.AddSSHKeys
+   */
+  addSSHKeys: {
+    methodKind: "unary";
+    input: typeof ListSSHPublicKeysRequestSchema;
+    output: typeof ListSSHPublicKeysResponseSchema;
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_frontcontrol, 3);
 
@@ -1447,6 +1496,26 @@ export const UserService: GenService<{
     methodKind: "server_streaming";
     input: typeof UpdateDataUserRequestSchema;
     output: typeof UpdateDataUserResponseSchema;
+  },
+  /**
+   * AddPersonalSSHKey adds a personal SSH key for a user.
+   *
+   * @generated from rpc frontcontrol.UserService.AddPersonalSSHKey
+   */
+  addPersonalSSHKey: {
+    methodKind: "unary";
+    input: typeof AddPersonalSSHKeyRequestSchema;
+    output: typeof AddPersonnalSSHKeyResponseSchema;
+  },
+  /**
+   * AttribVMinPool attributes a VM in the pool to a user based on the public key.
+   *
+   * @generated from rpc frontcontrol.UserService.AttribVMinPool
+   */
+  attribVMinPool: {
+    methodKind: "unary";
+    input: typeof AttribVMinPoolRequestSchema;
+    output: typeof AttribVMinPoolResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_frontcontrol, 4);

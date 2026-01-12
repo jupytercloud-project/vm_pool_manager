@@ -16,10 +16,19 @@
     TableHead,
     TableHeadCell,
     Button,
+	Modal,
+	Textarea,
   } from "flowbite-svelte";
 
   let token: string | null = null;
   $: token = $authStore?.token ?? null;
+  let sshModal = false;
+  let sshKey = "";
+
+  async function handleSSHKeySubmit() {
+    console.log("Submitting SSH Key:", sshKey);
+    sshModal = false;
+  }
 
 </script>
 
@@ -81,9 +90,36 @@
     <TableHeadCell>Data</TableHeadCell>
   </TableHead>
   <TableBody>
-    {#each $configs as conf}
+  {#each $configs as conf, i}
+    <TableBodyRow class={i % 2 === 0 ? 
+            'bg-tertiary-400 hover:bg-tertiary-200' :
+            'bg-tertiary-300 hover:bg-tertiary-200'}>
       <TableBodyCell>{conf.name}</TableBodyCell>
       <TableBodyCell>{conf.data}</TableBodyCell>
-    {/each}
+    </TableBodyRow>
+  {/each}
   </TableBody>
 </Table>
+
+<Button size="md" class="mt-4 bg-option-500"
+  onclick={() => sshModal = true}>
+  Add SSH Key
+</Button>
+
+{#if sshModal}
+  <Modal
+    bind:open={sshModal}
+    class="bg-gray-500 bg-opacity-50"
+    focustrap>
+    <Textarea
+    placeholder="Enter your SSH Public Key"
+    class="w-full h-20"
+    bind:value={sshKey} />
+    <Button
+      size="md"
+      onclick={handleSSHKeySubmit}
+      class="mt-4 bg-option-500">
+      Submit SSH Key
+    </Button>
+  </Modal>
+{/if}

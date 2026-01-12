@@ -17,6 +17,15 @@ message CreateUserResponse {
     bool success = 2;
 }
 
+message AddPersonalSSHKeyRequest {
+    string user_id = 1;
+    string public_key = 2;
+}
+
+message AddPersonnalSSHKeyResponse {
+  bool success = 1;
+}
+
 message AuthenticateUserRequest {
     string email = 1;
     string password = 2;
@@ -320,10 +329,16 @@ service PoolService {
     rpc RebuildServer (RebuildServerRequest) returns (RebuildServerResponse);
     // AddServer adds a new server to a pool for a user.
     rpc AddServer (CreatePoolRequest) returns (RebuildServerResponse);
+    // AddSSHKeys adds SSH public keys to a server pool for a user.
+    rpc AddSSHKeys (ListSSHPublicKeysRequest) returns (ListSSHPublicKeysResponse);
 }
 
 // UserService streams updates related to user data such as server pools, servers, and configurations.
 service UserService {
     // UpdateDataUser streams updates related to user data.
     rpc UpdateDataUser (UpdateDataUserRequest) returns (stream UpdateDataUserResponse);
+    // AddPersonalSSHKey adds a personal SSH key for a user.
+    rpc AddPersonalSSHKey (AddPersonalSSHKeyRequest) returns (AddPersonnalSSHKeyResponse);
+    // AttribVMinPool attributes a VM in the pool to a user based on the public key.
+    rpc AttribVMinPool (AttribVMinPoolRequest) returns (AttribVMinPoolResponse);
 }
