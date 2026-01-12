@@ -269,6 +269,15 @@ message AttribVMinPoolResponse {
     string addressed_ip = 2;
 }
 
+message PoolWithKeyRequest {
+    string pubkey = 1;
+}
+
+message PoolWithKeyResponse {
+    string pool_id = 1;
+    string user_id = 2;
+}
+
 // -------------------- Services --------------------
 // AuthService manages user authentication and creation.
 // Might change to use OIDC in the future.
@@ -339,6 +348,12 @@ service UserService {
     rpc UpdateDataUser (UpdateDataUserRequest) returns (stream UpdateDataUserResponse);
     // AddPersonalSSHKey adds a personal SSH key for a user.
     rpc AddPersonalSSHKey (AddPersonalSSHKeyRequest) returns (AddPersonnalSSHKeyResponse);
+}
+
+// AttribVMService handles VM attribution based on public keys.
+service AttribVMService {
     // AttribVMinPool attributes a VM in the pool to a user based on the public key.
     rpc AttribVMinPool (AttribVMinPoolRequest) returns (AttribVMinPoolResponse);
+    // ReturnPoolWithKey returns the pools associated with a given public key.
+    rpc ReturnPoolWithKey (PoolWithKeyRequest) returns (stream PoolWithKeyResponse);
 }

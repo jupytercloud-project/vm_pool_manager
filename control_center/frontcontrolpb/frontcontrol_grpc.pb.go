@@ -1202,7 +1202,6 @@ var PoolService_ServiceDesc = grpc.ServiceDesc{
 const (
 	UserService_UpdateDataUser_FullMethodName    = "/frontcontrol.UserService/UpdateDataUser"
 	UserService_AddPersonalSSHKey_FullMethodName = "/frontcontrol.UserService/AddPersonalSSHKey"
-	UserService_AttribVMinPool_FullMethodName    = "/frontcontrol.UserService/AttribVMinPool"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -1215,8 +1214,6 @@ type UserServiceClient interface {
 	UpdateDataUser(ctx context.Context, in *UpdateDataUserRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UpdateDataUserResponse], error)
 	// AddPersonalSSHKey adds a personal SSH key for a user.
 	AddPersonalSSHKey(ctx context.Context, in *AddPersonalSSHKeyRequest, opts ...grpc.CallOption) (*AddPersonnalSSHKeyResponse, error)
-	// AttribVMinPool attributes a VM in the pool to a user based on the public key.
-	AttribVMinPool(ctx context.Context, in *AttribVMinPoolRequest, opts ...grpc.CallOption) (*AttribVMinPoolResponse, error)
 }
 
 type userServiceClient struct {
@@ -1256,16 +1253,6 @@ func (c *userServiceClient) AddPersonalSSHKey(ctx context.Context, in *AddPerson
 	return out, nil
 }
 
-func (c *userServiceClient) AttribVMinPool(ctx context.Context, in *AttribVMinPoolRequest, opts ...grpc.CallOption) (*AttribVMinPoolResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AttribVMinPoolResponse)
-	err := c.cc.Invoke(ctx, UserService_AttribVMinPool_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -1276,8 +1263,6 @@ type UserServiceServer interface {
 	UpdateDataUser(*UpdateDataUserRequest, grpc.ServerStreamingServer[UpdateDataUserResponse]) error
 	// AddPersonalSSHKey adds a personal SSH key for a user.
 	AddPersonalSSHKey(context.Context, *AddPersonalSSHKeyRequest) (*AddPersonnalSSHKeyResponse, error)
-	// AttribVMinPool attributes a VM in the pool to a user based on the public key.
-	AttribVMinPool(context.Context, *AttribVMinPoolRequest) (*AttribVMinPoolResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -1293,9 +1278,6 @@ func (UnimplementedUserServiceServer) UpdateDataUser(*UpdateDataUserRequest, grp
 }
 func (UnimplementedUserServiceServer) AddPersonalSSHKey(context.Context, *AddPersonalSSHKeyRequest) (*AddPersonnalSSHKeyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddPersonalSSHKey not implemented")
-}
-func (UnimplementedUserServiceServer) AttribVMinPool(context.Context, *AttribVMinPoolRequest) (*AttribVMinPoolResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AttribVMinPool not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -1347,24 +1329,6 @@ func _UserService_AddPersonalSSHKey_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_AttribVMinPool_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AttribVMinPoolRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).AttribVMinPool(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_AttribVMinPool_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).AttribVMinPool(ctx, req.(*AttribVMinPoolRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1376,15 +1340,163 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "AddPersonalSSHKey",
 			Handler:    _UserService_AddPersonalSSHKey_Handler,
 		},
-		{
-			MethodName: "AttribVMinPool",
-			Handler:    _UserService_AttribVMinPool_Handler,
-		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "UpdateDataUser",
 			Handler:       _UserService_UpdateDataUser_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "frontcontrol.proto",
+}
+
+const (
+	AttribVMService_AttribVMinPool_FullMethodName    = "/frontcontrol.AttribVMService/AttribVMinPool"
+	AttribVMService_ReturnPoolWithKey_FullMethodName = "/frontcontrol.AttribVMService/ReturnPoolWithKey"
+)
+
+// AttribVMServiceClient is the client API for AttribVMService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// AttribVMService handles VM attribution based on public keys.
+type AttribVMServiceClient interface {
+	// AttribVMinPool attributes a VM in the pool to a user based on the public key.
+	AttribVMinPool(ctx context.Context, in *AttribVMinPoolRequest, opts ...grpc.CallOption) (*AttribVMinPoolResponse, error)
+	// ReturnPoolWithKey returns the pools associated with a given public key.
+	ReturnPoolWithKey(ctx context.Context, in *PoolWithKeyRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PoolWithKeyResponse], error)
+}
+
+type attribVMServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewAttribVMServiceClient(cc grpc.ClientConnInterface) AttribVMServiceClient {
+	return &attribVMServiceClient{cc}
+}
+
+func (c *attribVMServiceClient) AttribVMinPool(ctx context.Context, in *AttribVMinPoolRequest, opts ...grpc.CallOption) (*AttribVMinPoolResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AttribVMinPoolResponse)
+	err := c.cc.Invoke(ctx, AttribVMService_AttribVMinPool_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *attribVMServiceClient) ReturnPoolWithKey(ctx context.Context, in *PoolWithKeyRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PoolWithKeyResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AttribVMService_ServiceDesc.Streams[0], AttribVMService_ReturnPoolWithKey_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[PoolWithKeyRequest, PoolWithKeyResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AttribVMService_ReturnPoolWithKeyClient = grpc.ServerStreamingClient[PoolWithKeyResponse]
+
+// AttribVMServiceServer is the server API for AttribVMService service.
+// All implementations must embed UnimplementedAttribVMServiceServer
+// for forward compatibility.
+//
+// AttribVMService handles VM attribution based on public keys.
+type AttribVMServiceServer interface {
+	// AttribVMinPool attributes a VM in the pool to a user based on the public key.
+	AttribVMinPool(context.Context, *AttribVMinPoolRequest) (*AttribVMinPoolResponse, error)
+	// ReturnPoolWithKey returns the pools associated with a given public key.
+	ReturnPoolWithKey(*PoolWithKeyRequest, grpc.ServerStreamingServer[PoolWithKeyResponse]) error
+	mustEmbedUnimplementedAttribVMServiceServer()
+}
+
+// UnimplementedAttribVMServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedAttribVMServiceServer struct{}
+
+func (UnimplementedAttribVMServiceServer) AttribVMinPool(context.Context, *AttribVMinPoolRequest) (*AttribVMinPoolResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AttribVMinPool not implemented")
+}
+func (UnimplementedAttribVMServiceServer) ReturnPoolWithKey(*PoolWithKeyRequest, grpc.ServerStreamingServer[PoolWithKeyResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method ReturnPoolWithKey not implemented")
+}
+func (UnimplementedAttribVMServiceServer) mustEmbedUnimplementedAttribVMServiceServer() {}
+func (UnimplementedAttribVMServiceServer) testEmbeddedByValue()                         {}
+
+// UnsafeAttribVMServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AttribVMServiceServer will
+// result in compilation errors.
+type UnsafeAttribVMServiceServer interface {
+	mustEmbedUnimplementedAttribVMServiceServer()
+}
+
+func RegisterAttribVMServiceServer(s grpc.ServiceRegistrar, srv AttribVMServiceServer) {
+	// If the following call pancis, it indicates UnimplementedAttribVMServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&AttribVMService_ServiceDesc, srv)
+}
+
+func _AttribVMService_AttribVMinPool_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AttribVMinPoolRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AttribVMServiceServer).AttribVMinPool(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AttribVMService_AttribVMinPool_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AttribVMServiceServer).AttribVMinPool(ctx, req.(*AttribVMinPoolRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AttribVMService_ReturnPoolWithKey_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PoolWithKeyRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AttribVMServiceServer).ReturnPoolWithKey(m, &grpc.GenericServerStream[PoolWithKeyRequest, PoolWithKeyResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AttribVMService_ReturnPoolWithKeyServer = grpc.ServerStreamingServer[PoolWithKeyResponse]
+
+// AttribVMService_ServiceDesc is the grpc.ServiceDesc for AttribVMService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var AttribVMService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "frontcontrol.AttribVMService",
+	HandlerType: (*AttribVMServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AttribVMinPool",
+			Handler:    _AttribVMService_AttribVMinPool_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ReturnPoolWithKey",
+			Handler:       _AttribVMService_ReturnPoolWithKey_Handler,
 			ServerStreams: true,
 		},
 	},

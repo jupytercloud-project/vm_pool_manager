@@ -27,7 +27,7 @@ type Server struct {
 	Progress       int  `gorm:"default:0; not null"`
 	ConfigID       int
 	IP_Address     string
-	Lock           bool `gorm:"-"`
+	Locked         bool `gorm:"default:false; not null"`
 }
 
 func FromGopherServer(s servers.Server) Server {
