@@ -18,7 +18,8 @@ import type {
 
 
 const transport = createGrpcWebTransport({
-  baseUrl: "http://localhost:80",
+  baseUrl: "http://localhost:80", //a modifier !
+  // baseUrl: "/rpc/", // Version VM
   useBinaryFormat: true,
   interceptors: [],
   fetch: globalThis.fetch,

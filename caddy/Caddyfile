@@ -25,3 +25,27 @@
 		}
 	}
 }
+
+# Version VM:
+# {
+#     debug
+#     order grpc_web before reverse_proxy
+# }
+
+# :80 {
+
+#     # ---------- gRPC-Web ----------
+#     handle_path /rpc/* {
+#         grpc_web
+#         reverse_proxy host.docker.internal:50051 {
+#             transport http {
+#                 versions h2c
+#             }
+#         }
+#     }
+
+#     # ---------- Frontend ----------
+#     handle {
+#         reverse_proxy host.docker.internal:5173
+#     }
+# }
