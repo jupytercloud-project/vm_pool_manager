@@ -72,6 +72,10 @@ func (s *Service) DeletePool(
 		return &frontcontrolpb.DeletePoolResponse{Success: false}, err
 	}
 
+	if err := s.DB.Delete(&pool).Error; err != nil {
+		return &frontcontrolpb.DeletePoolResponse{Success: false}, err
+	}
+
 	rep, err := s.pm.SendRessources(
 		ctx,
 		&pb.RessourceRequest{
@@ -85,7 +89,7 @@ func (s *Service) DeletePool(
 	if err != nil || rep.GetSuccess() == false {
 		return &frontcontrolpb.DeletePoolResponse{Success: false}, err
 	}
-
+	log.Println("success deleting")
 	return &frontcontrolpb.DeletePoolResponse{Success: true}, nil
 }
 

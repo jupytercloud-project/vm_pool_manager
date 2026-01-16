@@ -36,8 +36,6 @@ func (s *Service) ReturnPoolWithKey(
 	req *frontcontrolpb.PoolWithKeyRequest,
 	stream frontcontrolpb.AttribVMService_ReturnPoolWithKeyServer,
 ) error {
-
-	log.Println("coucou on est returnpoolWithKey")
 	pubKey := req.GetPubkey()
 	if pubKey == "" {
 		return status.Error(codes.InvalidArgument, "pubKey is empty")
@@ -81,8 +79,32 @@ func (s *Service) AttribVMinPool(
 			AddressedIp: "",
 		}, status.Error(codes.InvalidArgument, "missing required fields")
 	}
+
+	var existingServer models.Server
+	err := s.DB.
+		Where("ssh_key_assigned = ? AND user_id = ? AND serverpool_id = ?", req.GetPubkey(), req.GetUserId(), req.GetServerpoolId()).
+		First(&existingServer).Error
+
+	if err == nil {
+		log.Printf(
+			"SSH key déjà associée → VM %s renvoyée",
+			existingServer.IP_Address,
+		)
+
+		return &frontcontrolpb.AttribVMinPoolResponse{
+			Success:     true,
+			AddressedIp: existingServer.IP_Address,
+		}, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return &frontcontrolpb.AttribVMinPoolResponse{
+			Success: false,
+		}, err
+	}
+
 	var server models.Server
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.
 			Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("serverpool_id = ? AND user_id = ? AND locked = false",
