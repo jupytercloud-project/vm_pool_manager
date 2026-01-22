@@ -56,6 +56,7 @@ import {
   
 } from '$lib/grpc/frontcontrol_pb';
 import CreateServerPoolModal from '$lib/components/CreateServerPoolModal.svelte';
+import AddSSHKeys from '$lib/components/AddSSHKeys.svelte';
 
 
 
@@ -74,6 +75,8 @@ let createSuccess = false;
 let scheduleDay: string = "";
 let scheduleTime: string = "";
 let scheduleWindowHours: number = 1; // optionnel
+
+let ListStudentModalOpen: boolean = false;
 
 type CreateServerPoolForm = {
     name: string;
@@ -420,9 +423,6 @@ async function handleSendSSHKeys() {
 </Button>
 
 {#if createspModal}
-  <script lang="ts">
-  import CreateServerPoolModal from '$lib/components/CreateServerPoolModal.svelte';
-</script>
 
 <CreateServerPoolModal
   bind:open={createspModal}
@@ -473,5 +473,18 @@ async function handleSendSSHKeys() {
       Envoyer les clés SSH
     </Button>
   </Modal>
+  {/if}
+
+  <Button
+  size="md"
+  class="bg-option-500 mt-4"
+  onclick={() => ListStudentModalOpen = true}>
+    Liste des étudiants
+  </Button>
+  {#if ListStudentModalOpen}
+  <AddSSHKeys
+  bind:open={ListStudentModalOpen}
+  bind:poolname={selectedPool.name}
+  />
   {/if}
 {/if}

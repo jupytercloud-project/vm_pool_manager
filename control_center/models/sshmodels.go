@@ -5,6 +5,7 @@ type Student struct {
 	ListId uint `gorm:"index"`
 	Name   string
 	SshKey string
+	IP     string
 }
 
 type ListStudents struct {

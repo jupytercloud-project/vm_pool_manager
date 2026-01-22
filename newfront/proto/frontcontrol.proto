@@ -279,6 +279,33 @@ message PoolWithKeyResponse {
     string user_id = 2;
 }
 
+message Student {
+    uint32 id = 1;
+    string name = 2;
+    string ssh_key = 3;
+    string ip = 4;
+}
+
+message ListStudentsRequest {
+    string poolname = 1;
+    string user = 2;
+}
+
+message ListStudentsResponse {
+    repeated Student students = 1;
+}
+
+message AddStudentRequest {
+    string poolname = 1;
+    string user = 2;
+    repeated Student students = 3;
+}
+
+message AddStudentResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
 // -------------------- Services --------------------
 // AuthService manages user authentication and creation.
 // Might change to use OIDC in the future.
@@ -341,6 +368,10 @@ service PoolService {
     rpc AddServer (CreatePoolRequest) returns (RebuildServerResponse);
     // AddSSHKeys adds SSH public keys to a server pool for a user.
     rpc AddSSHKeys (ListSSHPublicKeysRequest) returns (ListSSHPublicKeysResponse);
+    // ListStudents lists students associated with a server pool for a user.
+    rpc ListStudents (ListStudentsRequest) returns (ListStudentsResponse);
+    // AddStudents adds students to a server pool for a user.
+    rpc AddStudents (AddStudentRequest) returns (AddStudentResponse);
 }
 
 // UserService streams updates related to user data such as server pools, servers, and configurations.

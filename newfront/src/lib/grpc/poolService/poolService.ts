@@ -21,6 +21,10 @@ import type {
     RebuildServerRequest,
     ListSSHPublicKeysRequest,
     ListSSHPublicKeysResponse,
+    ListStudentsRequest,
+    ListStudentsResponse,
+    AddStudentRequest,
+    AddStudentResponse,
 } from "../frontcontrol_pb"
 
 const transport = createGrpcWebTransport({
@@ -102,6 +106,30 @@ export async function addSSHKeys (
         return res;
     } catch (err) {
         console.error("Error adding SSH keys: ", err)
+        throw err;
+    }
+}
+
+export async function listStudents (
+    req: ListStudentsRequest
+): Promise<ListStudentsResponse> {
+    try {
+        const res: ListStudentsResponse = await poolClient.listStudents(req);
+        return res;
+    } catch (err) {
+        console.error("Error listing students: ", err)
+        throw err;
+    }
+}
+
+export async function addStudents (
+    req: AddStudentRequest
+): Promise<AddStudentResponse> {
+    try {
+        const res: AddStudentResponse = await poolClient.addStudents(req);
+        return res;
+    } catch (err) {
+        console.error("Error adding students: ", err)
         throw err;
     }
 }

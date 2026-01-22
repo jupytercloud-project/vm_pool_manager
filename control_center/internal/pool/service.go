@@ -209,3 +209,62 @@ func (s *Service) AddSSHKeys(
 	}
 	return &frontcontrolpb.ListSSHPublicKeysResponse{Success: true}, nil
 }
+
+func (s *Service) ListStudents(
+	ctx context.Context,
+	req *frontcontrolpb.ListStudentsRequest,
+) (*frontcontrolpb.ListStudentsResponse, error) {
+	var pool models.Serverpool
+	if err := s.DB.Preload("ListStudents.Students").
+		Where("serverpool_id = ? AND user_id = ?", req.GetPoolname(), req.GetUser()).
+		First(&pool).Error; err != nil {
+		return &frontcontrolpb.ListStudentsResponse{}, err
+	}
+	log.Println("test test")
+
+	var students []*frontcontrolpb.Student
+	for _, student := range pool.ListStudents.Students {
+		students = append(students, &frontcontrolpb.Student{
+			Name:   student.Name,
+			SshKey: student.SshKey,
+			Ip:     student.IP,
+		})
+	}
+
+	return &frontcontrolpb.ListStudentsResponse{
+		Students: students,
+	}, nil
+}
+
+func (s *Service) AddStudents(
+	ctx context.Context,
+	req *frontcontrolpb.AddStudentRequest,
+) (*frontcontrolpb.AddStudentResponse, error) {
+	var pool models.Serverpool
+	if err := s.DB.Preload("ListStudents.Students").
+		Where("serverpool_id = ? AND user_id = ?", req.GetPoolname(), req.GetUser()).
+		First(&pool).Error; err != nil {
+		return &frontcontrolpb.AddStudentResponse{Success: false}, err
+	}
+
+	listStudents := &pool.ListStudents
+	if listStudents.ID == 0 {
+		listStudents.PoolId = pool.ID
+		if err := s.DB.Create(&listStudents).Error; err != nil {
+			return &frontcontrolpb.AddStudentResponse{Success: false}, err
+		}
+	}
+
+	for _, studentReq := range req.GetStudents() {
+		student := models.Student{
+			ListId: listStudents.ID,
+			Name:   studentReq.GetName(),
+			SshKey: studentReq.GetSshKey(),
+		}
+		if err := s.DB.Create(&student).Error; err != nil {
+			return &frontcontrolpb.AddStudentResponse{Success: false}, err
+		}
+	}
+
+	return &frontcontrolpb.AddStudentResponse{Success: true}, nil
+}
