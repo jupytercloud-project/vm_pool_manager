@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -41,88 +40,251 @@ func (s *Service) ReturnPoolWithKey(
 		return status.Error(codes.InvalidArgument, "pubKey is empty")
 	}
 
-	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
-	if err != nil {
+	if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey)); err != nil {
 		return status.Errorf(codes.InvalidArgument, "invalid public key: %v", err)
 	}
 
-	var pools []models.Serverpool
+	type result struct {
+		ServerpoolID string
+		UserID       string
+	}
 
-	if err := s.DB.
-		Where("keypublist @> ARRAY[?]::text[]", pubKey).
-		Find(&pools).Error; err != nil {
+	var results []result
+
+	err := s.DB.
+		Table("students").
+		Select("serverpools.serverpool_id, serverpools.user_id").
+		Joins("JOIN list_students ON list_students.id = students.list_id").
+		Joins("JOIN serverpools ON serverpools.id = list_students.pool_id").
+		Where("students.ssh_key = ?", pubKey).
+		Scan(&results).Error
+
+	if err != nil {
 		return status.Errorf(codes.Internal, "database error: %v", err)
 	}
 
-	for _, pool := range pools {
+	for _, r := range results {
 		resp := &frontcontrolpb.PoolWithKeyResponse{
-			PoolId: pool.ServerpoolID,
-			UserId: pool.UserID,
+			PoolId: r.ServerpoolID,
+			UserId: r.UserID,
 		}
 
 		if err := stream.Send(resp); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
+
+// func (s *Service) AttribVMinPool(
+// 	ctx context.Context,
+// 	req *frontcontrolpb.AttribVMinPoolRequest,
+// ) (*frontcontrolpb.AttribVMinPoolResponse, error) {
+
+// 	if req.GetServerpoolId() == "" || req.GetUserId() == "" || req.GetPubkey() == "" {
+// 		return &frontcontrolpb.AttribVMinPoolResponse{
+// 			Success:     false,
+// 			AddressedIp: "",
+// 		}, status.Error(codes.InvalidArgument, "missing required fields")
+// 	}
+
+// 	var existingServer models.Server
+// 	err := s.DB.
+// 		Where("ssh_key_assigned = ? AND user_id = ? AND serverpool_id = ?", req.GetPubkey(), req.GetUserId(), req.GetServerpoolId()).
+// 		First(&existingServer).Error
+
+// 	if err == nil {
+// 		log.Printf(
+// 			"SSH key déjà associée → VM %s renvoyée",
+// 			existingServer.IP_Address,
+// 		)
+
+// 		return &frontcontrolpb.AttribVMinPoolResponse{
+// 			Success:     true,
+// 			AddressedIp: existingServer.IP_Address,
+// 		}, nil
+// 	}
+
+// 	if !errors.Is(err, gorm.ErrRecordNotFound) {
+// 		return &frontcontrolpb.AttribVMinPoolResponse{
+// 			Success: false,
+// 		}, err
+// 	}
+
+// 	var server models.Server
+// 	err = s.DB.Transaction(func(tx *gorm.DB) error {
+// 		if err := tx.
+// 			Clauses(clause.Locking{Strength: "UPDATE"}).
+// 			Where("serverpool_id = ? AND user_id = ? AND locked = false",
+// 				req.GetServerpoolId(), req.GetUserId()).
+// 			Order("id").
+// 			First(&server).Error; err != nil {
+
+// 			if errors.Is(err, gorm.ErrRecordNotFound) {
+// 				return status.Error(codes.ResourceExhausted, "no available server")
+// 			}
+// 			return err
+// 		}
+// 		if err := tx.Model(&server).
+// 			Update("locked", true).Error; err != nil {
+// 			return err
+// 		}
+// 		if err := tx.Model(&server).
+// 			Update("ssh_key_assigned", req.GetPubkey()).Error; err != nil {
+// 			return err
+// 		}
+// 		return nil
+// 	})
+
+// 	if err != nil {
+// 		return &frontcontrolpb.AttribVMinPoolResponse{
+// 			Success:     false,
+// 			AddressedIp: "",
+// 		}, err
+// 	}
+// 	log.Printf("Server %s attribué à l'utilisateur %s\n", server.IP_Address, req.GetUserId())
+// 	if err := s.installSSHKey(&server, req.GetPubkey()); err != nil {
+// 		_ = s.DB.Model(&server).Update("locked", false)
+// 		return &frontcontrolpb.AttribVMinPoolResponse{
+// 			Success:     false,
+// 			AddressedIp: "",
+// 		}, status.Errorf(codes.Internal, "ssh setup failed: %v", err)
+// 	}
+// 	return &frontcontrolpb.AttribVMinPoolResponse{
+// 		Success:     true,
+// 		AddressedIp: server.IP_Address,
+// 	}, nil
+// }
+
+// func (s *Service) installSSHKey(server *models.Server, pubKey string) error {
+
+// 	if err := godotenv.Load(); err != nil {
+// 		log.Panicln("Error on loading .env")
+// 		return fmt.Errorf("Error on loading.env")
+// 	}
+// 	signer, err := loadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
+// 	if err != nil {
+// 		log.Printf("Erreur loadPrivateKey")
+// 		return fmt.Errorf("load private key: %w", err)
+// 	}
+
+// 	config := sshConfig("vmuser", signer)
+// 	addr := fmt.Sprintf("%s:22", server.IP_Address)
+
+// 	client, err := ssh.Dial("tcp", addr, config)
+// 	if err != nil {
+// 		log.Printf("Erreur ssh dial")
+// 		return fmt.Errorf("ssh dial failed: %w", err)
+// 	}
+// 	defer client.Close()
+
+// 	var user models.User
+// 	if err := s.DB.
+// 		Where("email = ?", server.UserID).
+// 		First(&user).Error; err != nil {
+// 		log.Printf("Erreur fetch user from db")
+// 		return fmt.Errorf("fetch user from db failed: %w", err)
+// 	}
+
+// 	appUsername := usernameFromEmail(user.Email)
+
+// 	cmd := fmt.Sprintf(`
+// set -e
+
+// create_user_and_key() {
+//   USERNAME="$1"
+//   PUBKEY="$2"
+
+//   if ! id "$USERNAME" >/dev/null 2>&1; then
+//     sudo /usr/sbin/useradd -m -s /bin/bash "$USERNAME"
+//   fi
+
+//   HOME_DIR="/home/$USERNAME"
+//   SSH_DIR="$HOME_DIR/.ssh"
+//   AUTH_KEYS="$SSH_DIR/authorized_keys"
+
+//   sudo mkdir -p "$SSH_DIR"
+//   sudo chmod 700 "$SSH_DIR"
+//   sudo touch "$AUTH_KEYS"
+//   sudo chmod 600 "$AUTH_KEYS"
+
+//   if ! sudo grep -qxF "$PUBKEY" "$AUTH_KEYS"; then
+//     echo "$PUBKEY" | sudo tee -a "$AUTH_KEYS" > /dev/null
+//   fi
+
+//   sudo chown -R "$USERNAME:$USERNAME" "$SSH_DIR"
+// }
+
+// create_user_and_key "student" "%s"
+// create_user_and_key "%s" "%s"
+// `, pubKey, appUsername, user.Keypubuser)
+
+// 	if err := runSSHcmd(client, cmd); err != nil {
+// 		log.Printf("Erreur run ssh cmd")
+// 		return fmt.Errorf("run ssh cmd failed: %w", err)
+// 	}
+
+// 	return nil
+// }
 
 func (s *Service) AttribVMinPool(
 	ctx context.Context,
 	req *frontcontrolpb.AttribVMinPoolRequest,
 ) (*frontcontrolpb.AttribVMinPoolResponse, error) {
-
-	if req.GetServerpoolId() == "" || req.GetUserId() == "" || req.GetPubkey() == "" {
+	if req.GetServerpoolId() == "" || req.GetPubkey() == "" || req.GetUserId() == "" {
 		return &frontcontrolpb.AttribVMinPoolResponse{
 			Success:     false,
 			AddressedIp: "",
 		}, status.Error(codes.InvalidArgument, "missing required fields")
 	}
 
-	var existingServer models.Server
+	var student models.Student
 	err := s.DB.
-		Where("ssh_key_assigned = ? AND user_id = ? AND serverpool_id = ?", req.GetPubkey(), req.GetUserId(), req.GetServerpoolId()).
-		First(&existingServer).Error
+		Joins("JOIN list_students ON list_students.id = students.list_id").
+		Joins("JOIN serverpools ON serverpools.id = list_students.pool_id").
+		Where("students.ssh_key = ? AND serverpools.serverpool_id = ? AND serverpools.user_id = ?", req.GetPubkey(), req.GetServerpoolId(), req.GetUserId()).
+		First(&student).Error
 
-	if err == nil {
-		log.Printf(
-			"SSH key déjà associée → VM %s renvoyée",
-			existingServer.IP_Address,
-		)
-
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &frontcontrolpb.AttribVMinPoolResponse{
+				Success:     false,
+				AddressedIp: "",
+			}, status.Error(codes.NotFound, "student not found in pool")
+		}
 		return &frontcontrolpb.AttribVMinPoolResponse{
-			Success:     true,
-			AddressedIp: existingServer.IP_Address,
-		}, nil
-	}
-
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return &frontcontrolpb.AttribVMinPoolResponse{
-			Success: false,
+			Success:     false,
+			AddressedIp: "",
 		}, err
 	}
 
-	var server models.Server
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.
-			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("serverpool_id = ? AND user_id = ? AND locked = false",
-				req.GetServerpoolId(), req.GetUserId()).
-			Order("id").
-			First(&server).Error; err != nil {
+	if student.IP != "" {
+		return &frontcontrolpb.AttribVMinPoolResponse{
+			Success:     true,
+			AddressedIp: student.IP,
+		}, nil
+	}
 
+	var server models.Server
+
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("serverpool_id = ? AND user_id = ? AND locked = false", req.GetServerpoolId(), req.GetUserId()).
+			Order("id").First(&server).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Error(codes.ResourceExhausted, "no available server")
 			}
 			return err
 		}
 		if err := tx.Model(&server).
-			Update("locked", true).Error; err != nil {
+			Updates(map[string]any{
+				"locked":           true,
+				"ssh_key_assigned": student.SshKey,
+			}).Error; err != nil {
 			return err
 		}
-		if err := tx.Model(&server).
-			Update("ssh_key_assigned", req.GetPubkey()).Error; err != nil {
+
+		if err := tx.Model(&student).Update("ip", server.IP_Address).Error; err != nil {
 			return err
 		}
 		return nil
@@ -134,30 +296,25 @@ func (s *Service) AttribVMinPool(
 			AddressedIp: "",
 		}, err
 	}
-	log.Printf("Server %s attribué à l'utilisateur %s\n", server.IP_Address, req.GetUserId())
-	if err := s.installSSHKey(&server, req.GetPubkey()); err != nil {
+
+	if err := s.installSSHKey(&server, &student); err != nil {
 		_ = s.DB.Model(&server).Update("locked", false)
 		return &frontcontrolpb.AttribVMinPoolResponse{
 			Success:     false,
 			AddressedIp: "",
 		}, status.Errorf(codes.Internal, "ssh setup failed: %v", err)
 	}
+
 	return &frontcontrolpb.AttribVMinPoolResponse{
 		Success:     true,
 		AddressedIp: server.IP_Address,
 	}, nil
 }
 
-func (s *Service) installSSHKey(server *models.Server, pubKey string) error {
-
-	if err := godotenv.Load(); err != nil {
-		log.Panicln("Error on loading .env")
-		return fmt.Errorf("Error on loading.env")
-	}
+func (s *Service) installSSHKey(server *models.Server, student *models.Student) error {
 	signer, err := loadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
 	if err != nil {
-		log.Printf("Erreur loadPrivateKey")
-		return fmt.Errorf("load private key: %w", err)
+		return err
 	}
 
 	config := sshConfig("vmuser", signer)
@@ -165,8 +322,7 @@ func (s *Service) installSSHKey(server *models.Server, pubKey string) error {
 
 	client, err := ssh.Dial("tcp", addr, config)
 	if err != nil {
-		log.Printf("Erreur ssh dial")
-		return fmt.Errorf("ssh dial failed: %w", err)
+		return err
 	}
 	defer client.Close()
 
@@ -174,48 +330,58 @@ func (s *Service) installSSHKey(server *models.Server, pubKey string) error {
 	if err := s.DB.
 		Where("email = ?", server.UserID).
 		First(&user).Error; err != nil {
-		log.Printf("Erreur fetch user from db")
-		return fmt.Errorf("fetch user from db failed: %w", err)
+		return fmt.Errorf("fetch user failed: %w", err)
 	}
 
-	appUsername := usernameFromEmail(user.Email)
+	studentUsername := usernameFromEmail(student.Name)
+	userUsername := usernameFromEmail(user.Email)
 
 	cmd := fmt.Sprintf(`
 set -e
 
-create_user_and_key() {
+create_user() {
   USERNAME="$1"
   PUBKEY="$2"
+  SUDO="$3"
 
   if ! id "$USERNAME" >/dev/null 2>&1; then
-    sudo /usr/sbin/useradd -m -s /bin/bash "$USERNAME"
+    sudo useradd -m -s /bin/bash "$USERNAME"
   fi
 
-  HOME_DIR="/home/$USERNAME"
-  SSH_DIR="$HOME_DIR/.ssh"
-  AUTH_KEYS="$SSH_DIR/authorized_keys"
+  HOME="/home/$USERNAME"
+  SSH="$HOME/.ssh"
+  AUTH="$SSH/authorized_keys"
 
-  sudo mkdir -p "$SSH_DIR"
-  sudo chmod 700 "$SSH_DIR"
-  sudo touch "$AUTH_KEYS"
-  sudo chmod 600 "$AUTH_KEYS"
+  sudo mkdir -p "$SSH"
+  sudo chmod 700 "$SSH"
+  sudo touch "$AUTH"
+  sudo chmod 600 "$AUTH"
 
-  if ! sudo grep -qxF "$PUBKEY" "$AUTH_KEYS"; then
-    echo "$PUBKEY" | sudo tee -a "$AUTH_KEYS" > /dev/null
+  if ! sudo grep -qxF "$PUBKEY" "$AUTH"; then
+    echo "$PUBKEY" | sudo tee -a "$AUTH" > /dev/null
   fi
 
-  sudo chown -R "$USERNAME:$USERNAME" "$SSH_DIR"
+  if [ "$SUDO" = "true" ]; then
+    sudo usermod -aG sudo "$USERNAME"
+  fi
+
+  sudo chown -R "$USERNAME:$USERNAME" "$SSH"
 }
 
-create_user_and_key "student" "%s"
-create_user_and_key "%s" "%s"
-`, pubKey, appUsername, user.Keypubuser)
+# 👨‍🎓 étudiant (sans sudo)
+create_user "%s" "%s" "false"
 
+# 👨‍🏫 prof (avec sudo)
+create_user "%s" "%s" "true"
+`,
+		studentUsername,
+		student.SshKey,
+		userUsername,
+		user.Keypubuser,
+	)
 	if err := runSSHcmd(client, cmd); err != nil {
-		log.Printf("Erreur run ssh cmd")
 		return fmt.Errorf("run ssh cmd failed: %w", err)
 	}
-
 	return nil
 }
 
@@ -269,7 +435,7 @@ func usernameFromEmail(email string) string {
 	local = strings.ToLower(local)
 
 	// remplacer caractères interdits
-	re := regexp.MustCompile(`[^a-z0-9_-]`)
+	re := regexp.MustCompile(`[^a-z0-9_.-]`)
 	local = re.ReplaceAllString(local, "")
 
 	if len(local) > 32 {

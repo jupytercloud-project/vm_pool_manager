@@ -168,13 +168,18 @@
                 {#snippet children(item, index)}
                     {@const user = item as User}
                     <div class="flex items-center justify-between border-b p-4 transition-colors
-                    {index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}
-                    hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    {index % 2 === 0 ? 'bg-gray-100 dark:bg-gray-900' : 'bg-gray-300 dark:bg-gray-800'}
+                    hover:bg-blue-100 dark:hover:bg-blue-900/20"
                     style="height:70px">
-                        <div>
+                        <div class="flex-1">
                             <div class="font-medium text-gray-900 dark:text-white"> {user.name}</div>
-                            <div class="text-sm text-gray-500">{user.ip}</div>
+                            <div class="text-medium text-gray-900">{user.ip}</div>
                         </div>
+                        {#if user.ip !== ""}
+                            <span class="rounded-full px-3 py-1 text-xs font-semibold bg-green-100 text-green-800">attributed</span>
+                        {:else}
+                            <span class="rounded-full px-3 py-1 text-xs font-semibold bg-yellow-400 text-yellow-800">not attributed</span>
+                        {/if}
                     </div>
                 {/snippet}
             </VirtualList>

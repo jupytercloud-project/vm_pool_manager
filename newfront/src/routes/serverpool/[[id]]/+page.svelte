@@ -238,7 +238,7 @@ async function handleCreateServerpool(event: Event) {
       return;
     }
     
-    console.log("📤 Creating pool:", data);
+    console.log(" Creating pool:", data);
     const startDate = computeNextSchedule(
       Number(scheduleDay),
       scheduleTime
