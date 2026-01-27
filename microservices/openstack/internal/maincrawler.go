@@ -73,6 +73,11 @@ func CheckAndCreate() {
 			}
 		}
 		missing := p.MinVM - (count + p.PendingJobs)
+		if p.Pendingnfs == false && p.IPAddressNFS == "" && p.UserID != "admin" && p.ServerpoolID != "" {
+			jobs.ChangePendingNFS(p.ID)
+			worker.AddJob(*worker.CreateJob(models.CreateNFSVM,
+				utils.BuildDataMap(utils.FlatstringSP(p))), false)
+		}
 		for i := 0; i < missing; i++ {
 			if p.ImageRef == os.Getenv("SERVER_IMAGE_REF") &&
 				p.FlavorRef == os.Getenv("SERVER_FLAVOR_REF") &&
@@ -197,7 +202,7 @@ func attachVolume() {
 				map[string]string{
 					"size":        os.Getenv("VOLUME_SIZE"),
 					"description": os.Getenv("VOLUME_DESCRIPTION"),
-					"name":        os.Getenv("VOLUME_NAME"),
+					"name":        fmt.Sprintf(`%s-Volume`, serv.Name),
 					"volume_type": os.Getenv("VOLUME_TYPE"),
 					"server_id":   serv.ID,
 				}), false)

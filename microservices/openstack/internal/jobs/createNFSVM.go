@@ -9,15 +9,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 )
 
-func CreateVM(workerID int, job models.Job) error {
+func CreateNFSVM(workerID int, job models.Job) error {
 
 	metadata := map[string]string{}
 	if metaStr, ok := job.Data["Metadata"]; ok && metaStr != "" {
@@ -39,14 +37,11 @@ func CreateVM(workerID int, job models.Job) error {
 	}
 
 	paramID := utils.ParseInt(job.Data["ID"])
-	fmt.Println("Worker ", workerID, " takes the job of creating a VM")
+	fmt.Println("Worker ", workerID, " takes the job of creating a VM NFS")
 	log.Printf("job.data[config_id]:%s", job.Data["config_id"])
 	serv := models.Server{
-		FlavorRef:    job.Data["flavor_ref"],
-		ImageRef:     job.Data["image_ref"],
-		ServerpoolID: job.Data["serverpool_id"],
-		Metadata:     metadata,
-		Networks:     networks,
+		Metadata: metadata,
+		Networks: networks,
 	}
 
 	var conf_file models.ConfigPool
@@ -60,21 +55,20 @@ func CreateVM(workerID int, job models.Job) error {
 		log.Printf("Found config file : \n%s\n", conf_file.Data)
 	}
 
-	sshkey, err := readSSHPublicKey()
+	adminsshkey, err := readSSHPublicKey()
 	if err != nil {
-		log.Println("Failed to fetch admin's sshKey")
+		log.Println("Failed to fetch admin's key")
 	}
-	// userData, err := buildUserData(baseUserConfig(sshkey), mountNFSScript(job.Data["user_id"], job.Data["serverpool_id"]), conf_file.Data)
-	userData, err := buildUserData(baseUserConfig(sshkey), installNFSClient(), conf_file.Data)
+	userData, err := buildUserData(baseUserConfig(adminsshkey), nfsCloudConfig(job.Data["user_id"], job.Data["serverpool_id"]), conf_file.Data)
 	if err != nil {
 		log.Println("Failed to build user-data:", err)
 		userData = "#!/bin/bash\n"
 	}
 
 	createOpts := servers.CreateOpts{
-		Name:      fmt.Sprintf(`%s-%s`, serv.ServerpoolID, uuid.New().String()),
-		FlavorRef: serv.FlavorRef,
-		ImageRef:  serv.ImageRef,
+		Name:      fmt.Sprintf(`%s-%s-NFS`, job.Data["user_id"], job.Data["serverpool_id"]),
+		FlavorRef: os.Getenv("SERVER_FLAVOR_REF"),
+		ImageRef:  os.Getenv("SERVER_IMAGE_REF"),
 		Metadata:  serv.Metadata,
 		Networks:  serv.Networks.ToNetworks(),
 		UserData:  []byte(userData),
@@ -89,7 +83,7 @@ func CreateVM(workerID int, job models.Job) error {
 		models.ComputeClient, createOptsExt, nil).Extract()
 	if err != nil {
 		log.Println("failed to create VM:", err)
-		DecrementPending(uint(paramID))
+		ChangePendingNFS(uint(paramID))
 		return fmt.Errorf("failed to create VM: %w", err)
 	}
 
@@ -97,7 +91,7 @@ func CreateVM(workerID int, job models.Job) error {
 		current, err := servers.Get(context.Background(),
 			models.ComputeClient, server.ID).Extract()
 		if err != nil {
-			DecrementPending(uint(paramID))
+			ChangePendingNFS(uint(paramID))
 			return fmt.Errorf("failed to get server status: %w", err)
 		}
 
@@ -107,7 +101,7 @@ func CreateVM(workerID int, job models.Job) error {
 		}
 
 		if current.Status == "ERROR" {
-			DecrementPending(uint(paramID))
+			ChangePendingNFS(uint(paramID))
 			log.Println("Server entered ERROR state:", current.ID)
 			return fmt.Errorf("server %s failed to boot (ERROR state)",
 				current.ID)
@@ -117,56 +111,13 @@ func CreateVM(workerID int, job models.Job) error {
 			current.Status)
 		time.Sleep(3 * time.Second)
 	}
-
-	DecrementPending(uint(paramID))
 	fmt.Println("Worker ", workerID, " finished its job")
+	res := config.Database.Model(models.Serverpool{}).
+		Where("serverpool_id = ? AND user_id = ?", job.Data["serverpool_id"], job.Data["user_id"]).
+		UpdateColumn("ip_address_nfs", server.AccessIPv4)
+	if res != nil {
+		log.Println("Error adding ip_address_nfs")
+	}
 
 	return nil
-}
-func buildUserData(configs ...string) (string, error) {
-	boundary := "==BOUNDARY=="
-	var parts []string
-	for _, cfg := range configs {
-		if strings.TrimSpace(cfg) == "" {
-			continue
-		}
-		confType := detectContentType(cfg)
-		part := fmt.Sprintf(
-			`--%s
-Content-Type: %s
-			
-%s
-`, boundary, confType, cfg)
-
-		parts = append(parts, part)
-	}
-	footer := fmt.Sprintf(`--%s--`, boundary)
-	return fmt.Sprintf(
-		`MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="%s"
-
-%s
-%s
-`, boundary, strings.Join(parts, ""), footer), nil
-}
-
-func detectContentType(data string) string {
-	if strings.HasPrefix(strings.TrimSpace(data), "#cloud-config") {
-		return "text/cloud-config"
-	}
-	return "text/x-shellscript"
-}
-
-func readSSHPublicKey() (string, error) {
-	path := os.Getenv("SSH_PUBLIC_KEY_PATH")
-	if path == "" {
-		return "", fmt.Errorf("SSH_PUBLIC_KEY_PATH not set")
-	}
-
-	key, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(key)), nil
 }

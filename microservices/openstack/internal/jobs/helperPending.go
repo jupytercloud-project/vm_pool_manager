@@ -38,3 +38,13 @@ func ChangePendingVol(serverID string) {
 	}
 
 }
+
+func ChangePendingNFS(ServerpoolID uint) {
+	result := config.Database.Model(&models.Serverpool{}).
+		Where("id = ?", ServerpoolID).
+		UpdateColumn("pendingnfs", gorm.Expr("NOT pendingnfs"))
+
+	if result.Error != nil {
+		log.Println("Error: ", result.Error)
+	}
+}

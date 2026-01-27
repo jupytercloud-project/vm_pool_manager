@@ -23,6 +23,8 @@ type Serverpool struct {
 	ListServ     []Server `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
 	ConfigID     int
 	NetworkUuid  string
+	Pendingnfs   bool `gorm:"default:false; not null"`
+	IPAddressNFS string
 }
 
 func (sp *Serverpool) ToMap() map[string]string {

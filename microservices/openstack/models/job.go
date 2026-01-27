@@ -8,6 +8,7 @@ const (
 	AttribVM
 	CreateVolumeAndAttach
 	DeleteVolume
+	CreateNFSVM
 )
 
 type Job struct {
