@@ -7,7 +7,9 @@ import (
 	"control_center/models"
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc/codes"
@@ -179,18 +181,42 @@ func (s *Service) installSSHKey(server *models.Server, student *models.Student) 
 		First(&user).Error; err != nil {
 		return fmt.Errorf("fetch user failed: %w", err)
 	}
-
 	//mettre un retry ici
-	cmd := cmdInit(*student, user)
+	cmd := cmdInit(*student)
+	log.Println("cmdInit")
 	if err := sshinject.RunSSHcmd(client, cmd); err != nil {
 		return fmt.Errorf("run ssh cmd failed: %w", err)
+	}
+	log.Println("ensureLocalDepotFolder")
+	if err := ensureLocalDepotFolder(*student); err != nil {
+		return err
+	}
+
+	// VM distante
+	log.Println("ensureRemoteMountPoint")
+	if err := sshinject.RunSSHcmd(client, ensureRemoteMountPointCmd()); err != nil {
+		return err
+	}
+
+	log.Println("rCloneConfig")
+	if err := sshinject.RunSSHcmd(client, rCloneConfigCmd("157.136.252.74")); err != nil {
+		return err
+	}
+
+	log.Println("rcloneMount")
+	if err := sshinject.RunSSHcmd(client, rcloneMountCmd(*student)); err != nil {
+		return err
+	}
+
+	log.Println("rCloneConfig")
+	if err := sshinject.RunSSHcmd(client, rCloneConfig(*student)); err != nil {
+		return fmt.Errorf("run rclone config failed: %w", err)
 	}
 	return nil
 }
 
-func cmdInit(student models.Student, user models.User) string {
+func cmdInit(student models.Student) string {
 	studentUsername := sshinject.UsernameFromEmail(student.Name)
-	userUsername := sshinject.UsernameFromEmail(user.Email)
 
 	cmd := fmt.Sprintf(`
 set -e
@@ -246,15 +272,113 @@ ensure_group
 
 # étudiant (lecture seule)
 create_user "%s" "%s" "student"
-
-# prof (lecture + écriture)
-create_user "%s" "%s" "prof"
 `,
 		studentUsername,
 		student.SshKey,
-		userUsername,
-		user.Keypubuser,
 	)
 
 	return cmd
+}
+
+func rCloneConfig(student models.Student) string {
+	mountPoint := "/home/" + sshinject.UsernameFromEmail(student.Name) + "/pool"
+	remotePath := "depot:" + sshinject.UsernameFromEmail(student.Name)
+
+	return fmt.Sprintf(`
+	set -e
+	
+	mkdir -p%[1]s
+	sudo chown %[2]s:%[2]s %[1]s
+	
+	if moutnpoint -q %[1]s; then
+		echo "Already mounted"
+		exit 0
+	fi
+	
+	nohup rclone mount %[3]s %[1]s \
+    --vfs-cache-mode writes \
+    --buffer-size 64M \
+    --dir-cache-time 1h \
+    --allow-other \
+    --log-file /home/%[2]s/.rclone_mount.log \
+    --log-level INFO \
+    > /dev/null 2>&1 &
+
+	
+	sleep 2
+	
+	mountpoint -1 %[1]s || exit 1
+	`, mountPoint, sshinject.UsernameFromEmail(student.Name), remotePath)
+}
+
+func ensureLocalDepotFolder(student models.Student) error {
+	studentUsername := sshinject.UsernameFromEmail(student.Name)
+	depotPath := filepath.Join("/home/ubuntu/depot", studentUsername)
+
+	if err := os.MkdirAll(depotPath, 0700); err != nil {
+		log.Printf("local depot mkdir failed: %w", err)
+		return fmt.Errorf("failed to create depot folder: %w", err)
+	}
+
+	return nil
+}
+
+func ensureRemoteMountPointCmd() string {
+	return `
+		mkdir -p /home/vmuser/depot &&
+		chmod 700 /home/vmuser/depot
+	`
+}
+
+func rcloneMountCmd(student models.Student) string {
+	username := sshinject.UsernameFromEmail(student.Name)
+
+	return fmt.Sprintf(`
+		rclone mount depot:%[1]s /home/%[1]s/depot \
+			--daemon \
+			--vfs-cache-mode writes
+	`, username)
+}
+
+func rCloneConfigCmd(serverIP string) string {
+	return fmt.Sprintf(`
+		mkdir -p /home/vmuser/.config/rclone
+
+		cat > /home/vmuser/.config/rclone/rclone.conf << 'EOF'
+[depot]
+type = sftp
+host = %[1]s
+user = ubuntu
+key_file = /home/vmuser/.ssh/id_ed25519
+shell_type = unix
+md5sum_command = none
+sha1sum_command = none
+EOF
+
+		chmod 600 /home/vmuser/.config/rclone/rclone.conf
+	`, serverIP)
+}
+
+func ensureRemoteSSHKeyCmd() string {
+	return `
+		mkdir -p ~/.ssh
+		if [ ! -f ~/.ssh/id_ed25519 ]; then
+			ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+		fi
+		chmod 700 ~/.ssh
+		chmod 600 ~/.ssh/id_ed25519
+	`
+}
+
+func authorizeDepotKey(pubKey string) error {
+	authKeys := "/home/ubuntu/.ssh/authorized_keys"
+
+	f, err := os.OpenFile(authKeys, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(pubKey + "\n")
+	return err
 }

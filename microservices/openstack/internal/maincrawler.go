@@ -73,11 +73,11 @@ func CheckAndCreate() {
 			}
 		}
 		missing := p.MinVM - (count + p.PendingJobs)
-		if p.Pendingnfs == false && p.IPAddressNFS == "" && p.UserID != "admin" && p.ServerpoolID != "" {
-			jobs.ChangePendingNFS(p.ID)
-			worker.AddJob(*worker.CreateJob(models.CreateNFSVM,
-				utils.BuildDataMap(utils.FlatstringSP(p))), false)
-		}
+		// if p.Pendingnfs == false && p.IPAddressNFS == "" && p.UserID != "admin" && p.ServerpoolID != "" {
+		// 	jobs.ChangePendingNFS(p.ID)
+		// 	worker.AddJob(*worker.CreateJob(models.CreateNFSVM,
+		// 		utils.BuildDataMap(utils.FlatstringSP(p))), false)
+		// }
 		if !shouldStartPool(p.TimeStart) {
 			continue
 		}

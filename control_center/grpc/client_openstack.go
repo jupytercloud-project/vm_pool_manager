@@ -313,42 +313,42 @@ func serverUpdatesFromMap(data map[string]string) map[string]any {
 	for k, v := range data {
 		switch k {
 		case "status":
-			log.Printf("DEBUG: status présent → %s", v)
+			// log.Printf("DEBUG: status présent → %s", v)
 			updates["status"] = v
 
 		case "attach_volume_id":
-			log.Printf("DEBUG: attach_volume_id présent → %s", v)
+			// log.Printf("DEBUG: attach_volume_id présent → %s", v)
 			updates["attach_volume_id"] = v
 
 		case "name":
-			log.Printf("DEBUG: name présent → %s", v)
+			// log.Printf("DEBUG: name présent → %s", v)
 			updates["name"] = v
 
 		case "user_id":
-			log.Printf("DEBUG: user_id présent → %s", v)
+			// log.Printf("DEBUG: user_id présent → %s", v)
 			updates["user_id"] = v
 
 		case "serverpool_id":
-			log.Printf("DEBUG: serverpool_id présent → %s", v)
+			// log.Printf("DEBUG: serverpool_id présent → %s", v)
 			updates["serverpool_id"] = v
 
 		case "metadata":
-			log.Printf("DEBUG: metadata présent → %s", v)
+			// log.Printf("DEBUG: metadata présent → %s", v)
 			updates["metadata"] = v
 
 		case "ip_address":
-			log.Printf("DEBUG: ip_address présent → %s", v)
+			// log.Printf("DEBUG: ip_address présent → %s", v)
 			updates["ip_address"] = v
 
 		case "reattrib":
-			log.Printf("DEBUG: reattrib présent → %s", v)
+			// log.Printf("DEBUG: reattrib présent → %s", v)
 			updates["reattrib"] = v
 
 		default:
-			log.Printf("DEBUG: clé ignorée → %s = %s", k, v)
+			// log.Printf("DEBUG: clé ignorée → %s = %s", k, v)
 		}
 	}
-	log.Printf("DEBUG: updates générés → %+v", updates)
+	// log.Printf("DEBUG: updates générés → %+v", updates)
 
 	return updates
 }

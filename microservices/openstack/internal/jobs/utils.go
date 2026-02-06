@@ -45,11 +45,14 @@ users:
       - %s
 
 package_update: true
+package_upgrade: true
 packages:
-  - nfs-common
+  - fuse3
+  - unzip
 
 runcmd:
-  - echo "Installation de nfs-common terminee"
+  - curl https://rclone.org/install.sh | bash
+  - echo "Installation de rclone terminee"
 `, sshKey)
 }
 
@@ -89,6 +92,21 @@ write_files:
 runcmd:
   - /usr/local/bin/mount-nfs.sh
 `, nfsIP)
+}
+
+func initRclone() string {
+	return fmt.Sprintf(`#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - fuse
+  - fuse3
+  - unzip
+
+runcmd:
+  - curl https://rclone.org/install.sh | bash
+`)
 }
 
 func sanitizeHostname(s string) string {

@@ -73,7 +73,7 @@ func CreateVM(workerID int, job models.Job) error {
 	if pool.IPAddressNFS != "" {
 		userData, err = buildUserData(
 			baseUserConfig(sshkey),
-			computeNFSCloudConfig(pool.IPAddressNFS),
+			// computeNFSCloudConfig(pool.IPAddressNFS),
 			conf_file.Data)
 	} else {
 		userData, err = buildUserData(
