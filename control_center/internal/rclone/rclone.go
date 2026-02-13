@@ -1,4 +1,4 @@
-package attribvm
+package rclone
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ import (
 // ========== ENTRY POINT ==========
 //
 
-func (s *Service) installRclone(server *models.Server, student *models.Student) error {
+func InstallRclone(server *models.Server, student *models.Student) error {
 	username := sshinject.UsernameFromEmail(student.Name)
 
 	signer, err := sshinject.LoadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
@@ -93,30 +93,102 @@ func ensureLocalDepotFolder(username string) error {
 	return os.MkdirAll(path, 0700)
 }
 
-func authorizeDepotKey(pubKey string) error {
+func ensurePoolDepotFolder(username, poolname string) error {
+	path := filepath.Join("/home/ubuntu/depot", username, poolname)
+	log.Printf("ensurePoolDepotFolder: %s", path)
+	return os.MkdirAll(path, 0700)
+}
+
+func ensuresStudentPoolDepotFolder(username, poolname, studentname string) error {
+	path := filepath.Join("/home/ubuntu/depot", username, poolname, studentname)
+	log.Printf("ensuresStudentPoolDepotFolder: %s", path)
+	return os.MkdirAll(path, 0700)
+}
+
+// func authorizeDepotKey(pubKey string) error {
+// 	cmd := fmt.Sprintf(`
+// set -eux
+
+// KEY="%s"
+// FILE=/home/ubuntu/.ssh/authorized_keys
+
+// install -d -m 700 -o ubuntu -g ubuntu /home/ubuntu/.ssh
+// touch "$FILE"
+// chmod 600 "$FILE"
+// chown ubuntu:ubuntu "$FILE"
+
+// grep -qxF "$KEY" "$FILE" || echo "$KEY" >> "$FILE"
+// `, pubKey)
+
+// 	return runLocalCmd(cmd)
+// }
+
+func authorizeDepotKey(username, pubKey string) error {
 	cmd := fmt.Sprintf(`
 set -eux
 
-KEY="%s"
-FILE=/home/ubuntu/.ssh/authorized_keys
+KEY='%[2]s'
+USER_HOME=/home/%[1]s
+SSH_DIR=$USER_HOME/.ssh
+FILE=$SSH_DIR/authorized_keys
 
-echo ">>> Installing key:"
-echo "$KEY"
+sudo install -d -m 700 -o %[1]s -g %[1]s "$SSH_DIR"
+sudo touch "$FILE"
+sudo chmod 600 "$FILE"
+sudo chown %[1]s:%[1]s "$FILE"
 
-install -d -m 700 -o ubuntu -g ubuntu /home/ubuntu/.ssh
-touch "$FILE"
-chmod 600 "$FILE"
-chown ubuntu:ubuntu "$FILE"
-
-grep -qxF "$KEY" "$FILE" || echo "$KEY" >> "$FILE"
-`, pubKey)
-
-	log.Println("authorizeDepotKey: running local cmd")
-	log.Println("----- BEGIN CMD -----")
-	log.Println(cmd)
-	log.Println("----- END CMD -----")
+grep -qxF "$KEY" "$FILE" || echo "$KEY" | sudo tee -a "$FILE" > /dev/null
+`, username, pubKey)
 
 	return runLocalCmd(cmd)
+}
+
+func createDepotUserCmd(username string) string {
+	return fmt.Sprintf(`
+set -e
+
+# Create user if not exists
+if ! id "%[1]s" >/dev/null 2>&1; then
+    sudo useradd -m -s /bin/bash %[1]s
+fi
+
+# Ensure correct home permissions
+sudo chown -R %[1]s:%[1]s /home/%[1]s
+sudo chmod 755 /home/%[1]s
+`, username)
+}
+
+func createDepotPoolStructureCmd(profname, poolname, student string) string {
+	return fmt.Sprintf(`
+set -e
+
+BASE=/home/ubuntu/depot/%[1]s
+POOL=$BASE/%[2]s
+STUDENT_DIR=$POOL/%[3]s
+GROUP=pool_%[1]s_%[2]s
+
+# Create group if not exists
+if ! getent group "$GROUP" >/dev/null; then
+    sudo groupadd "$GROUP"
+fi
+
+# Add prof and student to group
+sudo usermod -aG "$GROUP" %[1]s
+sudo usermod -aG "$GROUP" %[3]s
+
+# Create directories
+sudo mkdir -p "$STUDENT_DIR"
+
+# Ownership
+sudo chown %[1]s:%[1]s "$BASE"
+sudo chown %[1]s:"$GROUP" "$POOL"
+sudo chown %[3]s:"$GROUP" "$STUDENT_DIR"
+
+# Permissions
+sudo chmod 755 "$BASE"
+sudo chmod 770 "$POOL"
+sudo chmod 770 "$STUDENT_DIR"
+`, profname, poolname, student)
 }
 
 //
@@ -142,7 +214,6 @@ sudo -u %[1]s chmod 644 "$SSH/id_ed25519.pub"
 }
 
 func readRemotePubKeyCmd(username string) string {
-	// lecture en tant que l’utilisateur final pour bypasser les permissions
 	return fmt.Sprintf(`sudo -u %s cat /home/%s/.ssh/id_ed25519.pub`, username, username)
 }
 
@@ -154,6 +225,25 @@ sudo chmod 700 /home/%[1]s/depot
 `, username)
 }
 
+func ensureRemotePoolMountPointCmd(username, poolname string) string {
+	return fmt.Sprintf(`
+sudo mkdir -p /home/%[1]s/depot/%[2]s
+sudo mkdir -p /home/%[1]s/depot/%[2]s/%[1]s
+
+# ownership
+sudo chown %[1]s:%[1]s /home/%[1]s/depot/%[2]s
+sudo chown %[1]s:%[1]s /home/%[1]s/depot/%[2]s/%[1]s
+
+# permissions
+sudo chmod 755 /home/%[1]s/depot/%[2]s
+sudo chmod 700 /home/%[1]s/depot/%[2]s/%[1]s
+`, username, poolname)
+}
+
+//
+// ========= RCLONE CONFIG & SYSTEMD ==========
+//
+
 func rcloneConfigCmd(username string) string {
 	return fmt.Sprintf(`
 sudo -u %[1]s mkdir -p /home/%[1]s/.config/rclone
@@ -161,7 +251,7 @@ sudo -u %[1]s mkdir -p /home/%[1]s/.config/rclone
 sudo -u %[1]s tee /home/%[1]s/.config/rclone/rclone.conf > /dev/null << EOF
 [depot_%[1]s]
 type = sftp
-host = 157.136.252.74
+host = %[2]s
 user = ubuntu
 key_file = /home/%[1]s/.ssh/id_ed25519
 shell_type = unix
@@ -169,7 +259,7 @@ EOF
 
 sudo chown %[1]s:%[1]s /home/%[1]s/.config/rclone/rclone.conf
 sudo chmod 600 /home/%[1]s/.config/rclone/rclone.conf
-`, username)
+`, username, os.Getenv("IP_ADDRESS"))
 }
 
 func rcloneSystemdCmd(username string) string {

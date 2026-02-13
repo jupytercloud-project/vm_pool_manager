@@ -89,6 +89,7 @@ func main() {
 	*/
 	osClientConfigFile := home + "/.config/openstack/clouds.yaml"
 	osCloud := ""
+	ipAddress := ""
 
 	openstackGlobalForm := huh.NewForm(
 		huh.NewGroup(
@@ -110,6 +111,15 @@ func main() {
 				Validate(func(v string) error {
 					if v == "" {
 						return fmt.Errorf("OS_CLOUD ne peut pas être vide")
+					}
+					return nil
+				}),
+			huh.NewInput().
+				Description("IP Adresse").
+				Value(&ipAddress).
+				Validate(func(v string) error {
+					if v == "" {
+						return fmt.Errorf("IP_ADDRESS ne peut pas être vide")
 					}
 					return nil
 				}),
