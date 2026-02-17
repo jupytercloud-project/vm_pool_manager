@@ -105,25 +105,25 @@ func ensuresStudentPoolDepotFolder(username, poolname, studentname string) error
 	return os.MkdirAll(path, 0700)
 }
 
-// func authorizeDepotKey(pubKey string) error {
-// 	cmd := fmt.Sprintf(`
-// set -eux
+func authorizeDepotKey(pubKey string) error {
+	cmd := fmt.Sprintf(`
+set -eux
 
-// KEY="%s"
-// FILE=/home/ubuntu/.ssh/authorized_keys
+KEY="%s"
+FILE=/home/ubuntu/.ssh/authorized_keys
 
-// install -d -m 700 -o ubuntu -g ubuntu /home/ubuntu/.ssh
-// touch "$FILE"
-// chmod 600 "$FILE"
-// chown ubuntu:ubuntu "$FILE"
+install -d -m 700 -o ubuntu -g ubuntu /home/ubuntu/.ssh
+touch "$FILE"
+chmod 600 "$FILE"
+chown ubuntu:ubuntu "$FILE"
 
-// grep -qxF "$KEY" "$FILE" || echo "$KEY" >> "$FILE"
-// `, pubKey)
+grep -qxF "$KEY" "$FILE" || echo "$KEY" >> "$FILE"
+`, pubKey)
 
-// 	return runLocalCmd(cmd)
-// }
+	return runLocalCmd(cmd)
+}
 
-func authorizeDepotKey(username, pubKey string) error {
+func authorizeDepotKeyv2(username, pubKey string) error {
 	cmd := fmt.Sprintf(`
 set -eux
 
@@ -276,7 +276,7 @@ Wants=network-online.target
 
 [Service]
 User=%[1]s
-ExecStart=/usr/bin/rclone mount depot_%[1]s:/home/ubuntu/depot/%[1]s /home/%[1]s/depot \
+ExecStart=/usr/bin/rclone mount depot_%[1]s:/home/%[1]s/depot/%[1]s /home/%[1]s/depot \
   --vfs-cache-mode writes \
   --log-file /home/%[1]s/.rclone_mount.log \
   --log-level INFO

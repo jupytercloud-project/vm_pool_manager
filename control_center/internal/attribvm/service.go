@@ -3,7 +3,7 @@ package attribvm
 import (
 	"context"
 	"control_center/frontcontrolpb"
-	"control_center/internal/rclone"
+	rclonev2 "control_center/internal/rclone/v2"
 	"control_center/internal/sshinject"
 	"control_center/models"
 	"errors"
@@ -154,7 +154,7 @@ func (s *Service) AttribVMinPool(
 		}, status.Errorf(codes.Internal, "ssh setup failed: %v", err)
 	}
 
-	if err := rclone.InstallRclone(&server, &student); err != nil {
+	if err := rclonev2.InstallRclone(&server, &student); err != nil {
 		_ = s.DB.Model(&server).Update("locked", false)
 		return &frontcontrolpb.AttribVMinPoolResponse{
 			Success:     false,
