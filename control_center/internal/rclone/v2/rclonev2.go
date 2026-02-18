@@ -229,6 +229,10 @@ func InstallRclone(server *models.Server, student *models.Student) error {
 		return fmt.Errorf("createDepotUserCmdSecure failed: %w", err)
 	}
 
+	if err := authorizeDepotKey(profname, user.Keypubuser); err != nil {
+		return fmt.Errorf("authorizeDepotKey for prof failed: %w", err)
+	}
+
 	if err := runLocalCmd(ensureDepotPoolCmd(profname, server.ServerpoolID)); err != nil {
 		return fmt.Errorf("ensureDepotPool failed: %w", err)
 	}
@@ -246,6 +250,12 @@ func InstallRclone(server *models.Server, student *models.Student) error {
 	log.Println("ensureRemoteMountPointCmd")
 	if err := sshinject.RunSSHcmd(client, cmd); err != nil {
 		return fmt.Errorf("ensureRemoteMountPointCmd failed: %w", err)
+	}
+
+	cmd = ensureRemotePoolMountPointCmd(username, server.ServerpoolID)
+	log.Println("ensureRemotePoolMountPointCmd")
+	if err := sshinject.RunSSHcmd(client, cmd); err != nil {
+		return fmt.Errorf("ensureRemotePoolMountPointCmd failed: %w", err)
 	}
 
 	// Create rclone config on remote VM
