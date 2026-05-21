@@ -25,6 +25,8 @@ import type {
     ListStudentsResponse,
     AddStudentRequest,
     AddStudentResponse,
+    DeleteStudentRequest,
+    DeleteStudentResponse,
 } from "../frontcontrol_pb"
 
 const transport = createGrpcWebTransport({
@@ -130,6 +132,18 @@ export async function addStudents (
         return res;
     } catch (err) {
         console.error("Error adding students: ", err)
+        throw err;
+    }
+}
+
+export async function deleteStudent (
+    req: DeleteStudentRequest
+): Promise<DeleteStudentResponse> {
+    try {
+        const res: DeleteStudentResponse = await poolClient.deleteStudent(req);
+        return res;
+    } catch (err) {
+        console.error("Error deleting student: ", err)
         throw err;
     }
 }

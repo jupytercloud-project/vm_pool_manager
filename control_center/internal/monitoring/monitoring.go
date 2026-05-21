@@ -7,6 +7,7 @@ import (
 	"control_center/internal/sshinject"
 	"control_center/models"
 	"control_center/pb"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -322,6 +323,7 @@ func checkOneVM(srv models.Server, signer ssh.Signer) {
 			ActivityStatus: status,
 			LastSeen:       now,
 			RegisteredAt:   now,
+			RawMeta:        json.RawMessage("{}"),
 		})
 	}
 }

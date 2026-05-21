@@ -8,27 +8,38 @@
   let vmUser = $state("");
   let loading = $state(false);
   let errorMsg = $state("");
+  let copied = $state(false);
+
+  function fallbackCopy(text: string) {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  }
+
+  function copyCmd() {
+    const text = `ssh ${vmUser}@${vmIp}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+    copied = true;
+    setTimeout(() => copied = false, 2000);
+  }
 
   async function handleSSHKey() {
     if (!sshkey.trim()) return;
-
-    loading = true;
-    errorMsg = "";
-    availablePools = [];
-    selectedPool = null;
-    vmIp = "";
-
+    loading = true; errorMsg = ""; availablePools = []; selectedPool = null; vmIp = "";
     try {
       availablePools = await returnPoolsWithKey(sshkey);
-      if (availablePools.length === 0) {
-        errorMsg = "Aucun cours ou pool de VMs disponible actuellement.";
-      }
-    } catch (err) {
-      console.error(err);
-      errorMsg = "Erreur lors de la récupération des cours disponibles.";
-    } finally {
-      loading = false;
-    }
+      if (availablePools.length === 0) errorMsg = "Aucun cours disponible pour cette clé SSH.";
+    } catch { errorMsg = "Erreur lors de la récupération des cours disponibles."; }
+    finally { loading = false; }
   }
 
   function computeUsername(poolId: string): string {
@@ -39,127 +50,140 @@
   }
 
   async function assignVM(pool: { pool_id: string; user_id: string }) {
-    selectedPool = pool;
-    loading = true;
-    errorMsg = "";
-    vmIp = "";
-    vmUser = "";
-
+    selectedPool = pool; loading = true; errorMsg = ""; vmIp = ""; vmUser = "";
     try {
-      vmIp = await attribVMinPool(pool.pool_id, pool.user_id, sshkey);
-      vmUser = computeUsername(pool.pool_id);
+      const result = await attribVMinPool(pool.pool_id, pool.user_id, sshkey);
+      vmIp = result.ip;
+      vmUser = result.username || computeUsername(pool.pool_id);
     } catch (err: any) {
-      console.error(err);
       errorMsg = err?.message || "Erreur lors de l'attribution de la VM.";
-    } finally {
-      loading = false;
-    }
+    } finally { loading = false; }
   }
 </script>
 
 <svelte:head>
-  <title>CloudPoolManager - Portail Étudiant</title>
+  <title>CloudPoolManager — Portail Étudiant</title>
 </svelte:head>
 
-<div class="max-w-3xl mx-auto py-12">
-  <div class="text-center mb-12">
-    <h1 class="text-3xl font-semibold text-white tracking-wide">Portail Étudiant</h1>
-    <p class="text-gray-400 mt-3 text-lg">Obtenez votre machine virtuelle pour les cours pratiques.</p>
-  </div>
+<div class="max-w-lg mx-auto py-10 animate-fade-up">
 
-  <div class="bg-tertiary-300 border border-tertiary-200 rounded-xl p-8 shadow-xl">
-    
-    {#if !vmIp}
-      <div class="space-y-6">
-        <div>
-          <label for="sshkey" class="block text-sm font-bold tracking-wide text-gray-300 mb-2">Clé publique SSH</label>
-          <p class="text-sm text-gray-400 mb-3">Collez votre clé publique ed25519 ou rsa pour vous authentifier sur la VM qui vous sera attribuée.</p>
-          <textarea
-            id="sshkey"
-            bind:value={sshkey}
-            rows="4"
-            placeholder="ssh-ed25519 AAAA..."
-            class="w-full bg-tertiary-400 text-white border-tertiary-200 focus:ring-option-500 focus:border-option-500 text-sm rounded-lg p-3 font-mono transition-colors"
-          ></textarea>
-        </div>
+  {#if !vmIp}
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-primary-800 mb-2" style="font-family: 'Source Sans 3', sans-serif; letter-spacing: -0.01em;">
+        Portail étudiant
+      </h1>
+      <p class="text-sm text-neutral-500 leading-relaxed">
+        Collez votre clé SSH publique pour accéder à votre machine virtuelle de travaux pratiques.
+      </p>
+    </div>
 
-        <div class="flex justify-end pt-2">
-          <button
-            onclick={handleSSHKey}
-            disabled={loading || !sshkey.trim()}
-            class="px-6 py-2.5 bg-option-500 text-white font-semibold text-sm rounded-lg hover:bg-option-600 shadow-md transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {#if loading && !selectedPool}
-              <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              Recherche...
-            {:else}
-              Rechercher les cours
-            {/if}
-          </button>
-        </div>
-
-        {#if errorMsg}
-          <div class="p-4 bg-red-900/40 border border-red-500 text-red-200 text-sm rounded-lg mt-4 shadow-sm">
-            {errorMsg}
-          </div>
-        {/if}
-
-        {#if availablePools.length > 0}
-          <div class="mt-8 pt-8 border-t border-tertiary-200">
-            <h3 class="text-lg font-bold text-white mb-4">Cours disponibles</h3>
-            <div class="grid gap-4">
-              {#each availablePools as pool}
-                <div class="flex items-center justify-between p-5 bg-tertiary-400 border border-tertiary-200 rounded-xl shadow-sm hover:border-option-500 transition-all">
-                  <div>
-                    <p class="text-lg font-bold text-white">{pool.pool_id}</p>
-                    <p class="text-sm text-gray-400 mt-1">Professeur: <span class="text-gray-300">{pool.user_id}</span></p>
-                  </div>
-                  <button
-                    onclick={() => assignVM(pool)}
-                    disabled={loading}
-                    class="px-5 py-2.5 bg-tertiary-500 border border-tertiary-200 text-white text-sm font-semibold rounded-lg hover:bg-tertiary-600 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {#if loading && selectedPool === pool}
-                      <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Création...
-                    {:else}
-                      Rejoindre
-                    {/if}
-                  </button>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
+    <div class="card p-6 space-y-5">
+      <div>
+        <label for="sshkey" class="section-label mb-2 block">Clé publique SSH</label>
+        <textarea
+          id="sshkey"
+          bind:value={sshkey}
+          rows="4"
+          placeholder="ssh-ed25519 AAAA..."
+          class="field font-mono text-sm resize-none"
+        ></textarea>
       </div>
-    {:else}
-      <!-- Success State -->
-      <div class="text-center py-8">
-        <div class="w-20 h-20 bg-option-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-option-500/30">
-          <svg class="w-10 h-10 text-option-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-        </div>
-        <h2 class="text-3xl font-bold text-white mb-3">Machine Virtuelle Attribuée</h2>
-        <p class="text-gray-400 text-lg mb-10">Votre environnement de travail est prêt.</p>
-        
-        <div class="inline-block bg-tertiary-400 border border-tertiary-200 shadow-lg rounded-xl p-8 w-full max-w-md">
-          <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-3">Commande de connexion</p>
-          <div class="flex items-center justify-center gap-3 bg-tertiary-300 p-4 rounded-lg border border-tertiary-200 shadow-inner">
-            <code class="text-option-400 font-mono text-lg font-bold">ssh {vmUser}@{vmIp}</code>
-          </div>
-        </div>
-        
-        <div class="mt-12">
-          <button
-            onclick={() => { vmIp = ""; vmUser = ""; availablePools = []; sshkey = ""; }}
-            class="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
-          >
-            ← Retour à l'accueil
-          </button>
+
+      <button
+        onclick={handleSSHKey}
+        disabled={loading || !sshkey.trim()}
+        class="btn btn-primary w-full"
+      >
+        {#if loading && !selectedPool}
+          <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>
+          Recherche en cours…
+        {:else}
+          Rechercher mes cours
+        {/if}
+      </button>
+
+      {#if errorMsg}
+        <div class="px-3 py-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-sm animate-fade-in">{errorMsg}</div>
+      {/if}
+    </div>
+
+    {#if availablePools.length > 0}
+      <div class="mt-6">
+        <p class="section-label mb-3 block">Cours disponibles</p>
+        <div class="card overflow-hidden divide-y divide-neutral-100">
+          {#each availablePools as pool}
+            <div class="flex items-center justify-between px-5 py-3.5 hover:bg-neutral-50 transition-colors">
+              <div>
+                <p class="text-sm font-semibold text-neutral-900">{pool.pool_id}</p>
+                <p class="text-xs text-neutral-500 mt-0.5">{pool.user_id}</p>
+              </div>
+              <button onclick={() => assignVM(pool)} disabled={loading} class="btn btn-primary text-xs px-4 py-2">
+                {#if loading && selectedPool === pool}
+                  <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>
+                  Attribution…
+                {:else}
+                  Rejoindre
+                {/if}
+              </button>
+            </div>
+          {/each}
         </div>
       </div>
     {/if}
 
-  </div>
+  {:else}
+    <div class="mb-8 animate-fade-in">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="flex h-3 w-3 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+        </span>
+        <h1 class="text-3xl font-bold text-primary-800" style="font-family: 'Source Sans 3', sans-serif;">VM attribuée</h1>
+      </div>
+      <p class="text-sm text-neutral-500 ml-6">Votre environnement est prêt.</p>
+    </div>
+
+    <div class="card p-6 space-y-5 animate-fade-in">
+      <div>
+        <p class="section-label mb-2.5 block">Commande de connexion</p>
+        <div class="flex items-center gap-2 bg-neutral-900 pl-4 pr-2 py-2 rounded-md font-mono">
+          <svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3"/>
+          </svg>
+          <code class="text-sm text-green-400 select-all flex-1">ssh {vmUser}@{vmIp}</code>
+          <button
+            onclick={copyCmd}
+            class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-all
+              {copied ? 'bg-green-600 text-white' : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'}"
+            title="Copier"
+          >
+            {#if copied}
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+              </svg>
+              Copié
+            {:else}
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copier
+            {/if}
+          </button>
+        </div>
+      </div>
+
+      <p class="text-xs text-neutral-400">
+        Si la connexion demande un mot de passe, précisez votre clé privée :
+        <code class="font-mono text-neutral-500">ssh -i ~/.ssh/id_ed25519 {vmUser}@{vmIp}</code>
+      </p>
+
+      <button
+        onclick={() => { vmIp = ""; vmUser = ""; availablePools = []; sshkey = ""; }}
+        class="btn btn-secondary text-sm"
+      >
+        ← Retour
+      </button>
+    </div>
+  {/if}
+
 </div>

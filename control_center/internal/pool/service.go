@@ -308,3 +308,26 @@ func (s *Service) AddStudents(
 
 	return &frontcontrolpb.AddStudentResponse{Success: true}, nil
 }
+
+func (s *Service) DeleteStudent(
+	ctx context.Context,
+	req *frontcontrolpb.DeleteStudentRequest,
+) (*frontcontrolpb.DeleteStudentResponse, error) {
+	var pool models.Serverpool
+	if err := s.DB.Preload("ListStudents.Students").
+		Where("serverpool_id = ? AND user_id = ?", req.GetPoolname(), req.GetUser()).
+		First(&pool).Error; err != nil {
+		return &frontcontrolpb.DeleteStudentResponse{Success: false, ErrorMessage: "pool not found"}, err
+	}
+
+	result := s.DB.Where("list_id = ? AND name = ?", pool.ListStudents.ID, req.GetStudentName()).
+		Delete(&models.Student{})
+	if result.Error != nil {
+		return &frontcontrolpb.DeleteStudentResponse{Success: false, ErrorMessage: result.Error.Error()}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return &frontcontrolpb.DeleteStudentResponse{Success: false, ErrorMessage: "student not found"}, nil
+	}
+
+	return &frontcontrolpb.DeleteStudentResponse{Success: true}, nil
+}

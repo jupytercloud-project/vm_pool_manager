@@ -1,143 +1,153 @@
 <script lang="ts">
-	import {
-        Button,
-        Dropdown,
-        DropdownItem,
-        Label,
-        Textarea,
-        Input,
-    } from "flowbite-svelte";
-    import { createConfig, updateConfig, deleteConfig } from '$lib/index';
-    import { authStore, configs} from '$lib/store'
-	import { ChevronDownOutline } from "flowbite-svelte-icons";
-	import { onMount } from "svelte";
-    import type { Config } from "$lib/type";
+  import { createConfig, updateConfig, deleteConfig } from '$lib/index';
+  import { authStore, configs } from '$lib/store';
+  import { onMount } from 'svelte';
+  import type { Config } from '$lib/type';
 
-    let config_name: string = "Configurations";
-    let textspacedisplay: boolean = false;
-    let text: string = "";
-    let newconfigname: string = "";
-    let configlist: Config[] = [];
-    let token: string | null = null;
+  let config_name = '';
+  let editorVisible = false;
+  let text = '';
+  let newconfigname = '';
+  const token = $derived($authStore?.token ?? null);
 
-    $: configlist = $configs;
-    $: token = $authStore?.token ?? null;
+  onMount(() => { if (!token) window.location.href = '/'; });
 
+  function selectConfig(cfg: Config) {
+    config_name = cfg.name;
+    text = cfg.data || '';
+    newconfigname = cfg.name;
+    editorVisible = true;
+  }
 
+  function newConfig() {
+    config_name = '';
+    text = '';
+    newconfigname = '';
+    editorVisible = true;
+  }
 
-    const handleClickDropdown = async (e: Event) => {
-        e.preventDefault();
-        const target = e.target as HTMLButtonElement;
-        config_name = target.name;
-        text = configlist.find(c => c.name === target.name)?.data || "";
-        textspacedisplay = true;
-        newconfigname = target.name;
-    }
+  async function handleCreate() {
+    await createConfig($authStore?.email ?? '', newconfigname, text);
+    config_name = newconfigname;
+  }
+  async function handleUpdate() { await updateConfig($authStore?.email ?? '', newconfigname, text); }
+  async function handleDelete() {
+    await deleteConfig($authStore?.email ?? '', newconfigname);
+    config_name = ''; text = ''; newconfigname = ''; editorVisible = false;
+  }
 
-    const handleNewConfig = async (e: Event) => {
-        e.preventDefault();
-        config_name = "Configurations";
-        text = "";
-        textspacedisplay = true;
-        newconfigname = "";
-    }
-    
-    onMount(async () => {
-        if (!token) {
-            window.location.href = '/';
-        }
-    });
-
-    async function handlecreateConfig() {
-        // Logique pour créer une nouvelle configuration
-        console.log("Creating new configuration:", newconfigname, text);
-        await createConfig($authStore?.email ?? "",newconfigname, text);
-        config_name = newconfigname;
-    }
-
-    async function handleupdateConfig() {
-        console.log("Updating configuration:", newconfigname, text);
-        await updateConfig($authStore?.email ?? "", newconfigname, text);
-    }
-
-    async function handledeleteConfig() {
-        console.log("Deleting configuration:", config_name);
-        await deleteConfig($authStore?.email ?? "", newconfigname);
-        config_name = "Configurations";
-        text = "";
-        textspacedisplay = false;
-        newconfigname = "";
-    }
-
+  const isNew = $derived(config_name !== newconfigname || config_name === '');
 </script>
 
-<!-- Header Actions -->
-<div class="flex justify-between items-center mb-6 mt-4">
-  <div class="flex gap-4">
-    <Button size="md" class="w-64 h-12 bg-tertiary-400 hover:bg-tertiary-500 text-white shadow-md">
-      {config_name} <ChevronDownOutline class="ms-2 h-6 text-white" />
-    </Button>
-    <Dropdown simple isOpen={false} class="mt-2 bg-tertiary-300 border-tertiary-200">
-      {#each configlist as config}
-        <DropdownItem name={config.name} onclick={handleClickDropdown} class="hover:bg-tertiary-400 text-white">
-            {config.name}
-        </DropdownItem>
+<svelte:head><title>Configurations — CloudPoolManager</title></svelte:head>
+
+<div class="space-y-6 animate-fade-up">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-primary-800" style="font-family: 'Source Sans 3', sans-serif;">Configurations</h1>
+      <p class="text-sm text-neutral-500 mt-1">Scripts cloud-init pour l'initialisation des VMs</p>
+    </div>
+    <button onclick={newConfig} class="btn btn-primary">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nouvelle configuration
+    </button>
+  </div>
+
+  <div class="flex gap-6">
+    <!-- Sidebar -->
+    <div class="w-56 shrink-0 space-y-1">
+      {#each $configs as cfg}
+        <button
+          onclick={() => selectConfig(cfg)}
+          class="w-full text-left px-3.5 py-2.5 rounded text-sm font-medium transition-all duration-150
+            {config_name === cfg.name && editorVisible
+              ? 'bg-primary-50 text-primary-700 border border-primary-200'
+              : 'text-neutral-600 hover:text-primary-700 hover:bg-primary-50 border border-transparent'}"
+        >
+          <div class="flex items-center gap-2.5">
+            <svg class="w-3.5 h-3.5 {config_name === cfg.name ? 'text-primary-600' : 'text-neutral-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="truncate">{cfg.name}</span>
+          </div>
+        </button>
       {/each}
-    </Dropdown>
-  </div>
-
-  <Button
-    size="lg"
-    class="bg-option-500 hover:bg-option-600 shadow-lg px-6 py-2.5 font-semibold transition-transform hover:scale-105"
-    onclick={handleNewConfig}>
-      + Nouvelle configuration
-  </Button>
-</div>
-
-<!-- Main Dashboard Area -->
-{#if textspacedisplay}
-  <div class="mt-8 bg-tertiary-300 rounded-xl p-8 shadow-xl border border-tertiary-200">
-    <div class="mb-6 border-b border-tertiary-200 pb-4">
-        <h2 class="text-2xl font-bold text-white tracking-wide">Éditeur de Configuration</h2>
-        <p class="text-gray-400 mt-1">Créez ou modifiez le script d'initialisation de vos VMs.</p>
+      {#if $configs.length === 0}
+        <p class="text-xs text-neutral-400 px-3 py-2">Aucune configuration</p>
+      {/if}
     </div>
 
-    <div class="mb-6">
-        <Label for="config-name" class="mb-2 text-gray-300 font-semibold">Nom de la configuration</Label>
-        <Input id="config-name" type="text" placeholder="Ex: setup_web_server"
-            class="bg-tertiary-400 text-white border-tertiary-200 focus:ring-option-500 focus:border-option-500" bind:value={newconfigname} />
-    </div>
+    <!-- Editor -->
+    <div class="flex-1 min-w-0">
+      {#if editorVisible}
+        <div class="card p-6 space-y-5 animate-fade-in">
+          <div>
+            <label class="section-label mb-2 block">Nom de la configuration</label>
+            <input
+              class="field"
+              type="text"
+              placeholder="ex: setup_python_env"
+              bind:value={newconfigname}
+            />
+          </div>
 
-    <div class="mb-6">
-        <Label for="textarea-id" class="mb-2 text-gray-300 font-semibold">Script bash (cloud-init)</Label>
-        <Textarea id="textarea-id" placeholder="#!/bin/bash&#10;apt-get update..."
-             rows={18} bind:value={text} class="font-mono text-sm bg-tertiary-400 text-gray-200 border-tertiary-200 focus:ring-option-500 focus:border-option-500"/>
-    </div>
+          <div>
+            <label class="section-label mb-2 block">Script bash (cloud-init)</label>
+            <textarea
+              class="field font-mono text-xs resize-none leading-relaxed"
+              placeholder="#!/bin/bash&#10;apt-get update..."
+              rows={20}
+              bind:value={text}
+            ></textarea>
+          </div>
 
-    <div class="flex flex-wrap gap-4 pt-4 border-t border-tertiary-200">
-        {#if config_name !== newconfigname}
-            <Button size="lg" class="bg-option-500 hover:bg-option-600 shadow-md text-white font-semibold" onclick={handlecreateConfig}>
-                Enregistrer la configuration
-            </Button>
-            <div class="flex-grow"></div>
-            <Button size="lg" class="bg-tertiary-500 text-gray-400 cursor-not-allowed shadow-md border border-tertiary-400" disabled>
-                Supprimer
-            </Button>
-        {:else}
-            <Button size="lg" class="bg-option-500 hover:bg-option-600 shadow-md text-white font-semibold" onclick={handleupdateConfig}>
+          <hr class="divider"/>
+
+          <div class="flex items-center gap-3">
+            {#if isNew}
+              <button
+                onclick={handleCreate}
+                disabled={!newconfigname.trim()}
+                class="btn btn-primary text-sm"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                </svg>
+                Enregistrer
+              </button>
+            {:else}
+              <button onclick={handleUpdate} class="btn btn-success text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
                 Mettre à jour
-            </Button>
-            <div class="flex-grow"></div>
-            <Button size="lg" class="bg-red-600/90 hover:bg-red-600 shadow-md text-white font-semibold" onclick={handledeleteConfig}>
+              </button>
+            {/if}
+            <div class="flex-1"></div>
+            {#if !isNew}
+              <button onclick={handleDelete} class="btn btn-danger text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
                 Supprimer
-            </Button>
-        {/if}
+              </button>
+            {/if}
+          </div>
+        </div>
+      {:else}
+        <div class="card flex flex-col items-center justify-center py-24 text-center">
+          <svg class="w-12 h-12 text-neutral-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <p class="text-neutral-600 text-sm font-medium">Aucune configuration sélectionnée</p>
+          <p class="text-neutral-400 text-xs mt-1 max-w-xs">Sélectionnez un script dans la liste ou créez-en un nouveau</p>
+        </div>
+      {/if}
     </div>
   </div>
-{:else}
-  <div class="mt-12 bg-tertiary-300 rounded-2xl p-16 text-center border border-tertiary-200 shadow-lg flex flex-col items-center justify-center h-96">
-    <div class="text-6xl mb-6 opacity-50">📜</div>
-    <h3 class="text-2xl font-bold text-white mb-3">Aucune configuration sélectionnée</h3>
-    <p class="text-gray-400 text-lg max-w-md">Sélectionnez une configuration existante via le menu déroulant ci-dessus, ou créez-en une nouvelle.</p>
-  </div>
-{/if}
+</div>

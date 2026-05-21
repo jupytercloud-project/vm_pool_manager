@@ -50,13 +50,26 @@ func (s *Service) ReturnPoolWithKey(
 
 	var results []result
 
-	// Find all serverpools that have at least one unlocked server available
-	err := s.DB.
-		Table("serverpools").
-		Select("DISTINCT serverpools.serverpool_id, serverpools.user_id").
-		Joins("JOIN servers ON servers.serverpool_id = serverpools.serverpool_id AND servers.user_id = serverpools.user_id").
-		Where("servers.locked = ?", false).
-		Scan(&results).Error
+	// Return pools where there are unlocked servers OR this student already has a VM assigned
+	err := s.DB.Raw(`
+		SELECT DISTINCT sp.serverpool_id, sp.user_id
+		FROM serverpools sp
+		WHERE
+			EXISTS (
+				SELECT 1 FROM servers s
+				WHERE s.serverpool_id = sp.serverpool_id
+				AND s.user_id = sp.user_id
+				AND s.locked = false
+			)
+			OR EXISTS (
+				SELECT 1 FROM list_students ls
+				JOIN students st ON st.list_id = ls.id
+				WHERE ls.pool_id = sp.id
+				AND (split_part(st.ssh_key, ' ', 1) || ' ' || split_part(st.ssh_key, ' ', 2) =
+				     split_part(?, ' ', 1) || ' ' || split_part(?, ' ', 2))
+				AND st.ip IS NOT NULL AND st.ip != ''
+			)
+	`, pubKey, pubKey).Scan(&results).Error
 
 	if err != nil {
 		return status.Errorf(codes.Internal, "database error: %v", err)
@@ -90,7 +103,7 @@ func (s *Service) AttribVMinPool(
 	err := s.DB.
 		Joins("JOIN list_students ON list_students.id = students.list_id").
 		Joins("JOIN serverpools ON serverpools.id = list_students.pool_id").
-		Where("students.ssh_key = ? AND serverpools.serverpool_id = ? AND serverpools.user_id = ?", req.GetPubkey(), req.GetServerpoolId(), req.GetUserId()).
+		Where("split_part(students.ssh_key, ' ', 1) || ' ' || split_part(students.ssh_key, ' ', 2) = split_part(?, ' ', 1) || ' ' || split_part(?, ' ', 2) AND serverpools.serverpool_id = ? AND serverpools.user_id = ?", req.GetPubkey(), req.GetPubkey(), req.GetServerpoolId(), req.GetUserId()).
 		First(&student).Error
 
 	if err != nil {
@@ -129,6 +142,7 @@ func (s *Service) AttribVMinPool(
 		return &frontcontrolpb.AttribVMinPoolResponse{
 			Success:     true,
 			AddressedIp: student.IP,
+			Username:    sshinject.UsernameFromEmail(student.Name),
 		}, nil
 	}
 
@@ -191,6 +205,7 @@ func (s *Service) AttribVMinPool(
 	return &frontcontrolpb.AttribVMinPoolResponse{
 		Success:     true,
 		AddressedIp: server.IP_Address,
+		Username:    sshinject.UsernameFromEmail(student.Name),
 	}, nil
 }
 

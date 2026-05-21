@@ -1,287 +1,237 @@
 <script lang="ts">
-    import { 
-        Modal,
-        Button,
-        Label,
-        Input,
-        VirtualList,
-        checkbox,
-        Spinner,
-		Checkbox,
-		Textarea,
-        Helper,
-    } from 'flowbite-svelte';
+  import {
+    ListStudentsRequestSchema, type ListStudentsRequest, type ListStudentsResponse,
+    AddStudentRequestSchema, type AddStudentRequest, type AddStudentResponse,
+    DeleteStudentRequestSchema, type DeleteStudentRequest, type DeleteStudentResponse,
+  } from '$lib/grpc/frontcontrol_pb';
+  import { addStudents, listStudents, deleteStudent } from '$lib/index';
+  import { create } from '@bufbuild/protobuf';
+  import { authStore } from '$lib/store';
 
-    import { CloseOutline } from 'flowbite-svelte-icons';
+  export let open: boolean;
+  export let poolname: string;
 
-    import {
-	ListStudentsRequestSchema,
-    type ListStudentsRequest,
-    type ListStudentsResponse,
-    AddStudentRequestSchema,
-    type AddStudentRequest,
-    type AddStudentResponse,
-    } from '$lib/grpc/frontcontrol_pb';
+  let addModal = false;
+  let loading = false;
+  let error: string | null = null;
+  let rawMode = false;
+  let rawInput = '';
 
-    import { addStudents } from '$lib/index';
+  interface User { name: string; sshKey: string; ip: string; }
+  interface NewStudent { login: string; sshKey: string; }
 
-    import { listStudents } from '$lib/index';
-	import { create } from '@bufbuild/protobuf';
-	import { authStore } from '$lib/store';
+  let users: User[] = [];
+  let newStudents: NewStudent[] = [{ login: '', sshKey: '' }];
 
-    export let open: boolean;
-    export let poolname: string;
+  function addRow() { newStudents = [...newStudents, { login: '', sshKey: '' }]; }
+  function removeRow(i: number) { newStudents = newStudents.filter((_, idx) => idx !== i); }
 
-    let openSSHModal = false;
-    let loading = false;
-    let error: string | null = null;
-    let Rawinput: string = "";
-    let Rawinputcheckbox = false;
+  async function handleListStudents() {
+    const req: ListStudentsRequest = create(ListStudentsRequestSchema, { user: $authStore?.email, poolname });
+    try {
+      loading = true; error = null;
+      const res: ListStudentsResponse = await listStudents(req);
+      users = res.students.map(s => ({ name: s.name, sshKey: s.sshKey, ip: s.ip }));
+    } catch { error = 'Erreur lors du chargement des étudiants.'; }
+    finally { loading = false; }
+  }
 
-    interface User {
-        name: string;
-        sshKey: string;
-        ip: string;
+  async function handleDeleteStudent(name: string) {
+    if (!confirm(`Supprimer l'étudiant ${name} ?`)) return;
+    const req: DeleteStudentRequest = create(DeleteStudentRequestSchema, {
+      user: $authStore?.email, poolname, studentName: name,
+    });
+    try {
+      loading = true; error = null;
+      await deleteStudent(req);
+      await handleListStudents();
+    } catch { error = "Erreur lors de la suppression."; }
+    finally { loading = false; }
+  }
+
+  async function handleAdd() {
+    const valid = newStudents.filter(s => s.login.trim() && s.sshKey.trim());
+    if (!valid.length) { error = 'Aucun étudiant valide à ajouter.'; return; }
+    const req: AddStudentRequest = create(AddStudentRequestSchema, {
+      user: $authStore?.email, poolname,
+      students: valid.map(s => ({ name: s.login, sshKey: s.sshKey })),
+    });
+    try {
+      loading = true; error = null;
+      await addStudents(req);
+      await handleListStudents();
+      newStudents = [{ login: '', sshKey: '' }];
+      addModal = false;
+    } catch { error = "Erreur lors de l'ajout."; }
+    finally { loading = false; }
+  }
+
+  async function handleAddRaw() {
+    const lines = rawInput.split('\n').map(l => l.trim()).filter(Boolean);
+    const parsed: NewStudent[] = [];
+    for (const line of lines) {
+      const sep = line.indexOf(';');
+      if (sep === -1) continue;
+      const login = line.slice(0, sep).trim();
+      const sshKey = line.slice(sep + 1).trim();
+      if (login && sshKey) parsed.push({ login, sshKey });
     }
-    let users: User[] = [];
+    if (!parsed.length) { error = 'Aucun étudiant valide (format: prenom.nom;cle_ssh)'; return; }
+    newStudents = parsed;
+    await handleAdd();
+    rawInput = '';
+    newStudents = [{ login: '', sshKey: '' }];
+    addModal = false;
+  }
 
-    interface NewStudent {
-    login: string;
-    sshKey: string;
-    }
-
-    let newStudents: NewStudent[] = [
-    { login: "", sshKey: "" }
-    ];
-
-    function addStudentRow() {
-    newStudents = [...newStudents, { login: "", sshKey: "" }];
-    }
-
-    function removeStudentRow(index: number) {
-        newStudents = newStudents.filter((_, i) => i !== index);
-    }
-
-
-
-    async function handleListStudents() {
-        const req: ListStudentsRequest = create(ListStudentsRequestSchema, {
-            user: $authStore?.email,
-            poolname: poolname,
-        });
-        try {
-            loading = true;
-            error = null;
-            const res: ListStudentsResponse = await listStudents(req);
-            users = res.students.map((student) => ({
-                name: student.name,
-                sshKey: student.sshKey,
-                ip: student.ip,
-            }));
-        } catch (err) {
-            error = "Erreur lors du chargement des étudiants.";
-            console.error(err);
-        } finally {
-            loading = false;
-        }
-    }
-
-    async function handleAddingStudent() {
-        const validStudents = newStudents.filter(
-            s => s.login.trim() !== "" && s.sshKey.trim() !== ""
-        );
-        if (validStudents.length === 0) {
-            error = "Aucun étudiant valide à ajouter.";
-            return;
-        }
-        const req: AddStudentRequest = create(AddStudentRequestSchema, {
-            user: $authStore?.email,
-            poolname: poolname,
-            students: validStudents.map(s => ({
-                name: s.login,
-                sshKey: s.sshKey,
-            })),
-        });
-        console.log("students send : ", req)
-        try {
-            loading = true;
-            error = null;
-            const res: AddStudentResponse = await addStudents(req);
-            await handleListStudents();
-        } catch (err) {
-            error = "Erreur lors de l'ajout des étudiants.";
-            console.error(err);
-        } finally {
-            loading = false;
-        }
-
-        newStudents = [{ login: "", sshKey: "" }];
-        openSSHModal = false;
-    }
-
-    async function handleAddingStudentRaw() {
-        const lines = Rawinput
-            .split("\n")
-            .map(line => line.trim())
-            .filter(line => line !== "");
-
-        const parsedStudents: NewStudent[] = [];
-        const invalidLines: string[] = [];
-
-        for (const line of lines) {
-            const separatorIndex = line.indexOf(";");
-            if (separatorIndex === -1) { 
-                invalidLines.push(line);
-                continue;
-            }
-
-            const login = line.slice(0, separatorIndex).trim();
-            const sshKey = line.slice(separatorIndex + 1).trim();
-
-            if (!login || !sshKey) {
-                invalidLines.push(line);
-                continue;
-            }
-            parsedStudents.push({
-                login,
-                sshKey,
-            });
-        }
-        if (parsedStudents.length === 0) {
-            error = "Aucun étudiant valide";
-            Rawinput = "";
-            newStudents = [{login: "", sshKey: ""}]
-            openSSHModal = false;
-            return;
-        }
-
-        newStudents = parsedStudents;
-        await handleAddingStudent();
-
-        Rawinput = "";
-        newStudents = [{login: "", sshKey: ""}]
-        openSSHModal = false;
-    }
-
-
-    // charger automatiquement à l’ouverture du modal
-    $: if (open) {
-        handleListStudents();
-    }
-
-    $: if (Rawinputcheckbox) {
-    newStudents = [{ login: "", sshKey: "" }];
-}
-
-
+  $: if (open) handleListStudents();
+  $: if (rawMode) newStudents = [{ login: '', sshKey: '' }];
 </script>
 
-<!-- Modal d'affichage des clés SSH des utilisateurs -->
-<Modal bind:open class="bg-gray-500 bg-opacity-50" focustrap>
-    <div class="p-4 w-full max-w-xl">
-        <h2 class="text-lg font-semibold mb-4">
-            Liste des étudiants
-        </h2>
-
-        {#if loading}
-            <div class="flex h-[400px] items-center justify-center">
-                <Spinner size="12" />
-            </div>
-        {:else if error}
-            <div class="text-center text-red-500 h-[400px] flex items-center justify-center">
-                {error}
-            </div>
-        {:else if users.length === 0}
-            <div class="text-center text-gray-500 h-[400px] flex items-center justify-center">
-                Aucun étudiant trouvé
-            </div>
-        {:else}
-            <VirtualList
-            items={users}
-            minItemHeight={60}
-            height={400}
-            class="rounded-lg border"
-            contained>
-                {#snippet children(item, index)}
-                    {@const user = item as User}
-                    <div class="flex items-center justify-between border-b p-4 transition-colors
-                    {index % 2 === 0 ? 'bg-gray-100 dark:bg-gray-900' : 'bg-gray-300 dark:bg-gray-800'}
-                    hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                    style="height:70px">
-                        <div class="flex-1">
-                            <div class="font-medium text-gray-900 dark:text-white"> {user.name}</div>
-                            <div class="text-medium text-gray-900">{user.ip}</div>
-                        </div>
-                        {#if user.ip !== ""}
-                            <span class="rounded-full px-3 py-1 text-xs font-semibold bg-green-100 text-green-800">attributed</span>
-                        {:else}
-                            <span class="rounded-full px-3 py-1 text-xs font-semibold bg-yellow-400 text-yellow-800">not attributed</span>
-                        {/if}
-                    </div>
-                {/snippet}
-            </VirtualList>
-        {/if}
-    </div>
-    <Button size="xs" onclick={() => openSSHModal = true}>
-        Ajouter student
-    </Button>
-</Modal>
-
-
-<!-- Modal d'ajout de clés SSH -->
-<Modal bind:open={openSSHModal} class="bg-gray-500 bg-opacity-50" focustrap>
-    <Checkbox bind:checked={Rawinputcheckbox}> Raw </Checkbox>
-    {#if Rawinputcheckbox}
-        <Textarea 
-        placeholder="Entrez les logins et clés SSH des étudiants ici."
-        rows={15} class="w-full mb-4"
-        bind:value={Rawinput}/>
-        <Helper class="mt-2 text-sm"> une input par ligne. La forme doit etre : prenom.nom;sshKey; </Helper>
-        <Button 
-        size="md" 
-        onclick={() => handleAddingStudentRaw()}
-        disabled={Rawinput.trim() === ""}>
-            Ajouter
-        </Button>
-    {:else}
-    <div class="space-y-3">
-        {#each newStudents as student, index}
-            <div class="flex items-center gap-2">
-                <Input
-                type="text"
-                placeholder="login étudiant: prenom.nom"
-                bind:value={student.login}
-                class="flex-1"
-                />
-
-                <Input
-                type="text"
-                placeholder="clé SSH"
-                bind:value={student.sshKey}
-                class="flex-1"
-                />
-
-                {#if newStudents.length > 1}
-                    <Button
-                    size="xs"
-                    color="red"
-                    onclick={() => removeStudentRow(index)}>
-                        <CloseOutline class="shrink-0 h-6 w-6" />
-                    </Button>
-                {/if}
-            </div>
-        {/each}
-
-        <div class="flex justify-between pt-2">
-            <Button size="xs" onclick={addStudentRow}>
-                Ajouter une ligne
-            </Button>
-
-            <Button size="md" onclick={handleAddingStudent}>
-                Ajouter
-            </Button>
+<!-- Main modal -->
+{#if open}
+  <div class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="text-base font-bold text-neutral-900" style="font-family: 'Source Sans 3', sans-serif;">Étudiants</h3>
+          <p class="text-xs text-neutral-500 mt-0.5">{poolname}</p>
         </div>
-    </div>
-    {/if}
-</Modal>
+        <button onclick={() => open = false} class="text-neutral-400 hover:text-neutral-700 transition-colors p-1 rounded hover:bg-neutral-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
 
+      {#if error}
+        <div class="mb-4 px-3 py-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-sm animate-fade-in">{error}</div>
+      {/if}
+
+      {#if loading}
+        <div class="flex items-center justify-center py-16">
+          <div class="w-8 h-8 rounded-full border-2 border-neutral-200 border-t-primary-700" style="animation: spinnerGlow 0.7s linear infinite;"></div>
+        </div>
+      {:else if users.length === 0}
+        <div class="flex flex-col items-center justify-center py-14 text-neutral-400">
+          <svg class="w-10 h-10 mb-3 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <p class="text-sm">Aucun étudiant enregistré</p>
+        </div>
+      {:else}
+        <div class="space-y-1 max-h-72 overflow-y-auto pr-1 mb-4">
+          {#each users as user, i}
+            <div
+              class="flex items-center justify-between px-4 py-3 rounded border border-neutral-100 bg-neutral-50 animate-slide-right"
+              style="animation-delay:{i*0.03}s"
+            >
+              <div>
+                <p class="text-sm font-semibold text-neutral-900">{user.name}</p>
+                {#if user.ip}
+                  <p class="text-xs text-neutral-500 font-mono mt-0.5">{user.ip}</p>
+                {/if}
+              </div>
+              <div class="flex items-center gap-2">
+                {#if user.ip}
+                  <span class="badge badge-ready">Attribué</span>
+                {:else}
+                  <span class="badge badge-starting">En attente</span>
+                {/if}
+                <button
+                  onclick={() => handleDeleteStudent(user.name)}
+                  class="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Supprimer"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      <button onclick={() => addModal = true} class="btn btn-primary text-sm w-full">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Ajouter des étudiants
+      </button>
+    </div>
+  </div>
+{/if}
+
+<!-- Add students modal -->
+{#if addModal}
+  <div class="modal-overlay" style="z-index:60;" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width:600px;">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-base font-bold text-neutral-900" style="font-family: 'Source Sans 3', sans-serif;">Ajouter des étudiants</h3>
+        <button onclick={() => addModal = false} class="text-neutral-400 hover:text-neutral-700 transition-colors p-1 rounded hover:bg-neutral-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mode toggle -->
+      <div class="flex gap-1 mb-5 p-1 bg-neutral-100 rounded border border-neutral-200 w-fit">
+        <button
+          onclick={() => rawMode = false}
+          class="px-4 py-1.5 rounded text-sm font-semibold transition-all {!rawMode ? 'bg-white text-primary-700 shadow-sm border border-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}"
+        >Formulaire</button>
+        <button
+          onclick={() => rawMode = true}
+          class="px-4 py-1.5 rounded text-sm font-semibold transition-all {rawMode ? 'bg-white text-primary-700 shadow-sm border border-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}"
+        >Import texte</button>
+      </div>
+
+      {#if rawMode}
+        <div class="space-y-3">
+          <label class="section-label block mb-1">Un étudiant par ligne : <code class="text-primary-700 font-mono">prenom.nom;cle_ssh</code></label>
+          <textarea
+            class="field font-mono text-xs resize-none"
+            rows="10"
+            placeholder={"jean.dupont;ssh-ed25519 AAAA...\npaul.martin;ssh-ed25519 BBBB..."}
+            bind:value={rawInput}
+          ></textarea>
+          <button onclick={handleAddRaw} disabled={!rawInput.trim() || loading} class="btn btn-primary text-sm">
+            Importer
+          </button>
+        </div>
+      {:else}
+        <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {#each newStudents as student, i}
+            <div class="flex gap-2 items-center">
+              <input class="field flex-1" type="text" placeholder="prenom.nom" bind:value={student.login} />
+              <input class="field flex-1" type="text" placeholder="ssh-ed25519 AAAA..." bind:value={student.sshKey} />
+              {#if newStudents.length > 1}
+                <button onclick={() => removeRow(i)} class="btn btn-danger p-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              {/if}
+            </div>
+          {/each}
+        </div>
+        <div class="flex justify-between items-center mt-4">
+          <button onclick={addRow} class="btn btn-secondary text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Ajouter une ligne
+          </button>
+          <button onclick={handleAdd} disabled={loading} class="btn btn-primary text-sm">
+            {#if loading}
+              <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>
+            {/if}
+            Enregistrer
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}

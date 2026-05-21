@@ -26,7 +26,8 @@ export { createPool,
     addServer,
     addSSHKeys,
     listStudents,
-    addStudents
+    addStudents,
+    deleteStudent
 } from './grpc/poolService/poolService';
 export { loadAll, resetAll } from './store/serverpoolStore';
 export { RebuildServerRequestSchema,

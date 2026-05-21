@@ -268,6 +268,7 @@ message AttribVMinPoolRequest {
 message AttribVMinPoolResponse {
     bool success = 1;
     string addressed_ip = 2;
+    string username = 3;
 }
 
 message PoolWithKeyRequest {
@@ -302,6 +303,17 @@ message AddStudentRequest {
 }
 
 message AddStudentResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+message DeleteStudentRequest {
+    string poolname = 1;
+    string user = 2;
+    string student_name = 3;
+}
+
+message DeleteStudentResponse {
     bool success = 1;
     string error_message = 2;
 }
@@ -372,6 +384,8 @@ service PoolService {
     rpc ListStudents (ListStudentsRequest) returns (ListStudentsResponse);
     // AddStudents adds students to a server pool for a user.
     rpc AddStudents (AddStudentRequest) returns (AddStudentResponse);
+    // DeleteStudent removes a student from a server pool.
+    rpc DeleteStudent (DeleteStudentRequest) returns (DeleteStudentResponse);
 }
 
 // UserService streams updates related to user data such as server pools, servers, and configurations.

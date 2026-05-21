@@ -194,6 +194,7 @@ func RecordVMActivity(hostname, status string) {
 			ActivityStatus: status,
 			LastSeen:       now,
 			RegisteredAt:   now,
+			RawMeta:        json.RawMessage("{}"),
 		})
 	}
 }

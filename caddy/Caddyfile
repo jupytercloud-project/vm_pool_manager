@@ -3,7 +3,8 @@
     order grpc_web before reverse_proxy
 }
 
-:80 {
+:443 {
+    tls internal
 
     # ---------- gRPC-Web ----------
     handle_path /rpc/* {

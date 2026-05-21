@@ -61,6 +61,14 @@ tasks:
         export DOTENV_PATH={{.DOTENV_PATH}}
         ./bin/app
 
+  caddy:
+    desc: "Build et lance Caddy (port 443)"
+    dir: caddy
+    cmds:
+      - docker build -t my-caddy .
+      - docker rm -f caddy 2>/dev/null || true
+      - docker run -d -p 443:443 --add-host=host.docker.internal:host-gateway --name caddy my-caddy
+
   frontend:
     desc: "Lance le frontend en dev"
     dir: frontend
@@ -84,6 +92,7 @@ tasks:
     desc: "Lance tout (backend + control + frontend) via tmux"
     cmds:
       - |
+        tmux kill-session -t poolmanager 2>/dev/null || true
         tmux new-session -d -s poolmanager
 
         tmux rename-window -t poolmanager:0 backend

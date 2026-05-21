@@ -1,464 +1,257 @@
 <script lang="ts">
 import {
-  Button,
-  Dropdown,
-  DropdownItem,
-  Modal,
-  Label,
-  Input,
-  Select,
-  MultiSelect,
-  Clipboard,
-  Textarea,
-} from 'flowbite-svelte';
-import { CheckOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
-import {
-  rebuildServer,
-  RebuildServerRequestSchema,
-  CreatePoolRequestSchema,
-  DeletePoolRequestSchema,
-  deletePool,
-  createPool,
-  addServer,
-  addSSHKeys,
+  rebuildServer, RebuildServerRequestSchema, CreatePoolRequestSchema,
+  DeletePoolRequestSchema, deletePool, createPool, addServer, addSSHKeys,
 } from '$lib/index';
-import type {
-  ServerPool,
-  Server,
-  CreatePoolRequest,
-  DeletePoolRequest,
-  RebuildServerRequest,
-  Image
-} from '$lib/type';
-import {
-  authStore,
-  serverPools,
-  servers,
-  configs,
-  images,
-  flavors,
-  networks
-} from '$lib/store';
+import type { ServerPool, Server, CreatePoolRequest, DeletePoolRequest, RebuildServerRequest, Image } from '$lib/type';
+import { authStore, serverPools, servers, configs, images, flavors, networks } from '$lib/store';
 import { onMount } from 'svelte';
 import { page } from '$app/state';
 import { create } from '@bufbuild/protobuf';
-import {
-	ListSSHPublicKeysRequestSchema,
-  type DeletePoolResponse,
-  type RebuildServerResponse,
-  
-} from '$lib/grpc/frontcontrol_pb';
+import { ListSSHPublicKeysRequestSchema, type DeletePoolResponse, type RebuildServerResponse } from '$lib/grpc/frontcontrol_pb';
+import { create as createProto } from '@bufbuild/protobuf';
+import { TimestampSchema } from '@bufbuild/protobuf/wkt';
 import CreateServerPoolModal from '$lib/components/CreateServerPoolModal.svelte';
 import AddSSHKeys from '$lib/components/AddSSHKeys.svelte';
 
-
-
 let token: string | null = null;
-let selectedsp: string = 'Choisissez le serverpool';
-let serversp: Server[] = [];
-
-let selectedNetwork: string = "";
-let selectedFlavor: string = "";
-let selectedConfigFile: string = "";
-let createspModal: boolean = false;
-let createsshModal: boolean = false;
-let sshkeys: string = "";
-let createError: string = "";
+let selectedsp: string = '';
+let createspModal = false;
+let ListStudentModalOpen = false;
+let createError = '';
 let createSuccess = false;
-let scheduleDay: string = "";
-let scheduleTime: string = "";
+
+let selectedNetwork = '';
+let selectedFlavor = '';
+let selectedConfigFile = '';
+let scheduleDay = '';
+let scheduleTime = '';
 let scheduleWindowHours: number | undefined = undefined;
-
-let offDays = {
-  monday: false,
-  tuesday: false,
-  wednesday: false,
-  thursday: false,
-  friday: false,
-  saturday: true,
-  sunday: true
-};
-
-let ListStudentModalOpen: boolean = false;
-
-type CreateServerPoolForm = {
-    name: string;
-    image: string;
-    flavor: string;
-    networks: string;
-    minVm: number;
-    maxVm: number;
-    config: string;
-};
-
-onMount(async() => {
-	if (!token) {
-		window.location.href = '/';
-	}
-	selectedsp = page.params.id || 'Choisissez le serverpool';
-});
-
-const handleClick = async (e: Event) => {
-	e.preventDefault();
-	const target = e.target as HTMLButtonElement;
-	selectedsp = target.name;
-};
-
-$: token = $authStore?.token ?? null;
-$: selectedPool = $serverPools.find(p => p.name === selectedsp);
-
-
-$: networkOptions = $networks.map(net => ({
-    value: net.id,
-    name: net.name,
-  }));
-  
-  $: sortedFlavors = [...$flavors].sort((a, b) =>
-  a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity:"base"})
-);
-
-async function handleRebuildServer(serv: Server) {
-	if (!confirm(`Voulez-vous rebuild le serveur ${serv.name} ?`)) {
-		return;
-	}
-	const req: RebuildServerRequest = create(RebuildServerRequestSchema,{
-    user: $authStore?.email,
-    poolId: serv.metadata?.serverpool_id,
-    serverId: serv.name
-  });
-	console.log("Rebuild request: ", req);
-  try {
-		const res: RebuildServerResponse = await rebuildServer(req);
-		if (!res.success) {
-      console.error("Erreur rebuild server");
-		}
-	} catch (err) {
-		console.error("Erreur rebuild server: ", err);
-		throw err;
-	}
-}
-
-async function handleDeleteServerpool(sp: ServerPool) {
-	if (!confirm(`Voulez-vous supprimer le serveur ${sp.name} ?`)) {
-		return;
-	}
-	const req: DeletePoolRequest = create(DeletePoolRequestSchema,{
-    user: $authStore?.email,
-    poolId: sp.name
-  });
-	try {
-		const res: DeletePoolResponse = await deletePool(req);
-		if (res.success) {
-      selectedsp = "Choisissez le serverpool";
-      const { loadServerPools } = await import('$lib/store/serverpoolStore');
-      await loadServerPools($authStore?.email ?? "");
-		}
-	} catch (err) {
-		console.error("Erreur lors de la suppression du pool: ", err);
-		throw err;
-	}
-}
-
-async function handleCreateServer(sp: ServerPool) {
-  if (!confirm(`Voulez-vous ajouter un serveur au serverpool ${sp.name} ?`)) {
-    return;
-  }
-  const req: CreatePoolRequest = create(CreatePoolRequestSchema, {
-    user: $authStore?.email,
-    name: sp.name,
-    image: sp.image,
-    flavor: sp.flavor,
-    network: sp.network,
-    minVm: String(sp.minVm),
-    maxVm: String(sp.maxVm),
-    config: sp.config,
-  });
-
-  try {
-    const res: RebuildServerResponse = await addServer(req);
-    if (res.success) {
-      console.log("Serveur ajouté avec succès au serverpool.");
-    } else {
-      console.error("Erreur lors de l'ajout du serveur au serverpool.");
-    }
-  } catch (err) {
-    console.error("Impossible d'ajouter le serveur au serverpool.", err);
-  }
-}
-
-export function getUniqueFirstAlphaBlocks(images: Image[]): string[] {
-  const prefixes = images
-    .map(img => {
-      const match = img.name.match(/^[A-Za-z]+/);
-      return match ? match[0] : null;
-    })
-    .filter((x): x is string => x !== null);
-
-  return Array.from(new Set(prefixes));
-}
-
-export function filterImagesByPrefix(images: Image[], prefix:string): Image[] {
-  return images.filter(img => img.name.startsWith(prefix));
-}
-
+let offDays = { monday:false, tuesday:false, wednesday:false, thursday:false, friday:false, saturday:true, sunday:true };
 let selectedGroupImage: string | null = null;
 let selectedImage: string | null = null;
 
+onMount(() => {
+  if (!token) window.location.href = '/';
+  selectedsp = page.params.id || '';
+});
+
+$: token = $authStore?.token ?? null;
+$: selectedPool = $serverPools.find(p => p.name === selectedsp);
+$: sortedFlavors = [...$flavors].sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+
+async function handleDeleteServerpool(sp: ServerPool) {
+  if (!confirm(`Supprimer le serverpool ${sp.name} ?`)) return;
+  const req: DeletePoolRequest = create(DeletePoolRequestSchema, { user: $authStore?.email, poolId: sp.name });
+  try {
+    const res: DeletePoolResponse = await deletePool(req);
+    if (res.success) {
+      selectedsp = '';
+      const { loadServerPools } = await import('$lib/store/serverpoolStore');
+      await loadServerPools($authStore?.email ?? '');
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function handleCreateServer(sp: ServerPool) {
+  if (!confirm(`Ajouter un serveur au pool ${sp.name} ?`)) return;
+  const req: CreatePoolRequest = create(CreatePoolRequestSchema, {
+    user: $authStore?.email, name: sp.name, image: sp.image, flavor: sp.flavor,
+    network: sp.network, minVm: String(sp.minVm), maxVm: String(sp.maxVm), config: sp.config,
+  });
+  try { await addServer(req); } catch(e) { console.error(e); }
+}
+
+export function getUniqueFirstAlphaBlocks(imgs: Image[]): string[] {
+  const prefixes = imgs.map(img => { const m = img.name.match(/^[A-Za-z]+/); return m ? m[0] : null; }).filter((x): x is string => x !== null);
+  return Array.from(new Set(prefixes));
+}
+export function filterImagesByPrefix(imgs: Image[], prefix: string): Image[] {
+  return imgs.filter(img => img.name.startsWith(prefix));
+}
+
+type CreateServerPoolForm = { name:string; image:string; flavor:string; networks:string; minVm:number; maxVm:number; config:string; };
 
 async function handleCreateServerpool(event: Event) {
-    event.preventDefault();
+  event.preventDefault();
+  const form = event.target as HTMLFormElement;
+  const fd = new FormData(form);
+  const data: CreateServerPoolForm = {
+    name: fd.get('namesp') as string, image: selectedImage ?? '',
+    flavor: selectedFlavor, networks: selectedNetwork,
+    minVm: Number(fd.get('min_vm')), maxVm: Number(fd.get('max_vm')), config: selectedConfigFile,
+  };
+  if (!data.name?.trim()) { createError = 'Le nom est obligatoire.'; return; }
+  if (!data.image || !data.flavor || !data.networks) { createError = 'Image, flavor et réseau requis.'; return; }
 
-    const form = event.target as HTMLFormElement;
-    const formData = new FormData(form);
-
-    const data: CreateServerPoolForm = {
-        name: formData.get("namesp") as string,
-        image: selectedImage ?? "",
-        flavor: selectedFlavor,
-        networks: selectedNetwork,
-        minVm: Number(formData.get("min_vm")),
-        maxVm: Number(formData.get("max_vm")),
-        config: selectedConfigFile,
-    };
-
-    
-    if (!data.name?.trim()) {
-      createError = "Le nom du serverpool est obligatoire.";
-      return;
-    }
-    if (!data.image || !data.flavor || !data.networks) {
-      createError = "Veuillez sélectionner une image, un flavor et un réseau.";
-      return;
-    }
-
-    const enabledOffDays = Object.entries(offDays)
-      .filter(([, enabled]) => enabled)
-      .map(([day]) => day);
-
-    const hasSchedule = Boolean(scheduleDay && scheduleTime);
-    if ((scheduleDay && !scheduleTime) || (!scheduleDay && scheduleTime)) {
-      createError = "Pour le planning, renseignez le jour et l'heure, ou laissez les deux vides.";
-      return;
-    }
-
-    console.log(" Creating pool:", data);
-
-    const reqPayload: CreatePoolRequest = {
-        user: $authStore?.email ?? "",
-        name: data.name,
-        image: data.image,
-        flavor: data.flavor,
-        network: data.networks,
-        minVm: String(data.minVm),
-        maxVm: String(data.maxVm),
-        config: data.config ?? "",
-        metadata: enabledOffDays.length > 0 ? { off_days: enabledOffDays.join(",") } : {},
-        timeWindow: 0,
-    };
-
-    if (hasSchedule) {
-      const startDate = computeNextSchedule(Number(scheduleDay), scheduleTime);
-      reqPayload.startTime = {
-        seconds: BigInt(Math.floor(startDate.getTime() / 1000)),
-        nanos: (startDate.getTime() % 1000) * 1_000_000,
-      };
-      if (scheduleWindowHours != null && scheduleWindowHours > 0) {
-        reqPayload.timeWindow = scheduleWindowHours;
-      }
-    }
-
-    const req: CreatePoolRequest = create(CreatePoolRequestSchema, reqPayload);
-
-    console.log(req)
-
-    try {
-        createError = "";
-        const res = await createPool(req);
-
-        if (res.success) {
-            createSuccess = true;
-            const { loadServerPools } = await import('$lib/store/serverpoolStore');
-            await loadServerPools($authStore?.email ?? "");
-            setTimeout(() => (createspModal = false), 1200);
-        } else {
-            createError = "Erreur lors de la création du serverpool.";
-        }
-    } catch (err) {
-        console.error(err);
-        createError = "Impossible de créer le serverpool.";
-    }
+  const enabledOffDays = Object.entries(offDays).filter(([,v]) => v).map(([k]) => k);
+  const hasSchedule = Boolean(scheduleDay && scheduleTime);
+  if ((scheduleDay && !scheduleTime) || (!scheduleDay && scheduleTime)) {
+    createError = 'Renseignez le jour ET l\'heure, ou laissez les deux vides.'; return;
+  }
+  const req: CreatePoolRequest = create(CreatePoolRequestSchema, {
+    user: $authStore?.email ?? '', name: data.name, image: data.image,
+    flavor: data.flavor, network: data.networks, minVm: String(data.minVm), maxVm: String(data.maxVm),
+    config: data.config ?? '', metadata: enabledOffDays.length > 0 ? { off_days: enabledOffDays.join(',') } : {},
+    timeWindow: 0,
+  });
+  if (hasSchedule) {
+    const startDate = computeNextSchedule(Number(scheduleDay), scheduleTime);
+    req.startTime = createProto(TimestampSchema, { seconds: BigInt(Math.floor(startDate.getTime()/1000)), nanos: (startDate.getTime()%1000)*1_000_000 });
+    if (scheduleWindowHours != null && scheduleWindowHours > 0) req.timeWindow = scheduleWindowHours;
+  }
+  try {
+    createError = '';
+    const res = await createPool(req);
+    if (res.success) {
+      createSuccess = true;
+      const { loadServerPools } = await import('$lib/store/serverpoolStore');
+      await loadServerPools($authStore?.email ?? '');
+      setTimeout(() => { createspModal = false; createSuccess = false; }, 1200);
+    } else { createError = 'Erreur lors de la création.'; }
+  } catch { createError = 'Impossible de créer le serverpool.'; }
 }
 
 function computeNextSchedule(dayOfWeek: number, time: string): Date {
-  const [hours, minutes] = time.split(":").map(Number);
+  const [hours, minutes] = time.split(':').map(Number);
   const now = new Date();
-
   const target = new Date(now);
   target.setHours(hours, minutes, 0, 0);
-
   let delta = dayOfWeek - now.getDay();
-  if (delta < 0 || (delta === 0 && target < now)) {
-    // Si le jour est déjà passé cette semaine, on ajoute 7 jours
-    delta += 7;
-  }
-
+  if (delta < 0 || (delta === 0 && target < now)) delta += 7;
   target.setDate(now.getDate() + delta);
   return target;
 }
-
-async function handleSendSSHKeys() {
-  console.log("Sending SSH keys:", sshkeys);
-  const req = create(ListSSHPublicKeysRequestSchema, {
-    userId: $authStore?.email,
-    serverpoolId: selectedPool?.name ?? "",
-    pubkeys: sshkeys.split("\n").map(k => k.trim()).filter(k => k.length > 0),
-  });
-  try {
-    const res = await addSSHKeys(req);
-    if (!res.success) {
-      console.error("Erreur lors de l'ajout des clés SSH");
-    }
-  }
-  catch (err) {
-    console.error("Erreur lors de l'ajout des clés SSH: ", err);
-    throw err;
-  }
-  createsshModal = false;
-}
-
 </script>
 
-<!-- Header Actions -->
-<div class="flex justify-between items-center mb-6 mt-4">
-  <div class="flex gap-4">
-    <Button size="md" class="w-64 h-12 bg-tertiary-400 hover:bg-tertiary-500 text-white shadow-md">
-      {selectedsp}<ChevronDownOutline class="ms-2 h-6 text-white" />
-    </Button>
-    <Dropdown simple isOpen={false} class="mt-2 bg-tertiary-300 border-tertiary-200">
-      {#each $serverPools as sp}
-      <DropdownItem name={sp.name} onclick={handleClick} class="hover:bg-tertiary-400 text-white">{sp.name}</DropdownItem>
-      {/each}
-    </Dropdown>
+<div class="space-y-6 animate-fade-up">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-primary-800" style="font-family: 'Source Sans 3', sans-serif;">Serverpools</h1>
+      <p class="text-sm text-neutral-500 mt-1">Gestion des groupes de machines virtuelles</p>
+    </div>
+    <button onclick={() => createspModal = true} class="btn btn-primary">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nouveau serverpool
+    </button>
   </div>
-  
-  <Button
-    size="lg"
-    class="bg-option-500 hover:bg-option-600 shadow-lg px-6 py-2.5 font-semibold transition-transform hover:scale-105"
-    onclick={() => createspModal = true}>
-      + Créer un serverpool
-  </Button>
+
+  <div class="flex gap-6">
+    <!-- Sidebar pool list -->
+    <div class="w-56 shrink-0 space-y-1">
+      {#each $serverPools as sp}
+        <button
+          onclick={() => selectedsp = sp.name}
+          class="w-full text-left px-3.5 py-2.5 rounded text-sm font-medium transition-all duration-150
+            {selectedsp === sp.name
+              ? 'bg-primary-50 text-primary-700 border border-primary-200'
+              : 'text-neutral-600 hover:text-primary-700 hover:bg-primary-50 border border-transparent'}"
+        >
+          <div class="flex items-center gap-2.5">
+            <span class="w-1.5 h-1.5 rounded-full {selectedsp === sp.name ? 'bg-primary-600' : 'bg-neutral-300'}"></span>
+            {sp.name}
+          </div>
+        </button>
+      {/each}
+
+      {#if $serverPools.length === 0}
+        <p class="text-xs text-neutral-400 px-3 py-2">Aucun serverpool</p>
+      {/if}
+    </div>
+
+    <!-- Detail panel -->
+    <div class="flex-1 min-w-0">
+      {#if selectedPool}
+        <div class="card p-6 space-y-6 animate-fade-in">
+
+          <!-- Pool name + range -->
+          <div class="flex items-start justify-between">
+            <div>
+              <h2 class="text-xl font-bold text-neutral-900">{selectedPool.name}</h2>
+              <p class="text-sm text-neutral-500 mt-0.5">{selectedPool.image}</p>
+            </div>
+            <div class="card-elevated px-4 py-2.5 text-center">
+              <p class="section-label mb-1">Objectif VMs</p>
+              <p class="text-xl font-bold text-primary-700 tabular-nums">{selectedPool.minVm} – {selectedPool.maxVm}</p>
+            </div>
+          </div>
+
+          <hr class="divider"/>
+
+          <!-- Properties -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {#each [
+              { label: 'Flavor', icon: 'M13 10V3L4 14h7v7l9-11h-7z', value: $flavors.find(f => f.id === selectedPool?.flavor)?.name ?? selectedPool?.flavor },
+              { label: 'Image', icon: 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7', value: $images.find(i => i.id === selectedPool?.image)?.name ?? selectedPool?.image },
+              { label: 'Réseau', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9', value: $networks.find(n => n.id === selectedPool?.network)?.name ?? selectedPool?.network },
+            ] as prop}
+              <div class="card-elevated px-4 py-3 hover:border-primary-200 transition-colors">
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={prop.icon}/>
+                  </svg>
+                  <p class="section-label">{prop.label}</p>
+                </div>
+                <p class="text-sm font-semibold text-neutral-800 truncate">{prop.value}</p>
+              </div>
+            {/each}
+          </div>
+
+          <hr class="divider"/>
+
+          <!-- Actions -->
+          <div class="flex flex-wrap gap-3">
+            <button onclick={() => handleCreateServer(selectedPool)} class="btn btn-success text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Ajouter un serveur
+            </button>
+            <button onclick={() => ListStudentModalOpen = true} class="btn btn-secondary text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              Étudiants
+            </button>
+            <div class="flex-1"></div>
+            <button onclick={() => handleDeleteServerpool(selectedPool)} class="btn btn-danger text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Supprimer
+            </button>
+          </div>
+        </div>
+
+      {:else}
+        <div class="card flex flex-col items-center justify-center py-24 text-center">
+          <svg class="w-12 h-12 text-neutral-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <p class="text-neutral-600 font-medium">Aucun serverpool sélectionné</p>
+          <p class="text-neutral-400 text-sm mt-1 max-w-xs">Sélectionnez un pool dans la liste ou créez-en un nouveau</p>
+        </div>
+      {/if}
+    </div>
+  </div>
 </div>
 
-<!-- Main Dashboard Area -->
-{#if selectedPool}
-  <div class="mt-8 bg-tertiary-300 rounded-xl p-8 shadow-xl border border-tertiary-200">
-    <!-- Header Card -->
-    <div class="flex justify-between items-center mb-8 pb-6 border-b border-tertiary-200">
-      <div>
-        <h2 class="text-3xl font-bold text-white tracking-wide mb-2">Configuration : <span class="text-option-500">{selectedPool.name}</span></h2>
-        <p class="text-gray-400">Gérez les paramètres et les instances de ce pool.</p>
-      </div>
-      <div class="bg-tertiary-400 px-6 py-3 rounded-lg shadow-inner text-sm text-gray-300 border border-tertiary-200 flex flex-col items-center">
-        <span class="text-xs uppercase tracking-widest text-gray-400 mb-1">Objectif VMs</span>
-        <span class="text-xl font-bold text-white">{selectedPool.minVm} - {selectedPool.maxVm}</span>
-      </div>
-    </div>
-
-    <!-- Properties Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-      <div class="bg-tertiary-400 p-6 rounded-xl border border-tertiary-200 shadow-sm transition-all hover:border-option-500">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-8 h-8 rounded-full bg-tertiary-500 flex items-center justify-center">🚀</div>
-          <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold">Flavor</p>
-        </div>
-        <p class="text-lg text-white font-medium break-all mt-2 pl-11">
-          {$flavors.find(img => img.id === selectedPool?.flavor)?.name ?? selectedPool?.flavor}
-        </p>
-      </div>
-
-      <div class="bg-tertiary-400 p-6 rounded-xl border border-tertiary-200 shadow-sm transition-all hover:border-option-500">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-8 h-8 rounded-full bg-tertiary-500 flex items-center justify-center">💿</div>
-          <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold">Image</p>
-        </div>
-        <p class="text-lg text-white font-medium break-all mt-2 pl-11">
-          {$images.find(img => img.id === selectedPool?.image)?.name ?? selectedPool?.image}
-        </p>
-      </div>
-
-      <div class="bg-tertiary-400 p-6 rounded-xl border border-tertiary-200 shadow-sm transition-all hover:border-option-500">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-8 h-8 rounded-full bg-tertiary-500 flex items-center justify-center">🌐</div>
-          <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold">Réseau</p>
-        </div>
-        <p class="text-lg text-white font-medium break-all mt-2 pl-11">
-          {$networks.find(img => img.id === selectedPool?.network)?.name ?? selectedPool?.network}
-        </p>
-      </div>
-    </div>
-
-    <!-- Actions Bar -->
-    <div class="flex flex-wrap gap-4 bg-tertiary-400/50 p-6 rounded-xl border border-tertiary-200">
-      <Button
-        size="lg"
-        class="bg-option-500 hover:bg-option-600 transition-colors shadow-md"
-        onclick={() => handleCreateServer(selectedPool)}>
-        Ajouter un serveur au pool
-      </Button>
-      <Button
-        size="lg"
-        class="bg-tertiary-500 hover:bg-tertiary-600 transition-colors shadow-md text-white border border-tertiary-200"
-        onclick={() => ListStudentModalOpen = true}>
-        Liste des étudiants
-      </Button>
-      <div class="flex-grow"></div>
-      <Button
-        size="lg"
-        class="bg-red-600/90 hover:bg-red-600 transition-colors shadow-md text-white"
-        onclick={() => handleDeleteServerpool(selectedPool)}>
-        Supprimer le serverpool
-      </Button>
-    </div>
-  </div>
-{:else}
-  <div class="mt-12 bg-tertiary-300 rounded-2xl p-16 text-center border border-tertiary-200 shadow-lg flex flex-col items-center justify-center h-96">
-    <div class="text-6xl mb-6 opacity-50">🎛️</div>
-    <h3 class="text-2xl font-bold text-white mb-3">Aucun serverpool sélectionné</h3>
-    <p class="text-gray-400 text-lg max-w-md">Sélectionnez un serverpool existant via le menu déroulant ci-dessus, ou créez-en un nouveau pour commencer le déploiement de vos instances.</p>
-  </div>
-{/if}
-
-<!-- Modals -->
 {#if createspModal}
-<CreateServerPoolModal
-  bind:open={createspModal}
-  images={$images}
-  flavors={sortedFlavors}
-  networks={$networks}
-  configs={$configs}
-
-  bind:selectedGroupImage
-  bind:selectedImage
-  bind:selectedFlavor
-  bind:selectedNetwork
-  bind:selectedConfigFile
-  bind:scheduleDay
-  bind:scheduleTime
-  bind:scheduleWindowHours
-  bind:offDays
-
-  {createError}
-  {createSuccess}
-
-  {handleCreateServerpool}
-  {getUniqueFirstAlphaBlocks}
-  {filterImagesByPrefix}
-/>
+  <CreateServerPoolModal
+    bind:open={createspModal}
+    images={$images} flavors={sortedFlavors} networks={$networks} configs={$configs}
+    bind:selectedGroupImage bind:selectedImage bind:selectedFlavor bind:selectedNetwork
+    bind:selectedConfigFile bind:scheduleDay bind:scheduleTime bind:scheduleWindowHours bind:offDays
+    {createError} {createSuccess}
+    {handleCreateServerpool} {getUniqueFirstAlphaBlocks} {filterImagesByPrefix}
+  />
 {/if}
 
 {#if ListStudentModalOpen && selectedPool}
-  <AddSSHKeys
-  bind:open={ListStudentModalOpen}
-  bind:poolname={selectedPool.name}
-  />
+  <AddSSHKeys bind:open={ListStudentModalOpen} bind:poolname={selectedPool.name} />
 {/if}

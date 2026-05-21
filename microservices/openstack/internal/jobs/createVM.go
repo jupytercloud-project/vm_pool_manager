@@ -92,13 +92,15 @@ func CreateVM(workerID int, job models.Job) error {
 		)
 	}
 
+	configDrive := true
 	createOpts := servers.CreateOpts{
-		Name:      fmt.Sprintf(`%s-%s`, serv.ServerpoolID, uuid.New().String()),
-		FlavorRef: serv.FlavorRef,
-		ImageRef:  serv.ImageRef,
-		Metadata:  serv.Metadata,
-		Networks:  serv.Networks.ToNetworks(),
-		UserData:  []byte(userData),
+		Name:        fmt.Sprintf(`%s-%s`, serv.ServerpoolID, uuid.New().String()),
+		FlavorRef:   serv.FlavorRef,
+		ImageRef:    serv.ImageRef,
+		Metadata:    serv.Metadata,
+		Networks:    serv.Networks.ToNetworks(),
+		UserData:    []byte(userData),
+		ConfigDrive: &configDrive,
 	}
 
 	createOptsExt := keypairs.CreateOptsExt{
