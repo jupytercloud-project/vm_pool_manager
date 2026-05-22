@@ -9,6 +9,7 @@ import (
 	"control_center/internal/configpool"
 	"control_center/internal/gatherdata"
 	"control_center/internal/monitoring"
+	oidcmw "control_center/internal/oidc"
 	"control_center/internal/pool"
 	"control_center/internal/user"
 	"control_center/pb"
@@ -91,7 +92,18 @@ func Start_grpc(ctx context.Context) {
 		log.Fatalf("Erreur lors de l'ecoute du port : %v", err)
 	}
 
-	s := grpc.NewServer()
+	// Public gRPC methods that don't require authentication
+	publicMethods := []string{
+		"/frontcontrol.AttribVMService/AttribVMinPool",
+		"/frontcontrol.AttribVMService/ReturnPoolWithKey",
+		"/frontcontrol.AuthService/AuthenticateUser",
+		"/frontcontrol.AuthService/CreateUser",
+	}
+
+	s := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(oidcmw.UnaryInterceptor(publicMethods)),
+		grpc.ChainStreamInterceptor(oidcmw.StreamInterceptor(publicMethods)),
+	)
 
 	conn, err := grpc.NewClient("localhost:50052",
 		grpc.WithTransportCredentials(insecure.NewCredentials()))

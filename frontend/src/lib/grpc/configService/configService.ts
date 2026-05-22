@@ -1,6 +1,6 @@
 import { createClient } from "@connectrpc/connect";
-import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { create } from "@bufbuild/protobuf";
+import { authenticatedTransport } from "../transport";
 
 import {
     CreateConfigRequestSchema,
@@ -21,16 +21,7 @@ import type {
     GetConfigRequest,
 } from "../frontcontrol_pb"
 
-const transport = createGrpcWebTransport({
-    baseUrl: "/rpc/", //a modifier !
-    // baseUrl: "/rpc/", // Version VM
-    useBinaryFormat: true,
-    interceptors: [],
-    fetch: globalThis.fetch,
-    jsonOptions: {},
-});
-
-const configClient = createClient(ConfigService, transport);
+const configClient = createClient(ConfigService, authenticatedTransport);
 
 export async function createConfig(
     user: string, 

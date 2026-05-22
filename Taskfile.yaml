@@ -81,6 +81,17 @@ tasks:
     cmds:
       - npm run dev -- --host
 
+  auth:
+    desc: "Lance GLAuth + Dex (Docker Compose)"
+    cmds:
+      - docker compose -f docker-compose.auth.yaml up -d
+      - echo "GLAuth LDAP sur :3893 | Dex OIDC sur http://localhost:5556/dex"
+
+  auth:stop:
+    desc: "Arrête GLAuth + Dex"
+    cmds:
+      - docker compose -f docker-compose.auth.yaml down
+
   control:
     desc: "Lance le control center"
     dir: control_center

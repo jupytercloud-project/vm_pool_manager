@@ -1,0 +1,19 @@
+services:
+  glauth:
+    image: ghcr.io/glauth/glauth:latest
+    container_name: glauth
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./auth/glauth.cfg:/app/config/config.cfg:ro
+
+  dex:
+    image: ghcr.io/dexidp/dex:v2.41.1
+    container_name: dex
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./auth/dex.yaml:/etc/dex/config.yaml:ro
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    depends_on:
+      - glauth

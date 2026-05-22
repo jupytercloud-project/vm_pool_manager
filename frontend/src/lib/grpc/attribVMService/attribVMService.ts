@@ -1,6 +1,5 @@
 // src/lib/poolClient.ts
 import { createClient } from "@connectrpc/connect";
-import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { create } from "@bufbuild/protobuf";
 
 import {
@@ -17,16 +16,9 @@ import type {
 } from "../frontcontrol_pb";
 
 
-const transport = createGrpcWebTransport({
-  baseUrl: "/rpc/", //a modifier !
-  // baseUrl: "/rpc/", // Version VM
-  useBinaryFormat: true,
-  interceptors: [],
-  fetch: globalThis.fetch,
-  jsonOptions: {},
-});
+import { publicTransport } from "../transport";
 
-const attribClient = createClient(AttribVMService, transport);
+const attribClient = createClient(AttribVMService, publicTransport);
 
 /**
  * Recherche les pools disponibles pour une clé SSH donnée

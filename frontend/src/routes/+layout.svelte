@@ -3,79 +3,42 @@
   import favicon from '$lib/assets/favicon.svg';
   import logoX from '$lib/assets/logo_polytechnique_crop.png';
   import {
-    loadAll, login, logout, resetAll, subscribeUserUpdate,
+    loadAll, logout, resetAll, subscribeUserUpdate,
   } from '$lib/index'
-  import { authStore } from '$lib/store';
+  import { authStore, startOIDCLogin } from '$lib/store/authStore';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { browser } from '$app/environment';
   import { page } from '$app/state';
-  import { createUser, authenticateUser } from '$lib/grpc/authService/authService';
 
   let { children } = $props();
   let userStreamController: AbortController | null = null;
+
+  let previousEmail: string | null = null;
 
   authStore.subscribe(async (auth) => {
     if (!browser) return;
     if (userStreamController) { userStreamController.abort(); userStreamController = null; }
     if (auth?.email) {
       userStreamController = new AbortController();
-      await subscribeUserUpdate(auth.email, userStreamController.signal);
+      subscribeUserUpdate(auth.email, userStreamController.signal);
+      if (auth.email !== previousEmail) {
+        previousEmail = auth.email;
+        await loadAll(auth.email);
+      }
+    } else {
+      previousEmail = null;
+      resetAll();
     }
   });
 
   onMount(async () => {
     if (!browser) return;
     const token = get(authStore);
-    if (token) await loadAll(token.email);
-    else resetAll();
+    if (!token) resetAll();
   });
 
   let mobileOpen = $state(false);
-
-  let loginModal = $state(false);
-  let loginError = $state('');
-  let loginLoading = $state(false);
-  let loginSuccess = $state(false);
-
-  async function handleLogin(event: Event) {
-    event.preventDefault();
-    const form = event.target as HTMLFormElement;
-    const data = new FormData(form);
-    loginError = ''; loginLoading = true;
-    try {
-      const result = await authenticateUser(data.get('email') as string, data.get('password') as string);
-      if (!result.success) { loginError = 'Identifiants incorrects'; return; }
-      login(result.token, data.get('email') as string);
-      loginSuccess = true;
-      await loadAll(data.get('email') as string);
-      setTimeout(() => { form.reset(); loginModal = false; loginSuccess = false; }, 1200);
-    } catch { loginError = 'Erreur de connexion au serveur'; }
-    finally { loginLoading = false; }
-  }
-
-  let createModal = $state(false);
-  let createError = $state('');
-  let createLoading = $state(false);
-  let createSuccess = $state(false);
-
-  async function tryCreate(event: Event) {
-    event.preventDefault();
-    const form = event.target as HTMLFormElement;
-    const data = new FormData(form);
-    createError = ''; createLoading = true;
-    const pass = data.get('password') as string;
-    const confirm = data.get('confirmpassword') as string;
-    if (pass !== confirm) { createError = 'Les mots de passe ne correspondent pas'; createLoading = false; return; }
-    try {
-      const result = await createUser(data.get('name') as string, data.get('email') as string, pass);
-      if (result.success) {
-        createSuccess = true;
-        setTimeout(() => { form.reset(); createModal = false; createSuccess = false; loginModal = true; }, 1800);
-      } else { createError = 'Impossible de créer le compte'; }
-    } catch { createError = 'Erreur de connexion au serveur'; }
-    finally { createLoading = false; }
-  }
 
   const navLinks = $derived(() => {
     const auth = $authStore;
@@ -150,8 +113,7 @@
           {/if}
           <button onclick={logout} class="btn btn-secondary text-xs px-3.5 py-2">Déconnexion</button>
         {:else}
-          <button onclick={() => loginModal = true} class="btn btn-secondary text-xs px-3.5 py-2">Connexion</button>
-          <button onclick={() => createModal = true} class="btn btn-primary text-xs px-3.5 py-2">Inscription</button>
+          <button onclick={startOIDCLogin} class="btn btn-primary text-xs px-3.5 py-2">Se connecter</button>
         {/if}
 
         <!-- Hamburger -->
@@ -200,97 +162,3 @@
   </footer>
 </div>
 
-<!-- Login Modal -->
-{#if loginModal}
-  <div class="modal-overlay" role="dialog" aria-modal="true">
-    <div class="modal-box">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-bold text-neutral-900" style="font-family: 'Source Sans 3', sans-serif;">Connexion</h3>
-        <button onclick={() => loginModal = false} class="text-neutral-400 hover:text-neutral-700 transition-colors p-1 rounded hover:bg-neutral-100">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-
-      {#if loginError}
-        <div class="mb-4 px-3 py-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-sm animate-fade-in">{loginError}</div>
-      {/if}
-      {#if loginSuccess}
-        <div class="mb-4 px-3 py-2.5 rounded bg-green-50 border border-green-200 text-green-700 text-sm animate-fade-in">Connexion réussie</div>
-      {/if}
-
-      <form class="space-y-4" onsubmit={handleLogin}>
-        <div class="space-y-1.5">
-          <label class="section-label" for="login-email">Email</label>
-          <input id="login-email" class="field" type="email" name="email" placeholder="prenom.nom@polytechnique.edu" required />
-        </div>
-        <div class="space-y-1.5">
-          <label class="section-label" for="login-pass">Mot de passe</label>
-          <input id="login-pass" class="field" type="password" name="password" placeholder="••••••••" required />
-        </div>
-        <button type="submit" class="btn btn-primary w-full mt-2" disabled={loginLoading}>
-          {#if loginLoading}
-            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>
-          {/if}
-          Se connecter
-        </button>
-      </form>
-
-      <p class="mt-4 text-center text-xs text-neutral-500">
-        Pas de compte ?
-        <button onclick={() => { loginModal = false; createModal = true; }} class="text-primary-700 hover:text-primary-800 font-semibold transition-colors ml-1">Inscription</button>
-      </p>
-    </div>
-  </div>
-{/if}
-
-<!-- Create Account Modal -->
-{#if createModal}
-  <div class="modal-overlay" role="dialog" aria-modal="true">
-    <div class="modal-box">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-bold text-neutral-900" style="font-family: 'Source Sans 3', sans-serif;">Créer un compte</h3>
-        <button onclick={() => createModal = false} class="text-neutral-400 hover:text-neutral-700 transition-colors p-1 rounded hover:bg-neutral-100">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-
-      {#if createError}
-        <div class="mb-4 px-3 py-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-sm animate-fade-in">{createError}</div>
-      {/if}
-      {#if createSuccess}
-        <div class="mb-4 px-3 py-2.5 rounded bg-green-50 border border-green-200 text-green-700 text-sm animate-fade-in">Compte créé avec succès</div>
-      {/if}
-
-      <form class="space-y-4" onsubmit={tryCreate}>
-        <div class="space-y-1.5">
-          <label class="section-label">Nom</label>
-          <input class="field" type="text" name="name" placeholder="Votre nom" required />
-        </div>
-        <div class="space-y-1.5">
-          <label class="section-label">Email</label>
-          <input class="field" type="email" name="email" placeholder="prenom.nom@polytechnique.edu" required />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <label class="section-label">Mot de passe</label>
-            <input class="field" type="password" name="password" placeholder="••••••••" required />
-          </div>
-          <div class="space-y-1.5">
-            <label class="section-label">Confirmer</label>
-            <input class="field" type="password" name="confirmpassword" placeholder="••••••••" required />
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary w-full mt-2" disabled={createLoading}>
-          {#if createLoading}
-            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>
-          {/if}
-          Créer le compte
-        </button>
-      </form>
-    </div>
-  </div>
-{/if}

@@ -2,12 +2,16 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"log"
 
 	"control_center/frontcontrolpb"
+	oidchelper "control_center/internal/oidc"
 	"control_center/models"
 	"control_center/pb"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -27,13 +31,14 @@ func (s *Service) CreateUser(
 ) (*frontcontrolpb.CreateUserResponse, error) {
 
 	if req.Username == "" || req.Email == "" || req.Password == "" {
-		return &frontcontrolpb.CreateUserResponse{
-			Success: false,
-			UserId:  "",
-		}, fmt.Errorf("missing required fields")
+		return &frontcontrolpb.CreateUserResponse{Success: false}, fmt.Errorf("missing required fields")
 	}
 
-	// First user becomes admin, all others are students
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return &frontcontrolpb.CreateUserResponse{Success: false}, err
+	}
+
 	role := "student"
 	var count int64
 	s.DB.Model(&models.User{}).Count(&count)
@@ -44,38 +49,33 @@ func (s *Service) CreateUser(
 	u := models.User{
 		Name:     req.Username,
 		Email:    req.Email,
-		Password: req.Password,
+		Password: string(hashed),
 		Role:     role,
 	}
 	if err := s.DB.Create(&u).Error; err != nil {
-		return &frontcontrolpb.CreateUserResponse{
-			Success: false,
-			UserId:  "",
-		}, fmt.Errorf("failed to create user: %v", err)
+		return &frontcontrolpb.CreateUserResponse{Success: false}, fmt.Errorf("failed to create user: %v", err)
 	}
-	rep, err := s.pm.SendRessources(
-		context.Background(),
-		&pb.RessourceRequest{
-			User: u.Email,
-			Data: map[string]string{
-				"name":     u.Name,
-				"email":    u.Email,
-				"password": u.Password,
-			},
-			Status: pb.Status_CREATE,
-			Type:   pb.Type_USER,
+
+	// Create user in GLAuth LDAP
+	sha256hex := fmt.Sprintf("%x", sha256.Sum256([]byte(req.Password)))
+	if err := oidchelper.CreateLDAPUser(req.Username, req.Email, sha256hex, role == "admin"); err != nil {
+		log.Printf("[auth] GLAuth user creation failed (non-fatal): %v", err)
+	}
+
+	_, err = s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+		User: u.Email,
+		Data: map[string]string{
+			"name":  u.Name,
+			"email": u.Email,
 		},
-	)
-	if err != nil || rep.GetSuccess() == false {
-		return &frontcontrolpb.CreateUserResponse{
-			Success: false,
-			UserId:  "",
-		}, fmt.Errorf("failed to notify PoolManager: %v", err)
+		Status: pb.Status_CREATE,
+		Type:   pb.Type_USER,
+	})
+	if err != nil {
+		log.Printf("[auth] PoolManager sync failed (non-fatal): %v", err)
 	}
-	return &frontcontrolpb.CreateUserResponse{
-		Success: true,
-		UserId:  fmt.Sprintf("%d", u.ID),
-	}, nil
+
+	return &frontcontrolpb.CreateUserResponse{Success: true, UserId: fmt.Sprintf("%d", u.ID)}, nil
 }
 
 func (s *Service) AuthenticateUser(
@@ -85,27 +85,16 @@ func (s *Service) AuthenticateUser(
 	var user models.User
 	err := s.DB.Where("email = ?", req.Email).First(&user).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return &frontcontrolpb.AuthenticateUserResponse{
-				Success: false,
-				Token:   "",
-			}, fmt.Errorf("user not found")
+		return &frontcontrolpb.AuthenticateUserResponse{Success: false}, fmt.Errorf("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		// Fallback: accept plaintext passwords from before migration
+		if user.Password != req.Password {
+			return &frontcontrolpb.AuthenticateUserResponse{Success: false}, fmt.Errorf("invalid password")
 		}
-		return &frontcontrolpb.AuthenticateUserResponse{
-			Success: false,
-			Token:   "",
-		}, fmt.Errorf("database error: %v", err)
 	}
-	if user.Password != req.Password {
-		return &frontcontrolpb.AuthenticateUserResponse{
-			Success: false,
-			Token:   "",
-		}, fmt.Errorf("invalid password")
-	}
-	// Token encodes role: "role:email:id"
+
 	token := fmt.Sprintf("%s:%s:%d", user.Role, user.Email, user.ID)
-	return &frontcontrolpb.AuthenticateUserResponse{
-		Success: true,
-		Token:   token,
-	}, nil
+	return &frontcontrolpb.AuthenticateUserResponse{Success: true, Token: token}, nil
 }

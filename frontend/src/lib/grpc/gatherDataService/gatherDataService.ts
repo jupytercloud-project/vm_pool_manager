@@ -1,5 +1,4 @@
 import { createClient } from "@connectrpc/connect";
-import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -17,16 +16,9 @@ import type {
     UserRequest,
 } from "../frontcontrol_pb"
 
-const transport = createGrpcWebTransport({
-  baseUrl: "/rpc/", //a modifier !
-  // baseUrl: "/rpc/", // Version VM
-  useBinaryFormat: true,
-  interceptors: [],
-  fetch: globalThis.fetch,
-  jsonOptions: {},
-});
+import { authenticatedTransport } from "../transport";
 
-const gatherClient = createClient(GatherDataService, transport);
+const gatherClient = createClient(GatherDataService, authenticatedTransport);
 
 export async function getAllImages(user: string): Promise<Image[]>{
     const results: Image[] = [];

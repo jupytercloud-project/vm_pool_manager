@@ -1,6 +1,6 @@
 // place files you want to import through the `$lib` alias in this folder.
 
-export { login, logout, tryLogin } from './store/authStore';
+export { login, logout, tryLogin, startOIDCLogin, loginOIDC } from './store/authStore';
 export { getAllImages,
     getAllFlavors,
     getAllNetworks,

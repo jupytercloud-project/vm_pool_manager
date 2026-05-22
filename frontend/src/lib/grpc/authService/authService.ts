@@ -1,5 +1,5 @@
 import { createClient } from "@connectrpc/connect";
-import { createGrpcWebTransport } from "@connectrpc/connect-web";
+import { publicTransport } from "../transport";
 import {
   AuthService,
   CreateUserRequestSchema,
@@ -14,19 +14,7 @@ import type {
 import { create } from "@bufbuild/protobuf";
 
 
-const transport = createGrpcWebTransport({
-  baseUrl: "/rpc/", //a modifier ! 
-  // baseUrl: "/rpc/", // Version VM
-  useBinaryFormat: true,
-  interceptors: [],
-  fetch: globalThis.fetch,
-  jsonOptions: {},
-});
-
-/**
- * Création d'un client Connect pour AuthService
- */
-const authClient = createClient(AuthService, transport);
+const authClient = createClient(AuthService, publicTransport);
 
 
 export async function createUser(
