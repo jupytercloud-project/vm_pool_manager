@@ -66,6 +66,7 @@ func Start_DB(ctx context.Context) {
 		&models.ListStudents{},
 		&models.Student{},
 		&models.VMInstance{},
+		&models.GitHubSession{},
 	)
 
 	syncSequences(Database)

@@ -16,8 +16,12 @@
         }
     }
 
-    # ---------- REST API + vm-registrar binary ----------
+    # ---------- REST API + vm-registrar binary + GitHub OAuth ----------
     handle /api/* {
+        reverse_proxy host.docker.internal:50055
+    }
+
+    handle /auth/* {
         reverse_proxy host.docker.internal:50055
     }
 

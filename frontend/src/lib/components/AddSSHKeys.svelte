@@ -13,11 +13,55 @@
     poolname,
   }: { open: boolean; poolname: string } = $props();
 
+  type AddMode = 'form' | 'raw' | 'github';
+
   let addModal = $state(false);
   let loading = $state(false);
   let error: string | null = $state(null);
   let rawMode = $state(false);
+  let addMode = $state<AddMode>('form');
   let rawInput = $state('');
+
+  // GitHub mode state
+  interface GitHubStudent { login: string; keys: string[] }
+  let githubStudents = $state<GitHubStudent[]>([]);
+  let githubLoading = $state(false);
+  let githubSelected = $state<Set<string>>(new Set());
+  let githubFirstNames: Record<string, string> = $state({});
+  let githubLastNames: Record<string, string> = $state({});
+  let githubKeyChoice: Record<string, number> = $state({});
+
+  async function loadGitHubStudents() {
+    githubLoading = true;
+    try {
+      const res = await fetch('/api/github/students');
+      if (res.ok) githubStudents = await res.json() ?? [];
+    } catch { /* ignore */ } finally { githubLoading = false; }
+  }
+
+  function toggleGitHubStudent(login: string) {
+    const s = new Set(githubSelected);
+    if (s.has(login)) s.delete(login); else s.add(login);
+    githubSelected = s;
+  }
+
+  async function handleAddGitHub() {
+    const toAdd = githubStudents.filter(s => githubSelected.has(s.login));
+    if (!toAdd.length) { error = 'Sélectionnez au moins un étudiant.'; return; }
+    const students = toAdd.map(s => {
+      const keyIdx = githubKeyChoice[s.login] ?? 0;
+      return { name: `${(githubFirstNames[s.login] ?? '').trim()}.${(githubLastNames[s.login] ?? '').trim()}`.toLowerCase(), sshKey: s.keys[keyIdx] ?? '' };
+    }).filter(s => s.name !== '.' && s.sshKey);
+    if (!students.length) { error = 'Renseignez prénom et nom pour les étudiants sélectionnés.'; return; }
+    const req: AddStudentRequest = create(AddStudentRequestSchema, { user: $authStore?.email, poolname, students });
+    try {
+      loading = true; error = null;
+      await addStudents(req);
+      await handleListStudents();
+      githubSelected = new Set();
+      addModal = false;
+    } catch { error = "Erreur lors de l'ajout."; } finally { loading = false; }
+  }
 
   interface User { name: string; sshKey: string; ip: string; }
   interface NewStudent { firstName: string; lastName: string; sshKey: string; }
@@ -92,7 +136,8 @@
   }
 
   $effect(() => { if (open) handleListStudents(); });
-  $effect(() => { if (rawMode) newStudents = [{ firstName: '', lastName: '', sshKey: '' }]; });
+  $effect(() => { if (addModal) { loadGitHubStudents(); } });
+  $effect(() => { rawMode = addMode === 'raw'; if (rawMode) newStudents = [{ firstName: '', lastName: '', sshKey: '' }]; });
 </script>
 
 <!-- Main modal -->
@@ -185,17 +230,65 @@
 
       <!-- Mode toggle -->
       <div class="flex gap-1 mb-5 p-1 bg-neutral-100 rounded border border-neutral-200 w-fit">
-        <button
-          onclick={() => rawMode = false}
-          class="px-4 py-1.5 rounded text-sm font-semibold transition-all {!rawMode ? 'bg-white text-primary-700 shadow-sm border border-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}"
-        >Formulaire</button>
-        <button
-          onclick={() => rawMode = true}
-          class="px-4 py-1.5 rounded text-sm font-semibold transition-all {rawMode ? 'bg-white text-primary-700 shadow-sm border border-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}"
-        >Import texte</button>
+        {#each ([['form','Formulaire'],['raw','Import texte'],['github','GitHub']] as const) as [mode, label]}
+          <button
+            onclick={() => addMode = mode}
+            class="px-4 py-1.5 rounded text-sm font-semibold transition-all {addMode === mode ? 'bg-white text-primary-700 shadow-sm border border-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}"
+          >{label}</button>
+        {/each}
       </div>
 
-      {#if rawMode}
+      {#if addMode === 'github'}
+        {#if githubLoading}
+          <div class="flex items-center justify-center py-10">
+            <div class="w-6 h-6 rounded-full border-2 border-neutral-200 border-t-primary-700" style="animation: spinnerGlow 0.7s linear infinite;"></div>
+          </div>
+        {:else if githubStudents.length === 0}
+          <div class="flex flex-col items-center justify-center py-10 text-neutral-400 text-center">
+            <svg class="w-8 h-8 mb-2 text-neutral-300" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <p class="text-sm">Aucun étudiant connecté via GitHub</p>
+            <p class="text-xs text-neutral-400 mt-1">Les étudiants doivent se connecter avec leur compte GitHub sur le portail.</p>
+          </div>
+        {:else}
+          <div class="space-y-3 max-h-72 overflow-y-auto pr-1">
+            {#each githubStudents as gh}
+              <div class="p-3 rounded border transition-colors {githubSelected.has(gh.login) ? 'border-primary-300 bg-primary-50' : 'border-neutral-200 bg-neutral-50'}">
+                <div class="flex items-center gap-2 mb-2">
+                  <input type="checkbox" checked={githubSelected.has(gh.login)} onchange={() => toggleGitHubStudent(gh.login)} class="w-4 h-4 accent-primary-700" />
+                  <svg class="w-4 h-4 text-neutral-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                  </svg>
+                  <span class="text-sm font-semibold text-neutral-800 font-mono">{gh.login}</span>
+                  <span class="text-xs text-neutral-400">{gh.keys.length} clé{gh.keys.length > 1 ? 's' : ''}</span>
+                </div>
+                {#if githubSelected.has(gh.login)}
+                  <div class="flex gap-2 mt-1">
+                    <input class="field flex-1 text-xs" type="text" placeholder="Prénom" bind:value={githubFirstNames[gh.login]} />
+                    <input class="field flex-1 text-xs" type="text" placeholder="Nom" bind:value={githubLastNames[gh.login]} />
+                  </div>
+                  {#if gh.keys.length > 1}
+                    <select class="field text-xs mt-2 font-mono" bind:value={githubKeyChoice[gh.login]}>
+                      {#each gh.keys as key, i}
+                        <option value={i}>Clé {i+1} — {key.slice(0,40)}…</option>
+                      {/each}
+                    </select>
+                  {/if}
+                {/if}
+              </div>
+            {/each}
+          </div>
+          <div class="flex justify-end mt-4">
+            <button onclick={handleAddGitHub} disabled={loading || githubSelected.size === 0} class="btn btn-primary text-sm">
+              {#if loading}
+                <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>
+              {/if}
+              Ajouter les sélectionnés
+            </button>
+          </div>
+        {/if}
+      {:else if rawMode}
         <div class="space-y-3">
           <label class="section-label block mb-1">Un étudiant par ligne : <code class="text-primary-700 font-mono">prenom.nom;cle_ssh</code></label>
           <textarea

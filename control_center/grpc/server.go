@@ -153,6 +153,11 @@ func Start_grpc(ctx context.Context) {
 	mux.HandleFunc("/api/vm-activity", handleVMActivity)
 	mux.HandleFunc("/api/guac-url", handleGuacURL)
 	mux.HandleFunc("/api/app-status", handleAppStatus)
+	mux.HandleFunc("/api/github/session", handleGitHubSession)
+	mux.HandleFunc("/api/github/students", handleGitHubStudents)
+	mux.HandleFunc("/api/github/public-keys", handleGitHubPublicKeys)
+	mux.HandleFunc("/api/github/login", handleGitHubLogin)
+	mux.HandleFunc("/auth/github/callback", handleGitHubCallback)
 	mux.HandleFunc("/vm-registrar", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "vm-registrar")
 	})
@@ -160,12 +165,12 @@ func Start_grpc(ctx context.Context) {
 	httpServer := &http.Server{
 		Addr: ":50055",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// REST API routes
-			if strings.HasPrefix(r.URL.Path, "/api/") {
+			if strings.HasPrefix(r.URL.Path, "/api/") ||
+				strings.HasPrefix(r.URL.Path, "/auth/") ||
+				r.URL.Path == "/vm-registrar" {
 				mux.ServeHTTP(w, r)
 				return
 			}
-			// gRPC-Web
 			wrappedGrpc.ServeHTTP(w, r)
 		}),
 	}
