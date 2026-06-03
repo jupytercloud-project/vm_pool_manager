@@ -5,7 +5,7 @@
 
 cd "$(dirname "$0")/.."
 
-ENVS=(scipy-plus bio583 eco589 compeco mec431 mec558 map579 mec552a mec552b mec568 mec581 mec666)
+ENVS=(scipy scipy-plus datascience julia bio583 eco589 compeco mec431 mec558 map579 mec552a mec552b mec568 mec581 mec666)
 
 wait_for_quota() {
   local needed=24

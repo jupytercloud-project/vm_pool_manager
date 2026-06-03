@@ -14,10 +14,16 @@ SSH_KEY="${SSH_PRIVATE_KEY_PATH:-$HOME/.ssh/id_ed25519}"
 STATE_DIR="/tmp/jupyter-snapshot-state"
 mkdir -p "$STATE_DIR"
 
+# Local Docker tag baked into every snapshot – the startup script always uses this name.
+NBGRADER_LOCAL_TAG="jupyter-nbgrader:latest"
+
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 ENVS=(
+  "scipy|registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/jupyter/scipy-notebook:latest"
   "scipy-plus|registry.virtualdata.cloud.idcs.polytechnique.fr/plmlab-hub-proxy/docker-images/scipy-notebook-plus:2023.01.24"
+  "datascience|registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/jupyter/datascience-notebook:2343e33dec46"
+  "julia|registry.virtualdata.cloud.idcs.polytechnique.fr/plmlab-hub-proxy/docker-images/julia:0.0.4"
   "bio583|registry.virtualdata.cloud.idcs.polytechnique.fr/plmlab-hub-proxy/ip-paris/idcs/docker/bio583:0.0.1"
   "eco589|registry.virtualdata.cloud.idcs.polytechnique.fr/gitlab-in2p3-proxy/energy4climate/public/education/eco-589-tutorials:0.2"
   "compeco|albop/computational_economics:latest"
@@ -61,6 +67,42 @@ wait_ssh() {
     sleep 5
   done
   return 1
+}
+
+# Build nbgrader-enriched image on the remote VM via scp + docker build
+build_nbgrader_image() {
+  local ip=$1 base_image=$2
+
+  log "  Building nbgrader image on top of: $base_image"
+
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  cat > "$tmpdir/Dockerfile" << DOCKERFILE
+FROM ${base_image}
+USER root
+RUN apt-get update -qq && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/* || true
+RUN pip3 install --quiet nbgrader 2>/dev/null || pip install --quiet nbgrader
+# JupyterLab 4 needs a newer 'packaging' than nbgrader may leave behind
+RUN pip3 install --quiet -U packaging 2>/dev/null || pip install --quiet -U packaging 2>/dev/null || true
+RUN jupyter nbextension install --sys-prefix --py nbgrader --overwrite --quiet 2>/dev/null || true && \
+    jupyter nbextension enable  --sys-prefix --py nbgrader --quiet 2>/dev/null || true && \
+    jupyter serverextension enable --sys-prefix --py nbgrader --quiet 2>/dev/null || true
+RUN mkdir -p /home/jovyan/nbgrader
+USER jovyan
+DOCKERFILE
+
+  scp -o StrictHostKeyChecking=no -i "$SSH_KEY" "$tmpdir/Dockerfile" "vmuser@$ip:/home/vmuser/Dockerfile"
+  local scp_status=$?
+  rm -rf "$tmpdir"
+  [ "$scp_status" -ne 0 ] && { log "  WARNING: scp Dockerfile failed"; return 1; }
+
+  ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "vmuser@$ip" bash -s << SSHEOF
+set -e
+sudo docker pull '${base_image}'
+sudo docker build --no-cache -t '${NBGRADER_LOCAL_TAG}' /home/vmuser/
+rm -f /home/vmuser/Dockerfile
+echo "Build complete."
+SSHEOF
 }
 
 process() {
@@ -113,14 +155,23 @@ process() {
     return 1
   fi
 
-  wait_ssh "$ip" || { log "[$suffix] SSH failed, cleaning up."; openstack --os-cloud "$OS_CLOUD" server delete "$vm_id" || true; rm -f "$state_file"; return 1; }
+  wait_ssh "$ip" || {
+    log "[$suffix] SSH failed, cleaning up."
+    openstack --os-cloud "$OS_CLOUD" server delete "$vm_id" || true
+    rm -f "$state_file"
+    return 1
+  }
 
   local vm_status
   vm_status=$(openstack --os-cloud "$OS_CLOUD" server show "$vm_id" --format value -c status 2>/dev/null || echo "UNKNOWN")
   if [ "$vm_status" != "SHUTOFF" ]; then
-    log "[$suffix] Pulling docker image: $docker_image"
-    ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "vmuser@$ip" \
-      "sudo docker pull ${docker_image}" || log "[$suffix] WARNING: docker pull failed"
+    # Build nbgrader-enriched image; fallback to plain tag if build fails
+    if ! build_nbgrader_image "$ip" "$docker_image"; then
+      log "[$suffix] nbgrader build failed — falling back to plain pull + tag"
+      ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "vmuser@$ip" \
+        "sudo docker pull '${docker_image}' && sudo docker tag '${docker_image}' '${NBGRADER_LOCAL_TAG}'" || \
+        log "[$suffix] WARNING: fallback pull also failed"
+    fi
 
     log "[$suffix] Stopping VM..."
     openstack --os-cloud "$OS_CLOUD" server stop "$vm_id"
@@ -161,7 +212,7 @@ process() {
   sleep 5
 }
 
-log "=== Snapshot worker started (PID $$) ==="
+log "=== Snapshot worker started (PID $$) — nbgrader enriched images ==="
 for entry in "${ENVS[@]}"; do
   IFS='|' read -r suffix docker_image <<< "$entry"
   process "$suffix" "$docker_image"

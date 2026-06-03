@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { authStore, serverPools } from '$lib/store';
   import { browser } from '$app/environment';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
   interface Grade {
     student: string;
@@ -17,6 +18,7 @@
   let grades: Grade[] = $state([]);
   let jupyterURL = $state('');      // proxy URL (for display)
   let jupyterDirectURL = $state(''); // direct VM URL (for iframe)
+  let formgraderBaseURL = $state(''); // proxy URL for Formgrader
 
   let loadingAssignments = $state(false);
   let loadingGrades = $state(false);
@@ -25,6 +27,15 @@
   let autograding = $state(false);
   let actionOutput = $state('');
   let error = $state('');
+
+  // Confirmation modal state
+  let confirmState = $state({
+    show: false,
+    title: '',
+    message: '',
+    danger: false,
+    onConfirm: () => {}
+  });
 
   onMount(() => {
     if (!browser) return;
@@ -53,6 +64,8 @@
         const data = await res.json();
         jupyterURL = data.url ?? '';
         jupyterDirectURL = (data.directUrl ?? '') + '/lab';
+        // Formgrader base URL should use the direct IP since base_url is not configured in Jupyter
+        formgraderBaseURL = (data.directUrl ?? '').replace(/\/$/, '').replace(/%40/g, '@');
       }
     } catch { jupyterURL = ''; }
   }
@@ -92,15 +105,33 @@
     }
   }
 
-  async function postAction(endpoint: string, setter: (v: boolean) => void) {
-    if (!selectedPool) return;
+  // Open the manual-grading page for a student's submission. Formgrader grades
+  // a submission at /formgrader/submissions/<uuid>/?index=0 — we resolve that
+  // uuid from the gradebook; if unavailable we fall back to the assignment's
+  // submissions list (there is no /manage_submissions/<assignment>/<student> route).
+  async function openManualGrading(student: string) {
+    if (!selectedPool || !selectedAssignment) return;
+    let url = `${formgraderBaseURL}/formgrader/manage_submissions/${encodeURIComponent(selectedAssignment)}`;
+    try {
+      const res = await fetch(
+        `/api/nbgrader/submission-url?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}&assignment=${encodeURIComponent(selectedAssignment)}&student=${encodeURIComponent(student)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.submission_id) url = `${formgraderBaseURL}/formgrader/submissions/${data.submission_id}/?index=0`;
+      }
+    } catch { /* fall back to the submissions list */ }
+    window.open(url, '_blank', 'noopener');
+  }
+
+  async function executeAction(endpoint: string, setter: (v: boolean) => void) {
     setter(true);
     actionOutput = '';
     error = '';
     try {
       const params = new URLSearchParams({
-        pool_id: selectedPool.name,
-        user_id: selectedPool.userId,
+        pool_id: selectedPool!.name,
+        user_id: selectedPool!.userId,
       });
       if (selectedAssignment) params.set('assignment', selectedAssignment);
       const res = await fetch(`/api/nbgrader/${endpoint}?${params}`, { method: 'POST' });
@@ -118,6 +149,22 @@
       setter(false);
     }
   }
+
+  function postAction(endpoint: string, setter: (v: boolean) => void, confirmMsg?: string, danger: boolean = false) {
+    if (!selectedPool) return;
+    if (confirmMsg) {
+      confirmState = {
+        show: true,
+        title: endpoint === 'release' ? 'Distribuer' : endpoint === 'collect' ? 'Collecter' : 'Notation',
+        message: confirmMsg,
+        danger,
+        onConfirm: () => executeAction(endpoint, setter)
+      };
+    } else {
+      executeAction(endpoint, setter);
+    }
+  }
+
 
   function downloadCSV() {
     if (!selectedPool) return;
@@ -150,6 +197,14 @@
 <svelte:head><title>Notation — CloudPoolManager</title></svelte:head>
 
 <div class="h-[calc(100vh-8rem)] flex flex-col gap-4 animate-fade-up">
+
+  <ConfirmModal
+    bind:show={confirmState.show}
+    title={confirmState.title}
+    message={confirmState.message}
+    danger={confirmState.danger}
+    onConfirm={confirmState.onConfirm}
+  />
 
   <!-- Header + pool selector -->
   <div class="flex items-center gap-4 flex-wrap">
@@ -199,14 +254,14 @@
     <div class="w-80 shrink-0 flex flex-col gap-3 overflow-y-auto">
 
       <!-- Actions -->
-      <div class="card p-4 space-y-2">
+      <div class="card p-4 space-y-3">
         <p class="section-label block mb-3">Actions</p>
 
         <button
-          onclick={() => postAction('release', v => releasing = v)}
+          onclick={() => postAction('release', v => releasing = v, `Êtes-vous sûr de vouloir distribuer l'assignment "${selectedAssignment}" à tous les étudiants ?`)}
           disabled={releasing || !selectedAssignment}
           class="btn btn-secondary w-full text-sm justify-start gap-2"
-          title="Envoie le sujet aux étudiants"
+          title="Copie le devoir chez tous les étudiants"
         >
           {#if releasing}
             <span class="w-3.5 h-3.5 border-2 border-neutral-400/40 border-t-neutral-600 rounded-full shrink-0" style="animation:spinnerGlow 0.6s linear infinite;"></span>
@@ -219,7 +274,7 @@
         </button>
 
         <button
-          onclick={() => postAction('collect', v => collecting = v)}
+          onclick={() => postAction('collect', v => collecting = v, `Êtes-vous sûr de vouloir collecter les copies pour "${selectedAssignment}" ? Les travaux seront copiés depuis l'environnement des étudiants.`)}
           disabled={collecting || !selectedAssignment}
           class="btn btn-secondary w-full text-sm justify-start gap-2"
           title="Collecte les soumissions des étudiants"
@@ -235,7 +290,7 @@
         </button>
 
         <button
-          onclick={() => postAction('autograde', v => autograding = v)}
+          onclick={() => postAction('autograde', v => autograding = v, `Êtes-vous sûr de vouloir lancer la notation automatique pour "${selectedAssignment}" ? Cela peut prendre plusieurs minutes.`, false)}
           disabled={autograding || !selectedAssignment}
           class="btn btn-primary w-full text-sm justify-start gap-2"
           title="Note automatiquement les notebooks"
@@ -300,15 +355,26 @@
                   <span class="text-xs font-mono text-neutral-800 dark:text-neutral-200 truncate max-w-[60%]">{grade.student}</span>
                   <span class="text-xs font-bold tabular-nums {scoreColor(grade)}">{grade.score.toFixed(1)}/{grade.max_score.toFixed(1)}</span>
                 </div>
-                <div class="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden mb-1.5">
                   <div
                     class="h-full rounded-full {grade.max_score > 0 && grade.score/grade.max_score >= 0.8 ? 'bg-green-500' : grade.max_score > 0 && grade.score/grade.max_score >= 0.5 ? 'bg-amber-500' : 'bg-red-500'}"
                     style="width:{grade.max_score > 0 ? Math.round(grade.score/grade.max_score*100) : 0}%"
                   ></div>
                 </div>
-                {#if grade.status === 'needs_manual_grade'}
-                  <span class="text-[10px] text-amber-600 dark:text-amber-400">Révision manuelle requise</span>
-                {/if}
+                <div class="flex items-center justify-between">
+                  {#if grade.status === 'needs_manual_grade'}
+                    <span class="text-[10px] text-amber-600 dark:text-amber-400">Révision manuelle requise</span>
+                  {:else}
+                    <span></span>
+                  {/if}
+                  <button
+                    onclick={() => openManualGrading(grade.student)}
+                    class="btn btn-secondary px-2.5 py-1 text-[10px] gap-1"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Correction manuelle
+                  </button>
+                </div>
               </div>
             {/each}
           {/if}
@@ -380,7 +446,7 @@
             Ouvrir JupyterLab
           </a>
           <a
-            href={jupyterDirectURL.replace('/lab', '/tree')}
+            href="{formgraderBaseURL}/formgrader"
             target="_blank"
             rel="noopener noreferrer"
             class="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 underline"

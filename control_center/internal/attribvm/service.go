@@ -86,20 +86,22 @@ func (s *Service) AttribVMinPool(
 	ctx context.Context,
 	req *frontcontrolpb.AttribVMinPoolRequest,
 ) (*frontcontrolpb.AttribVMinPoolResponse, error) {
+	// NOTE: business-logic failures are returned as a normal response with
+	// Success=false and a nil gRPC error. Returning a gRPC error here produces a
+	// "trailers-only" response that the Caddy grpc_web module mis-encodes
+	// (grpc-status:0 in the body trailer), which the frontend then surfaces as a
+	// misleading "[unimplemented] missing message". Always delivering a message
+	// keeps the real outcome readable; the precise reason is logged server-side.
 	if req.GetServerpoolId() == "" || req.GetPubkey() == "" || req.GetUserId() == "" {
-		return &frontcontrolpb.AttribVMinPoolResponse{
-			Success:     false,
-			AddressedIp: "",
-		}, status.Error(codes.InvalidArgument, "missing required fields")
+		log.Printf("[attribvm] missing required fields (serverpool_id/pubkey/user_id)")
+		return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 	}
 
 	// Always load the pool to get app_port and other metadata.
 	var pool models.Serverpool
 	if err := s.DB.Where("serverpool_id = ? AND user_id = ?", req.GetServerpoolId(), req.GetUserId()).First(&pool).Error; err != nil {
-		return &frontcontrolpb.AttribVMinPoolResponse{
-			Success:     false,
-			AddressedIp: "",
-		}, status.Errorf(codes.NotFound, "pool not found")
+		log.Printf("[attribvm] pool not found: %s/%s", req.GetServerpoolId(), req.GetUserId())
+		return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 	}
 
 	var student models.Student
@@ -113,7 +115,8 @@ func (s *Service) AttribVMinPool(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			var list models.ListStudents
 			if err := s.DB.Where("pool_id = ?", pool.ID).FirstOrCreate(&list, models.ListStudents{PoolId: pool.ID}).Error; err != nil {
-				return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, err
+				log.Printf("[attribvm] list lookup/create failed: %v", err)
+				return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 			}
 
 			student = models.Student{
@@ -122,13 +125,12 @@ func (s *Service) AttribVMinPool(
 				SshKey: req.GetPubkey(),
 			}
 			if err := s.DB.Create(&student).Error; err != nil {
-				return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, err
+				log.Printf("[attribvm] student create failed: %v", err)
+				return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 			}
 		} else {
-			return &frontcontrolpb.AttribVMinPoolResponse{
-				Success:     false,
-				AddressedIp: "",
-			}, err
+			log.Printf("[attribvm] student lookup failed: %v", err)
+			return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 		}
 	}
 
@@ -144,10 +146,14 @@ func (s *Service) AttribVMinPool(
 	var server models.Server
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		// Identify the instructor VM (the oldest VM in the pool) to exclude it
+		var instrServer models.Server
+		tx.Where("serverpool_id = ? AND user_id = ?", req.GetServerpoolId(), req.GetUserId()).Order("created_at ASC").First(&instrServer)
+
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("serverpool_id = ? AND user_id = ? AND locked = false AND name <> ?",
+			Where("serverpool_id = ? AND user_id = ? AND locked = false AND name <> ? AND id <> ?",
 				req.GetServerpoolId(), req.GetUserId(),
-				fmt.Sprintf("%s-%s-NFS", req.GetUserId(), req.GetServerpoolId())).
+				fmt.Sprintf("%s-%s-NFS", req.GetUserId(), req.GetServerpoolId()), instrServer.ID).
 			Order("id").First(&server).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Error(codes.ResourceExhausted, "no available server")
@@ -169,29 +175,23 @@ func (s *Service) AttribVMinPool(
 	})
 
 	if err != nil {
-		return &frontcontrolpb.AttribVMinPoolResponse{
-			Success:     false,
-			AddressedIp: "",
-		}, err
+		log.Printf("[attribvm] attribution failed (pool %s/%s): %v", req.GetServerpoolId(), req.GetUserId(), err)
+		return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 	}
 
 	if err := s.installSSHKey(&server, &student); err != nil {
 		_ = s.DB.Model(&server).Update("locked", false)
 		_ = s.DB.Model(&student).Update("ip", "") // Clear the IP so they can try again
-		return &frontcontrolpb.AttribVMinPoolResponse{
-			Success:     false,
-			AddressedIp: "",
-		}, status.Errorf(codes.Internal, "ssh setup failed: %v", err)
+		log.Printf("[attribvm] ssh setup failed on %s: %v", server.IP_Address, err)
+		return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 	}
 
 	if os.Getenv("SKIP_RCLONE") != "true" {
 		if err := rclone.SetupRcloneForStudent(server, student, req.GetUserId(), req.GetServerpoolId()); err != nil {
 			_ = s.DB.Model(&server).Update("locked", false)
 			_ = s.DB.Model(&student).Update("ip", "")
-			return &frontcontrolpb.AttribVMinPoolResponse{
-				Success:     false,
-				AddressedIp: "",
-			}, status.Errorf(codes.Internal, "rclone setup failed: %v", err)
+			log.Printf("[attribvm] rclone setup failed on %s: %v", server.IP_Address, err)
+			return &frontcontrolpb.AttribVMinPoolResponse{Success: false}, nil
 		}
 	} else {
 		log.Println("[attribvm] SKIP_RCLONE=true, skipping rclone setup")

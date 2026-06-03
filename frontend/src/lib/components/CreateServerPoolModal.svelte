@@ -47,6 +47,7 @@
 
   // Maps snapshot suffix → human label
   const jupyterSnapshotLabels: Record<string, string> = {
+    'nfs':         'Jupyter + NFS (Corrigé)',
     'scipy':       'Python scientifique (scipy-notebook)',
     'scipy-plus':  'Python scientifique+',
     'datascience': 'Data Science (Python + R + Julia)',

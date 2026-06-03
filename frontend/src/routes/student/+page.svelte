@@ -1,6 +1,7 @@
 <script lang="ts">
   import { returnPoolsWithKey, attribVMinPool } from "$lib/grpc/attribVMService/attribVMService";
   import { githubStore, disconnectGitHub } from '$lib/store/githubStore';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
   import { onMount } from 'svelte';
 
@@ -56,6 +57,43 @@
         }
       } catch { /* keep trying */ }
     }, 3000);
+  }
+
+  let submitting = $state(false);
+  let submitStatus = $state("");
+
+  // Confirmation modal state
+  let confirmState = $state({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  async function executeSubmit() {
+    if (!selectedPool || !vmIp) return;
+    submitting = true;
+    submitStatus = "";
+    try {
+      const res = await fetch(`/api/nbgrader/submit?pool_id=${encodeURIComponent(selectedPool.pool_id)}&user_id=${encodeURIComponent(selectedPool.user_id)}&student_ip=${encodeURIComponent(vmIp)}`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Erreur serveur: " + await res.text());
+      submitStatus = "Travaux soumis avec succès !";
+    } catch (e: any) {
+      submitStatus = "Erreur: " + e.message;
+    } finally {
+      submitting = false;
+    }
+  }
+
+  function submitWork() {
+    confirmState = {
+      show: true,
+      title: 'Soumettre',
+      message: 'Êtes-vous sûr de vouloir soumettre vos travaux ? Cette action enregistrera une copie en lecture seule de vos fichiers actuels pour l\'évaluation.',
+      onConfirm: executeSubmit
+    };
   }
 
   function fallbackCopy(text: string) {
@@ -122,6 +160,13 @@
 </svelte:head>
 
 <div class="max-w-lg mx-auto py-10 animate-fade-up">
+
+  <ConfirmModal
+    bind:show={confirmState.show}
+    title={confirmState.title}
+    message={confirmState.message}
+    onConfirm={confirmState.onConfirm}
+  />
 
   {#if !vmIp}
     <div class="mb-8">
@@ -293,19 +338,29 @@
             Ouvrir JupyterLab
           </a>
           <!-- Jupyter Classic — needed for nbgrader "Assignments" tab -->
-          <a
-            href="http://{vmIp}:{vmAppPort}/tree"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex items-center justify-center gap-2.5 w-full py-2.5 rounded-lg font-semibold text-sm
-              bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 transition-all"
-          >
-            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-            Soumettre mes travaux (Assignments)
-          </a>
+          <!-- Submit Button -->
+          <div class="flex flex-col gap-2">
+            <button
+              onclick={submitWork}
+              disabled={submitting}
+              class="flex items-center justify-center gap-2.5 w-full py-2.5 rounded-lg font-semibold text-sm
+                bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 transition-all disabled:opacity-50"
+            >
+              {#if submitting}
+                <span class="w-4 h-4 border-2 border-amber-400/40 border-t-amber-700 rounded-full shrink-0"
+                  style="animation: spinnerGlow 0.8s linear infinite;"></span>
+              {:else}
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+              {/if}
+              Soumettre mes travaux
+            </button>
+            {#if submitStatus}
+              <p class="text-xs text-center {submitStatus.startsWith('Erreur') ? 'text-red-600' : 'text-green-600'}">{submitStatus}</p>
+            {/if}
+          </div>
         {:else}
           <div class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-lg font-semibold text-base
             bg-neutral-200 text-neutral-500 cursor-not-allowed select-none">

@@ -63,3 +63,11 @@ profile.cov
 # *_grpc.pb.go
 # *.pb.go
 images/
+
+# Logs & dev tooling
+*.log
+.devlogs/
+
+# Stray local build outputs
+/control_center/control_center
+/vm-pool-managers

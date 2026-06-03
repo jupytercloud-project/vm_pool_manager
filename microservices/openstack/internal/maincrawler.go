@@ -12,10 +12,47 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
 )
+
+// deleteInFlight tracks VMs we have already queued for scale-down deletion, so
+// the 2s reconcile loop doesn't re-queue the same deletions every tick while
+// OpenStack tears them down and the DB sync catches up (a delete-runaway,
+// symmetric to the create bug). Entries self-expire.
+var (
+	deleteInFlight   = map[string]time.Time{}
+	deleteInFlightMu sync.Mutex
+)
+
+func markDeleting(id string) {
+	deleteInFlightMu.Lock()
+	deleteInFlight[id] = time.Now()
+	deleteInFlightMu.Unlock()
+}
+
+func isDeleting(id string) bool {
+	deleteInFlightMu.Lock()
+	defer deleteInFlightMu.Unlock()
+	t, ok := deleteInFlight[id]
+	if !ok {
+		return false
+	}
+	if time.Since(t) > 90*time.Second {
+		delete(deleteInFlight, id)
+		return false
+	}
+	return true
+}
+
+// isWarmPool reports whether p is the shared pre-warmed pool that feeds student
+// attribution — never scaled down here, or attribution would starve.
+func isWarmPool(p models.Serverpool) bool {
+	return p.ServerpoolID == "pool_vms" && p.UserID == "admin"
+}
 
 func Monitor(c context.Context) {
 	ticker := time.NewTicker(2 * time.Second)
@@ -97,6 +134,30 @@ func CheckAndCreate() {
 					utils.BuildDataMap(utils.FlatstringSP(p))), false)
 			}
 		}
+
+		// Scale-down: never keep more than MaxVM VMs in a pool. Only delete
+		// unattributed (Reattrib==false), ACTIVE VMs, and never the warm pool —
+		// so student VMs and in-flight builds are left untouched.
+		if p.MaxVM > 0 && count > p.MaxVM && !isWarmPool(p) {
+			excess := count - p.MaxVM
+			for _, s := range servs {
+				if excess <= 0 {
+					break
+				}
+				if !serverisinpool(p, s) || s.Reattrib {
+					continue
+				}
+				if !strings.EqualFold(s.Status, "ACTIVE") || isDeleting(s.ID) {
+					continue
+				}
+				markDeleting(s.ID)
+				worker.AddJob(*worker.CreateJob(models.DeleteVM,
+					map[string]string{"instance_id": s.ID}), true)
+				log.Printf("[scale-down] pool %s/%s over max (%d>%d): deleting %s",
+					p.ServerpoolID, p.UserID, count, p.MaxVM, s.ID)
+				excess--
+			}
+		}
 	}
 
 	found := false
@@ -129,15 +190,14 @@ func CheckAndCreate() {
 	config.DBmu.Unlock()
 }
 
+// serverisinpool tests pool membership by the canonical (serverpool_id, user_id)
+// key — the same key used by the inventory. Flavor/image are intentionally NOT
+// compared: image UUIDs are resolved at create time (and change when a snapshot
+// is rebuilt), so a freshly created VM legitimately carries a different image
+// ref than the pool's stored one. Comparing them made the reconciler unable to
+// count existing VMs, so it kept re-creating them forever.
 func serverisinpool(p models.Serverpool, s models.Server) bool {
-	if s.ServerpoolID == p.ServerpoolID &&
-		s.UserID == p.UserID &&
-		s.FlavorRef == p.FlavorRef &&
-		s.ImageRef == p.ImageRef {
-		return true
-	} else {
-		return false
-	}
+	return s.ServerpoolID == p.ServerpoolID && s.UserID == p.UserID
 }
 
 func CreateServerpoolFromEnv() (models.Serverpool, error) {

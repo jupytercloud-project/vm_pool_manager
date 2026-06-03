@@ -15,7 +15,59 @@ import (
 	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 )
+
+// resolveImageRef ensures the image reference is valid in the VM-creation
+// (student) project. Glance image UUIDs are scoped per project AND change every
+// time a snapshot is rebuilt, so the UUID stored on the pool may be stale or
+// belong to a different project. We resolve to a UUID that is valid here, in
+// order of preference:
+//  1. the ref is already a valid UUID in the student project,
+//  2. the ref's name (looked up in the infra project) matches an image here,
+//  3. the nameHint (e.g. the pool config_id, which equals the snapshot name)
+//     matches an image here.
+func resolveImageRef(ctx context.Context, imageRef, nameHint string) (string, error) {
+	if imageRef == "" && nameHint == "" {
+		return "", fmt.Errorf("empty image_ref and name hint")
+	}
+
+	// 1. Already a valid UUID in the student/creation project? Use as-is.
+	if imageRef != "" {
+		if img, err := images.Get(ctx, models.ImageClient, imageRef).Extract(); err == nil {
+			return img.ID, nil
+		}
+	}
+
+	// 2. Build the list of candidate names to look up in the student project:
+	//    the human name from the infra project (if the UUID still lives there),
+	//    the ref itself (in case it was already a name), and the nameHint.
+	var candidates []string
+	if imageRef != "" && models.InfraImageClient != nil && models.InfraImageClient != models.ImageClient {
+		if img, err := images.Get(ctx, models.InfraImageClient, imageRef).Extract(); err == nil && img.Name != "" {
+			candidates = append(candidates, img.Name)
+		}
+	}
+	if imageRef != "" {
+		candidates = append(candidates, imageRef)
+	}
+	if nameHint != "" {
+		candidates = append(candidates, nameHint)
+	}
+
+	for _, name := range candidates {
+		pages, err := images.List(models.ImageClient, images.ListOpts{Name: name}).AllPages(ctx)
+		if err != nil {
+			continue
+		}
+		found, err := images.ExtractImages(pages)
+		if err == nil && len(found) > 0 {
+			return found[0].ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("image ref %q / name %q not found in student project (OS_CLOUD) — build or share the snapshot in that project", imageRef, nameHint)
+}
 
 func CreateVM(workerID int, job models.Job) error {
 
@@ -40,7 +92,7 @@ func CreateVM(workerID int, job models.Job) error {
 
 	paramID := utils.ParseInt(job.Data["ID"])
 	log.Printf("[Worker %d] Creating VM", workerID)
-	log.Printf("job.data[config_id]:%s", job.Data["config_id"])
+	log.Printf("job.data[config_id]:%s, image_ref:%s", job.Data["config_id"], job.Data["image_ref"])
 	serv := models.Server{
 		FlavorRef:    job.Data["flavor_ref"],
 		ImageRef:     job.Data["image_ref"],
@@ -89,6 +141,20 @@ func CreateVM(workerID int, job models.Job) error {
 	}
 
 	userData, err = buildUserData(baseCfg, conf_file.Data, registrarScript)
+
+	// Image UUIDs are project-scoped: the ref came from the infra project but
+	// the VM is created in the student project. Resolve it to a UUID that is
+	// valid here, bridging by image name if necessary.
+	resolvedImage, err := resolveImageRef(context.Background(), serv.ImageRef, job.Data["config_id"])
+	if err != nil {
+		log.Printf("[Worker %d] image resolution failed: %v", workerID, err)
+		DecrementPending(uint(paramID))
+		return fmt.Errorf("resolve image: %w", err)
+	}
+	if resolvedImage != serv.ImageRef {
+		log.Printf("[Worker %d] image_ref %s resolved to %s in student project", workerID, serv.ImageRef, resolvedImage)
+	}
+	serv.ImageRef = resolvedImage
 
 	configDrive := true
 	createOpts := servers.CreateOpts{

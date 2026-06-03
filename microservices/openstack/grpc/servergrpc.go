@@ -57,6 +57,7 @@ func (s *ServerMicroOpenstack) handleUser(
 		}
 		return db.Create(&user).Error
 	case pb.Status_UPDATE:
+		log.Printf("Received UPDATE for pool %s with image_ref %s", data["serverpool_id"], data["image_ref"])
 		return db.Model(&models.User{}).
 			Where("email = ?", data["email"]).
 			Updates(map[string]interface{}{
@@ -103,6 +104,7 @@ func (s *ServerMicroOpenstack) handleServerpool(
 		}
 		return nil
 	case pb.Status_UPDATE:
+		log.Printf("Received UPDATE for pool %s with image_ref %s", data["serverpool_id"], data["image_ref"])
 		return db.Model(&models.Serverpool{}).
 			Where("serverpool_id = ? AND user_id = ?", data["serverpool_id"],
 				req.GetUser()).
@@ -172,6 +174,7 @@ func (s *ServerMicroOpenstack) handleServer(
 		worker.AddJob(*worker.CreateJob(models.CreateVM, jobData), true)
 		return nil
 	case pb.Status_UPDATE:
+		log.Printf("Received UPDATE for pool %s with image_ref %s", data["serverpool_id"], data["image_ref"])
 		opts := &clientconfig.ClientOpts{
 			Cloud: os.Getenv("OPTS_CLOUD"),
 		}
@@ -224,6 +227,7 @@ func (s *ServerMicroOpenstack) handleConfig(
 		}
 		return db.Create(&cfg).Error
 	case pb.Status_UPDATE:
+		log.Printf("Received UPDATE for pool %s with image_ref %s", data["serverpool_id"], data["image_ref"])
 		var cfg models.ConfigPool
 		if err := db.Where(" user_id = ? AND name = ? ",
 			req.GetUser(), data["name"]).First(&cfg).Error; err != nil {

@@ -28,12 +28,12 @@ python3 -m venv /home/vmuser/jupyter-env
 source /home/vmuser/jupyter-env/bin/activate
 
 pip install --quiet --upgrade pip
-pip install --quiet jupyterlab nbgrader
+pip install --quiet jupyterlab nbgrader "notebook<7"
 
 # Enable nbgrader extensions
-jupyter nbextension install --sys-prefix --py nbgrader --quiet
-jupyter nbextension enable --sys-prefix --py nbgrader --quiet
-jupyter serverextension enable --sys-prefix --py nbgrader --quiet
+jupyter nbextension install --sys-prefix --py nbgrader
+jupyter nbextension enable --sys-prefix --py nbgrader
+jupyter serverextension enable --sys-prefix --py nbgrader
 
 # Create nbgrader course structure
 mkdir -p /home/vmuser/nbgrader/{source,release,submitted,feedback}
@@ -60,7 +60,7 @@ sudo tee /usr/local/bin/start-jupyterlab.sh > /dev/null << 'WRAPPER'
 set -a
 # Mount NFS if NFS_SERVER_IP is provided in metadata or hardcoded
 # In a real environment, you might fetch this from metadata as well.
-NFS_SERVER_IP="157.136.249.205" # Default placeholder, will be updated by deploy script or user
+NFS_SERVER_IP="157.136.249.198" # Default placeholder, will be updated by deploy script or user
 mkdir -p /home/vmuser/nbgrader/exchange
 sudo mount -t nfs ${NFS_SERVER_IP}:/srv/nbgrader/exchange /home/vmuser/nbgrader/exchange || true
 

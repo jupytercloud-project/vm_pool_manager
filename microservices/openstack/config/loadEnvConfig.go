@@ -9,8 +9,12 @@ import (
 
 // load .env
 func LoadEnvConfig() {
-	err := godotenv.Load(os.Getenv("DOTENV_PATH"))
+	dotenvPath := os.Getenv("DOTENV_PATH")
+	if dotenvPath == "" {
+		dotenvPath = ".env"
+	}
+	err := godotenv.Load(dotenvPath)
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		log.Fatalf("Error loading .env file from %s: %v", dotenvPath, err)
 	}
 }

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Creates an OpenStack snapshot for each Jupyter environment.
-# Each snapshot has docker image pre-pulled → VMs start Jupyter in ~30s instead of 5min.
+# Each snapshot has a custom Docker image pre-built that wraps the scientific
+# base image and adds nbgrader (the assignment submission tool).
 #
 # Usage: ./scripts/make-jupyter-snapshots.sh [env_name]
 #   env_name: optional, run only one env (e.g. "scipy")
@@ -18,11 +19,15 @@ SSH_KEY="${SSH_PRIVATE_KEY_PATH:-$HOME/.ssh/id_ed25519}"
 SNAPSHOT_PREFIX="jupyter-snapshot"
 POSTGRES_DSN="${POSTGRES_DSN:-postgres://admin:P00lManager_Secure_2026@localhost:5432/control_center?sslmode=disable}"
 
+# Local Docker tag used on every snapshot VM for the nbgrader-enriched image.
+# It is always the same so the startup script is universal.
+NBGRADER_LOCAL_TAG="jupyter-nbgrader:latest"
+
 # Each entry: "snapshot-suffix|docker-image|display-label"
 ENVS=(
   "scipy|registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/jupyter/scipy-notebook:latest|Python scientifique (scipy-notebook)"
   "scipy-plus|registry.virtualdata.cloud.idcs.polytechnique.fr/plmlab-hub-proxy/docker-images/scipy-notebook-plus:2023.01.24|Python scientifique+"
-  "datascience|registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/jupyter/datascience-notebook:2343e33dec46|Python R Julia (datascience)"
+  "datascience|registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/jupyter/datascience-notebook:2343e33dec46|Data Science (Python + R + Julia)"
   "julia|registry.virtualdata.cloud.idcs.polytechnique.fr/plmlab-hub-proxy/docker-images/julia:0.0.4|Julia"
   "bio583|registry.virtualdata.cloud.idcs.polytechnique.fr/plmlab-hub-proxy/ip-paris/idcs/docker/bio583:0.0.1|BIO583"
   "eco589|registry.virtualdata.cloud.idcs.polytechnique.fr/gitlab-in2p3-proxy/energy4climate/public/education/eco-589-tutorials:0.2|ECO589"
@@ -55,24 +60,40 @@ wait_ssh() {
   die "SSH never became available on $ip"
 }
 
+# Write the generic startup script to PostgreSQL.
+# All envs use the same NBGRADER_LOCAL_TAG image, built at snapshot time.
 upsert_config() {
-  local suffix=$1 docker_image=$2
+  local suffix=$1
   local config_name="jupyter-snapshot-${suffix}"
+  # Use a temp var to avoid heredoc quoting issues with dollar signs in the SQL
+  local nbgrader_tag="${NBGRADER_LOCAL_TAG}"
   local script
   script=$(cat <<SCRIPT
 #!/bin/bash
-# Start Jupyter (image pre-pulled in snapshot)
+# Start Jupyter (nbgrader-enriched image pre-built in snapshot).
+# repo2docker course images have no start-notebook.sh, so we run \`jupyter lab\`
+# directly (also works on jupyter/docker-stacks images), and upgrade \`packaging\`
+# at boot (nbgrader can leave a version too old for JupyterLab 4 -> ImportError).
 until sudo docker info >/dev/null 2>&1; do sleep 2; done
+# nbgrader working dirs, owned by UID 1000 (= jovyan in the container) so it can
+# write the gradebook DB and create assignments (else: root-owned -> EACCES).
+mkdir -p /home/vmuser/nbgrader/source /home/vmuser/nbgrader/exchange /home/vmuser/nbgrader/submitted_copies
+# nbgrader config (course + writable exchange), mounted over the image default.
+cat > /home/vmuser/nbgrader_config.py <<'NBCFG'
+c = get_config()
+c.CourseDirectory.course_id = 'jupyter'
+c.CourseDirectory.root = '/home/jovyan/nbgrader'
+c.Exchange.root = '/home/jovyan/nbgrader/exchange'
+NBCFG
+chown -R 1000:1000 /home/vmuser/nbgrader /home/vmuser/nbgrader_config.py
+sudo docker rm -f jupyter 2>/dev/null || true
 sudo docker run -d --restart=always --name jupyter \
   -p 8888:8888 \
-  -e JUPYTER_ENABLE_LAB=yes \
+  -v /home/vmuser/nbgrader:/home/jovyan/nbgrader \
+  -v /home/vmuser/nbgrader_config.py:/home/jovyan/nbgrader_config.py \
   -v /home/vmuser:/home/jovyan/work \
-  --user root \
-  -e NB_USER=jovyan \
-  -e CHOWN_HOME=yes \
-  ${docker_image} \
-  start-notebook.sh --NotebookApp.token='' --NotebookApp.password='' --ip=0.0.0.0 \
-  || sudo docker start jupyter 2>/dev/null || true
+  ${nbgrader_tag} \
+  bash -lc 'pip install -U packaging >/dev/null 2>&1 || true; exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token="" --ServerApp.password="" --ServerApp.allow_origin="*"'
 SCRIPT
 )
   if [ -n "$POSTGRES_DSN" ] && command -v psql &>/dev/null; then
@@ -84,12 +105,63 @@ SCRIPT
   fi
 }
 
+# Build the nbgrader-enriched Docker image on the remote VM via scp + docker build.
+build_nbgrader_image() {
+  local ip=$1 base_image=$2
+
+  log "  Writing Dockerfile for nbgrader layer (base: $base_image)..."
+
+  # Write Dockerfile to a temp file locally then scp it
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  # Write Dockerfile with base_image expanded directly (no ARG hack, no sed)
+  cat << EOF > "$tmpdir/Dockerfile"
+FROM ${base_image}
+USER root
+# sqlite3 needed by nbgrader gradebook
+RUN apt-get update -qq && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/* || true
+# Upgrade pip to avoid compatibility issues with older Python environments and then install nbgrader
+RUN pip3 install --upgrade pip 2>/dev/null || pip install --upgrade pip 2>/dev/null || true
+RUN pip3 install --quiet nbgrader 2>/dev/null || pip install --quiet nbgrader
+# nbgrader can pin an old 'packaging'; JupyterLab 4 needs a newer one
+# (else: ImportError: cannot import name 'InvalidName' from 'packaging.utils')
+RUN pip3 install --quiet -U packaging 2>/dev/null || pip install --quiet -U packaging 2>/dev/null || true
+# Enable notebook extensions
+RUN jupyter nbextension install --sys-prefix --py nbgrader --overwrite --quiet 2>/dev/null || true
+RUN jupyter nbextension enable  --sys-prefix --py nbgrader --quiet 2>/dev/null || true
+RUN jupyter serverextension enable --sys-prefix --py nbgrader --quiet 2>/dev/null || true
+RUN jupyter server extension enable --sys-prefix --py nbgrader --quiet 2>/dev/null || true
+RUN mkdir -p /home/jovyan/nbgrader && chown 1000:100 /home/jovyan/nbgrader
+RUN echo "c = get_config()" > /home/jovyan/nbgrader_config.py && \
+    echo "c.CourseDirectory.course_id = 'jupyter'" >> /home/jovyan/nbgrader_config.py && \
+    echo "c.CourseDirectory.root = '/home/jovyan/nbgrader'" >> /home/jovyan/nbgrader_config.py && \
+    chown 1000:100 /home/jovyan/nbgrader_config.py
+USER jovyan
+EOF
+
+  scp -o StrictHostKeyChecking=no -i "$SSH_KEY" "$tmpdir/Dockerfile" "vmuser@$ip:/home/vmuser/Dockerfile" || {
+    rm -rf "$tmpdir"
+    log "  WARNING: scp Dockerfile failed"
+    return 1
+  }
+  rm -rf "$tmpdir"
+
+  log "  Pulling base image then building ${NBGRADER_LOCAL_TAG} (may take a few minutes)..."
+  ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "vmuser@$ip" bash -s << SSHEOF
+set -e
+sudo docker pull '${base_image}'
+sudo docker build --no-cache -t '${NBGRADER_LOCAL_TAG}' /home/vmuser/
+rm -f /home/vmuser/Dockerfile
+echo "[build] Done."
+SSHEOF
+}
+
 process_env() {
   local suffix=$1 docker_image=$2 label=$3
   local snapshot_name="${SNAPSHOT_PREFIX}-${suffix}"
   local vm_name="snapshot-builder-${suffix}-$$"
 
-  upsert_config "$suffix" "$docker_image"
+  upsert_config "$suffix"
 
   # Skip if snapshot already exists
   if openstack --os-cloud "$OS_CLOUD" image show "$snapshot_name" &>/dev/null; then
@@ -120,15 +192,25 @@ process_env() {
 
   wait_ssh "$ip"
 
-  log "[$suffix] Pulling Docker image: $docker_image"
-  ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "$SSH_KEY" "vmuser@$ip" \
-    "sudo docker pull ${docker_image}" || {
-      log "[$suffix] WARNING: docker pull failed, snapshot may not work correctly"
-    }
+  # Build the nbgrader-enriched image. NO fallback to a plain pull+tag: a plain
+  # course image has no formgrader (-> 404) and silently masks the failure.
+  if ! build_nbgrader_image "$ip" "$docker_image"; then
+    openstack --os-cloud "$OS_CLOUD" server delete "$vm_id" --wait 2>/dev/null || true
+    die "[$suffix] ABANDON: build de l'image nbgrader échoué — snapshot non créé."
+  fi
+
+  # Verify formgrader is REALLY in the image before snapshotting, otherwise we
+  # bake a broken snapshot (no image -> container never starts; plain image ->
+  # 404 formgrader). Both failure modes are caught here.
+  if ! ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "vmuser@$ip" \
+        "sudo docker run --rm --entrypoint bash '${NBGRADER_LOCAL_TAG}' -lc 'jupyter server extension list 2>&1 | grep -qi formgrader'" 2>/dev/null; then
+    openstack --os-cloud "$OS_CLOUD" server delete "$vm_id" --wait 2>/dev/null || true
+    die "[$suffix] ABANDON: '${NBGRADER_LOCAL_TAG}' n'a pas l'extension formgrader — snapshot non créé."
+  fi
+  log "[$suffix] OK: formgrader présent dans l'image."
 
   log "[$suffix] Stopping VM for clean snapshot..."
   openstack --os-cloud "$OS_CLOUD" server stop "$vm_id"
-  # Wait for SHUTOFF
   for i in $(seq 1 30); do
     status=$(openstack --os-cloud "$OS_CLOUD" server show "$vm_id" --format value -c status)
     [ "$status" = "SHUTOFF" ] && break
@@ -160,12 +242,12 @@ process_env() {
   log "[$suffix] Deleting build VM..."
   openstack --os-cloud "$OS_CLOUD" server delete "$vm_id" || true
   sleep 10
-
   log "[$suffix] Done. Snapshot '$snapshot_name' is ready."
 }
 
 log "Starting Jupyter snapshot builder (OS_CLOUD=$OS_CLOUD)"
 log "Base image: $BASE_IMAGE | Flavor: $FLAVOR | Network: $NETWORK"
+log "nbgrader enriched tag: $NBGRADER_LOCAL_TAG"
 echo ""
 
 for entry in "${ENVS[@]}"; do
@@ -173,7 +255,9 @@ for entry in "${ENVS[@]}"; do
   if [ -n "$FILTER" ] && [ "$suffix" != "$FILTER" ]; then
     continue
   fi
+  log "=== Processing: $label ($suffix) ==="
   process_env "$suffix" "$docker_image" "$label"
+  echo ""
 done
 
 log "All done."

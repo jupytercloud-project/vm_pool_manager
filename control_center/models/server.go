@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Server struct {
@@ -27,6 +28,9 @@ type Server struct {
 	SshKeyAssigned string
 	Configured     bool `gorm:"default:false; not null"`
 	PendingConf    bool `gorm:"default:false; not null"`
+	// CreatedAt lets us order VMs by age (used to identify the instructor VM in
+	// a pool). GORM sets it on first insert; preserved across upserts.
+	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
 func (s *Server) ToMap() map[string]string {

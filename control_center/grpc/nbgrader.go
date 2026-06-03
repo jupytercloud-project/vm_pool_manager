@@ -60,8 +60,11 @@ func nbgraderSSHClient(poolID, userID string) (*ssh.Client, error) {
 // dockerExec wraps a command to run inside the 'jupyter' Docker container as jovyan.
 // Falls back to direct execution if Docker is not available.
 func dockerExec(cmd string) string {
-	return fmt.Sprintf(`sudo docker exec jupyter bash -c %s 2>&1 || bash -c %s 2>&1`,
-		shellQuote(cmd), shellQuote(cmd))
+	nativeCmd := strings.ReplaceAll(cmd, "/home/jovyan/", "/home/vmuser/")
+	nativeCmd = "export PATH=/home/vmuser/jupyter-env/bin:$PATH && " + nativeCmd
+	qCmdDocker := shellQuote(cmd)
+	qCmdNative := shellQuote(nativeCmd)
+	return fmt.Sprintf(`if sudo docker ps | grep -q jupyter 2>/dev/null; then sudo docker exec jupyter bash -c %s 2>&1; else bash -c %s 2>&1; fi`, qCmdDocker, qCmdNative)
 }
 
 func shellQuote(s string) string {
@@ -104,8 +107,10 @@ func handleNbgraderAssignments(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Close()
 
-	// List directories in nbgrader/source/ inside the jupyter container
-	out, err := runSSHOutput(client, dockerExec(`ls -1 /home/jovyan/nbgrader/source/ 2>/dev/null || ls -1 /home/jovyan/ 2>/dev/null | grep -v work || echo ""`))
+	// List assignment directories in nbgrader/source/ inside the jupyter container.
+	// Only directories under source/ are assignments — never fall back to the home
+	// dir (that listed repo files like Manifest.toml/README.md as fake assignments).
+	out, err := runSSHOutput(client, dockerExec(`find /home/jovyan/nbgrader/source/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null || true`))
 	if err != nil {
 		http.Error(w, "SSH command failed: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -136,28 +141,102 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 	poolID := r.URL.Query().Get("pool_id")
 	userID := r.URL.Query().Get("user_id")
 	assignment := r.URL.Query().Get("assignment")
-	if poolID == "" || userID == "" {
-		http.Error(w, "missing pool_id or user_id", http.StatusBadRequest)
+	if poolID == "" || userID == "" || assignment == "" {
+		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
 		return
 	}
 
-	client, err := nbgraderSSHClient(poolID, userID)
+	instrClient, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
-		log.Printf("[nbgrader] collect SSH error: %v", err)
-		http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		instrClient, err = nbgraderSSHClientAny(poolID, userID)
+		if err != nil {
+			http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
+			return
+		}
 	}
-	defer client.Close()
+	defer instrClient.Close()
 
-	innerCmd := "cd /home/jovyan/nbgrader && nbgrader collect"
-	if assignment != "" {
-		innerCmd = fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader collect %s", assignment)
-	}
-	out, err := runSSHOutput(client, dockerExec(innerCmd))
-	if err != nil {
-		log.Printf("[nbgrader] collect error: %v", err)
-		http.Error(w, "nbgrader collect failed: "+err.Error(), http.StatusInternalServerError)
+	var pool models.Serverpool
+	if err := config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).First(&pool).Error; err != nil {
+		http.Error(w, "pool not found", http.StatusNotFound)
 		return
+	}
+
+	var list models.ListStudents
+	config.Database.Preload("Students").Where("pool_id = ?", pool.ID).First(&list)
+
+	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")
+	if keyPath == "" { keyPath = os.Getenv("SSH_KEY_PATH") }
+	signer, err := sshinject.LoadPrivateKey(keyPath)
+	if err != nil {
+		http.Error(w, "load SSH key: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	timestamp := time.Now().UTC().Format("2006-01-02 15:04:05.000000 MST")
+	collected := 0
+	var distErrors []string
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, student := range list.Students {
+		if student.IP == "" { continue }
+		wg.Add(1)
+		go func(s models.Student) {
+			defer wg.Done()
+			cfg := sshinject.SshConfig("vmuser", signer)
+			studentClient, err := ssh.Dial("tcp", s.IP+":22", cfg)
+			if err != nil { return }
+			defer studentClient.Close()
+
+			// Get files from student's submitted_copies/<assignment> or fallback to nbgrader/<assignment>
+			fileListInner := fmt.Sprintf(`find /home/vmuser/nbgrader/submitted_copies/%s -type f 2>/dev/null | sed "s|/home/vmuser/nbgrader/submitted_copies/%s/||" || find /home/vmuser/nbgrader/%s -type f 2>/dev/null | sed "s|/home/vmuser/nbgrader/%s/||" || echo ""`, assignment, assignment, assignment, assignment)
+			fileList, err := runSSHOutput(studentClient, fileListInner)
+			if err != nil || fileList == "" { return }
+
+			// Create submitted directory on instructor
+			mkdirCmd := dockerExec(fmt.Sprintf("mkdir -p /home/jovyan/nbgrader/submitted/%s/%s", s.Name, assignment))
+			runSSHOutput(instrClient, mkdirCmd)
+			
+			// Add student to nbgrader DB if not exists
+			addStudentCmd := dockerExec(fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader db student add %s 2>/dev/null || true", s.Name))
+			runSSHOutput(instrClient, addStudentCmd)
+
+			filesFound := 0
+			for _, relFile := range strings.Split(strings.TrimSpace(fileList), "\n") {
+				relFile = strings.TrimSpace(relFile)
+				if relFile == "" { continue }
+				
+				// Read from student
+				catCmd := fmt.Sprintf("cat /home/vmuser/nbgrader/submitted_copies/%s/%s 2>/dev/null || cat /home/vmuser/nbgrader/%s/%s", assignment, relFile, assignment, relFile)
+				content, readErr := runSSHOutput(studentClient, catCmd)
+				if readErr != nil { continue }
+				
+				// Ensure dest dir exists
+				destPath := fmt.Sprintf("/home/vmuser/nbgrader/submitted/%s/%s/%s", s.Name, assignment, relFile)
+				runSSHOutput(instrClient, fmt.Sprintf("mkdir -p $(dirname %q)", destPath))
+
+				// Write to instructor via SCP helper
+				scpWriteFile(instrClient, destPath, []byte(content))
+				filesFound++
+			}
+
+			if filesFound > 0 {
+				// Create timestamp.txt
+				tsPath := fmt.Sprintf("/home/vmuser/nbgrader/submitted/%s/%s/timestamp.txt", s.Name, assignment)
+				scpWriteFile(instrClient, tsPath, []byte(timestamp))
+				
+				mu.Lock()
+				collected++
+				mu.Unlock()
+			}
+		}(student)
+	}
+	wg.Wait()
+
+	out := fmt.Sprintf("Collected %d submissions.\n", collected)
+	if len(distErrors) > 0 {
+		out += "Errors:\n" + strings.Join(distErrors, "\n")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -274,15 +353,107 @@ func handleNbgraderGrades(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{"grades": grades})
 }
 
+// POST /api/nbgrader/submit?pool_id=X&user_id=Y&assignment=Z&student_ip=W
+func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	poolID := r.URL.Query().Get("pool_id")
+	userID := r.URL.Query().Get("user_id")
+	assignment := r.URL.Query().Get("assignment") // optional
+	studentIP := r.URL.Query().Get("student_ip")
+	if poolID == "" || userID == "" || studentIP == "" {
+		http.Error(w, "missing pool_id, user_id, or student_ip", http.StatusBadRequest)
+		return
+	}
+
+	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")
+	if keyPath == "" { keyPath = os.Getenv("SSH_KEY_PATH") }
+	signer, err := sshinject.LoadPrivateKey(keyPath)
+	if err != nil {
+		http.Error(w, "load SSH key: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	cfg := sshinject.SshConfig("vmuser", signer)
+	studentClient, err := ssh.Dial("tcp", studentIP+":22", cfg)
+	if err != nil {
+		http.Error(w, "ssh dial: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	defer studentClient.Close()
+
+	var cmd string
+	// chmod -R a-w (not 444): keep read+EXECUTE so directories stay traversable.
+	// 444 strips the x bit on dirs -> "Permission denied" -> collect finds nothing.
+	if assignment != "" {
+		cmd = fmt.Sprintf("mkdir -p ~/nbgrader/submitted_copies/%q && cp -r ~/nbgrader/%q/* ~/nbgrader/submitted_copies/%q/ 2>/dev/null || true; chmod -R a-w ~/nbgrader/submitted_copies/%q || true", assignment, assignment, assignment, assignment)
+	} else {
+		cmd = "mkdir -p ~/nbgrader/submitted_copies && rsync -av --exclude='submitted_copies' ~/nbgrader/ ~/nbgrader/submitted_copies/ 2>/dev/null || true; chmod -R a-w ~/nbgrader/submitted_copies || true"
+	}
+	if err := sshinject.RunSSHcmd(studentClient, cmd); err != nil {
+		http.Error(w, "submit copy failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+}
+
+// handleNbgraderSubmissionURL resolves the formgrader URL to manually grade a
+// specific student's submission. Formgrader has no /manage_submissions/<a>/<student>
+// route — manual grading lives at /formgrader/submissions/<submission_id>/?index=0,
+// where submission_id is the gradebook UUID for (assignment, student).
+// GET /api/nbgrader/submission-url?pool_id=X&user_id=Y&assignment=Z&student=W
+func handleNbgraderSubmissionURL(w http.ResponseWriter, r *http.Request) {
+	poolID := r.URL.Query().Get("pool_id")
+	userID := r.URL.Query().Get("user_id")
+	assignment := r.URL.Query().Get("assignment")
+	student := r.URL.Query().Get("student")
+	if poolID == "" || userID == "" || assignment == "" || student == "" {
+		http.Error(w, "missing pool_id, user_id, assignment or student", http.StatusBadRequest)
+		return
+	}
+
+	client, err := nbgraderSSHClient(poolID, userID)
+	if err != nil {
+		client, err = nbgraderSSHClientAny(poolID, userID)
+		if err != nil {
+			http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+	}
+	defer client.Close()
+
+	// formgrader grades per NOTEBOOK: /formgrader/submissions/<submitted_notebook.id>.
+	// (submitted_assignment.id gives a 404 — wrong granularity.)
+	q := fmt.Sprintf(
+		`sqlite3 /home/jovyan/nbgrader/gradebook.db "SELECT sn.id FROM submitted_notebook sn JOIN submitted_assignment sa ON sn.assignment_id=sa.id JOIN assignment a ON sa.assignment_id=a.id WHERE a.name='%s' AND sa.student_id='%s' LIMIT 1;" 2>/dev/null || echo ""`,
+		strings.ReplaceAll(assignment, "'", "''"), strings.ReplaceAll(student, "'", "''"),
+	)
+	out, _ := runSSHOutput(client, dockerExec(q))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"submission_id": strings.TrimSpace(out)})
+}
+
 // parseCSVGrades parses nbgrader CSV export (columns: student_id,assignment,score,max_score,needs_manual_grade)
 func parseCSVGrades(csv, assignment string) []NbgraderGrade {
 	var grades []NbgraderGrade
 	lines := strings.Split(csv, "\n")
-	if len(lines) < 2 {
+	
+	headerIdx := -1
+	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "assignment,") || strings.Contains(line, "student_id") {
+			headerIdx = i
+			break
+		}
+	}
+	if headerIdx < 0 || len(lines) <= headerIdx+1 {
 		return grades
 	}
-	// Find column indices from header
-	header := strings.Split(lines[0], ",")
+
+	header := strings.Split(lines[headerIdx], ",")
 	idx := func(name string) int {
 		for i, h := range header {
 			if strings.TrimSpace(h) == name {
@@ -300,7 +471,7 @@ func parseCSVGrades(csv, assignment string) []NbgraderGrade {
 		return grades
 	}
 
-	for _, line := range lines[1:] {
+	for _, line := range lines[headerIdx+1:] {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -366,14 +537,16 @@ func handleNbgraderJupyterURL(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Return both the direct URL and the proxied URL (via control center → avoids mixed-content)
-	directURL := fmt.Sprintf("http://%s:%d", ip, port)
-	// Encode @ explicitly since url.PathEscape doesn't encode it but Caddy rejects it in path segments
+	// Encode @ explicitly for Caddy proxy URL since Caddy rejects it in path segments
 	encodedUserID := strings.ReplaceAll(url.PathEscape(userID), "@", "%40")
-	proxyURL := fmt.Sprintf("/api/jupyter-proxy/%s/%s/", poolID, encodedUserID)
+	proxyURL := fmt.Sprintf("/api/jupyter-proxy/%s/%s", poolID, encodedUserID)
+	
+	// Use direct connection without proxy path since base_url is not configured
+	directURL := fmt.Sprintf("http://%s:%d", ip, port)
+	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"url":       proxyURL,
+		"url":       proxyURL + "/",
 		"directUrl": directURL,
 	})
 }
@@ -474,7 +647,7 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 			defer studentClient.Close()
 
 			// Create assignment directory
-			mkdirCmd := fmt.Sprintf("mkdir -p ~/assignments/%q", assignment)
+			mkdirCmd := fmt.Sprintf("mkdir -p ~/nbgrader/%q", assignment)
 			if err := sshinject.RunSSHcmd(studentClient, mkdirCmd); err != nil {
 				mu.Lock()
 				distErrors = append(distErrors, fmt.Sprintf("%s: mkdir failed: %v", s.Name, err))
@@ -502,7 +675,7 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 				// Write file to student VM
-				destPath := fmt.Sprintf("/home/vmuser/assignments/%s/%s", assignment, relFile)
+				destPath := fmt.Sprintf("/home/vmuser/nbgrader/%s/%s", assignment, relFile)
 				if writeErr := scpWriteFile(studentClient, destPath, content); writeErr != nil {
 					mu.Lock()
 					distErrors = append(distErrors, fmt.Sprintf("%s: write %s failed: %v", s.Name, relFile, writeErr))
