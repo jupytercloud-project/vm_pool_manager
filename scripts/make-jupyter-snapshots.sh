@@ -122,7 +122,10 @@ USER root
 RUN apt-get update -qq && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/* || true
 # Upgrade pip to avoid compatibility issues with older Python environments and then install nbgrader
 RUN pip3 install --upgrade pip 2>/dev/null || pip install --upgrade pip 2>/dev/null || true
-RUN pip3 install --quiet nbgrader 2>/dev/null || pip install --quiet nbgrader
+# -U: force the latest nbgrader. Without it, pip is a no-op when the base image
+# ships an ancient nbgrader (e.g. 0.7.0.dev0) whose formgrader API crashes
+# (AttributeError: 'CompoundSelect' object has no attribute 'mapper').
+RUN pip3 install --quiet -U nbgrader 2>/dev/null || pip install --quiet -U nbgrader
 # nbgrader can pin an old 'packaging'; JupyterLab 4 needs a newer one
 # (else: ImportError: cannot import name 'InvalidName' from 'packaging.utils')
 RUN pip3 install --quiet -U packaging 2>/dev/null || pip install --quiet -U packaging 2>/dev/null || true

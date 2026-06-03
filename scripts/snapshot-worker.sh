@@ -81,7 +81,8 @@ build_nbgrader_image() {
 FROM ${base_image}
 USER root
 RUN apt-get update -qq && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/* || true
-RUN pip3 install --quiet nbgrader 2>/dev/null || pip install --quiet nbgrader
+# -U: force latest nbgrader (else old preinstalled nbgrader breaks formgrader)
+RUN pip3 install --quiet -U nbgrader 2>/dev/null || pip install --quiet -U nbgrader
 # JupyterLab 4 needs a newer 'packaging' than nbgrader may leave behind
 RUN pip3 install --quiet -U packaging 2>/dev/null || pip install --quiet -U packaging 2>/dev/null || true
 RUN jupyter nbextension install --sys-prefix --py nbgrader --overwrite --quiet 2>/dev/null || true && \
