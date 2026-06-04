@@ -87,6 +87,7 @@ func (s *ServerMicroOpenstack) handleServerpool(
 			MaxVM:        parseInt(data["max_vm"]),
 			ConfigID:     data["config_id"],
 			TimeStart:    data["timestart"],
+			OffDays:      data["off_days"],
 		}
 		if err := db.Create(&pool).Error; err != nil {
 			return err
@@ -113,6 +114,7 @@ func (s *ServerMicroOpenstack) handleServerpool(
 				"flavor_ref": data["flavor_ref"],
 				"min_vm":     parseInt(data["min_vm"]),
 				"max_vm":     parseInt(data["max_vm"]),
+				"off_days":   data["off_days"],
 			}).Error
 	case pb.Status_DELETE:
 		var pool models.Serverpool

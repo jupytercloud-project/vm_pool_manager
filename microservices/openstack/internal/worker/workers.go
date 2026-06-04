@@ -63,6 +63,20 @@ func processJob(workerID int, job models.Job) {
 		} else {
 			log.Println("VM deleted successfully:", instanceID)
 		}
+
+	case models.StopVM:
+		if err := jobs.StopVM(job.Data["instance_id"]); err != nil {
+			log.Println("Failed to stop VM:", err)
+		} else {
+			log.Println("VM stopped (off-day):", job.Data["instance_id"])
+		}
+
+	case models.StartVM:
+		if err := jobs.StartVM(job.Data["instance_id"]); err != nil {
+			log.Println("Failed to start VM:", err)
+		} else {
+			log.Println("VM started:", job.Data["instance_id"])
+		}
 	}
 }
 

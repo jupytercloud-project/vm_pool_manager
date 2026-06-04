@@ -24,6 +24,7 @@ type Serverpool struct {
 	ConfigID    string
 	NetworkUuid string
 	TimeStart   string
+	OffDays     string // CSV des jours de fermeture (ex. "saturday,sunday") : VMs éteintes (stop) ces jours-là
 }
 
 func (sp *Serverpool) ToMap() map[string]string {

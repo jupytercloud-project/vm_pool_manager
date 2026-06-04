@@ -54,6 +54,49 @@ func isWarmPool(p models.Serverpool) bool {
 	return p.ServerpoolID == "pool_vms" && p.UserID == "admin"
 }
 
+// powerInFlight throttles stop/start jobs so the 2s loop doesn't re-enqueue them
+// every tick while OpenStack transitions the VM (ACTIVE <-> SHUTOFF).
+var (
+	powerInFlight   = map[string]time.Time{}
+	powerInFlightMu sync.Mutex
+)
+
+func markPower(id string) {
+	powerInFlightMu.Lock()
+	powerInFlight[id] = time.Now()
+	powerInFlightMu.Unlock()
+}
+
+func powerThrottled(id string) bool {
+	powerInFlightMu.Lock()
+	defer powerInFlightMu.Unlock()
+	t, ok := powerInFlight[id]
+	if !ok {
+		return false
+	}
+	if time.Since(t) > 60*time.Second {
+		delete(powerInFlight, id)
+		return false
+	}
+	return true
+}
+
+// isOffDay reports whether today is one of the pool's off-days. On those days the
+// pool's VMs are powered off (stopped, not deleted) to free resources, and powered
+// back on the next day. OffDays is a CSV of lowercase English weekdays.
+func isOffDay(p models.Serverpool) bool {
+	if p.OffDays == "" {
+		return false
+	}
+	today := strings.ToLower(time.Now().Weekday().String())
+	for _, d := range strings.Split(p.OffDays, ",") {
+		if strings.ToLower(strings.TrimSpace(d)) == today {
+			return true
+		}
+	}
+	return false
+}
+
 func Monitor(c context.Context) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
@@ -95,9 +138,11 @@ func CheckAndCreate() {
 	countadmin := 0
 	for _, p := range pools {
 		count := 0
+		var poolServers []models.Server
 		for _, s := range servs {
 			if serverisinpool(p, s) {
 				count++
+				poolServers = append(poolServers, s)
 			}
 			if s.UserID == "admin" {
 				if !servadminmap[s.ID] {
@@ -106,6 +151,29 @@ func CheckAndCreate() {
 				}
 			}
 		}
+
+		// Off-days: power the pool's VMs off (kept, not deleted) on closed days
+		// to free resources, and back on otherwise.
+		if !isWarmPool(p) {
+			if isOffDay(p) {
+				for _, s := range poolServers {
+					if strings.EqualFold(s.Status, "ACTIVE") && !powerThrottled(s.ID) {
+						markPower(s.ID)
+						worker.AddJob(*worker.CreateJob(models.StopVM, map[string]string{"instance_id": s.ID}), false)
+						log.Printf("[off-day] pool %s/%s: stopping %s", p.ServerpoolID, p.UserID, s.ID)
+					}
+				}
+				continue // no create/scale-down while the pool is "closed"
+			}
+			for _, s := range poolServers {
+				if strings.EqualFold(s.Status, "SHUTOFF") && !powerThrottled(s.ID) {
+					markPower(s.ID)
+					worker.AddJob(*worker.CreateJob(models.StartVM, map[string]string{"instance_id": s.ID}), false)
+					log.Printf("[off-day] pool %s/%s: starting %s", p.ServerpoolID, p.UserID, s.ID)
+				}
+			}
+		}
+
 		missing := p.MinVM - (count + p.PendingJobs)
 		if !shouldStartPool(p.TimeStart) {
 			continue
