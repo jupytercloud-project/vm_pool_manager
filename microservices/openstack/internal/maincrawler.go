@@ -152,8 +152,9 @@ func CheckAndCreate() {
 			}
 		}
 
-		// Off-days: power the pool's VMs off (kept, not deleted) on closed days
-		// to free resources, and back on otherwise.
+		// Off-days: the pool's machines still exist (we keep provisioning up to
+		// MinVM below) but are powered OFF (kept, not deleted) on closed days to
+		// free compute, and powered back ON otherwise.
 		if !isWarmPool(p) {
 			if isOffDay(p) {
 				for _, s := range poolServers {
@@ -163,13 +164,13 @@ func CheckAndCreate() {
 						log.Printf("[off-day] pool %s/%s: stopping %s", p.ServerpoolID, p.UserID, s.ID)
 					}
 				}
-				continue // no create/scale-down while the pool is "closed"
-			}
-			for _, s := range poolServers {
-				if strings.EqualFold(s.Status, "SHUTOFF") && !powerThrottled(s.ID) {
-					markPower(s.ID)
-					worker.AddJob(*worker.CreateJob(models.StartVM, map[string]string{"instance_id": s.ID}), false)
-					log.Printf("[off-day] pool %s/%s: starting %s", p.ServerpoolID, p.UserID, s.ID)
+			} else {
+				for _, s := range poolServers {
+					if strings.EqualFold(s.Status, "SHUTOFF") && !powerThrottled(s.ID) {
+						markPower(s.ID)
+						worker.AddJob(*worker.CreateJob(models.StartVM, map[string]string{"instance_id": s.ID}), false)
+						log.Printf("[off-day] pool %s/%s: starting %s", p.ServerpoolID, p.UserID, s.ID)
+					}
 				}
 			}
 		}
