@@ -33,6 +33,7 @@ func nbgraderSSHClient(poolID, userID string) (*ssh.Client, error) {
 	var server models.Server
 	if err := config.Database.
 		Where("serverpool_id = ? AND user_id = ?", poolID, userID).
+		Order("created_at ASC").
 		First(&server).Error; err != nil {
 		return nil, fmt.Errorf("instructor VM not found: %w", err)
 	}
@@ -512,6 +513,7 @@ func handleNbgraderJupyterURL(w http.ResponseWriter, r *http.Request) {
 	var server models.Server
 	if err := config.Database.
 		Where("serverpool_id = ? AND user_id = ?", poolID, userID).
+		Order("created_at ASC").
 		First(&server).Error; err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"url": ""})
@@ -601,7 +603,7 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Get instructor VM IP for SCP
 	var instrServer models.Server
-	config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).First(&instrServer)
+	config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).Order("created_at ASC").First(&instrServer)
 
 	// 4. Get SSH key
 	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")
@@ -751,6 +753,7 @@ func nbgraderSSHClientAny(poolID, userID string) (*ssh.Client, error) {
 	var server models.Server
 	if err := config.Database.
 		Where("serverpool_id = ? AND user_id = ?", poolID, userID).
+		Order("created_at ASC").
 		First(&server).Error; err != nil {
 		return nil, fmt.Errorf("no VM found for pool %s/%s: %w", poolID, userID, err)
 	}
