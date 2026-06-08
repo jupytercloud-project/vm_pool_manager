@@ -1,0 +1,2 @@
+intégration avec moodle ( voit avec la dsi )
+utilisation de grafana pour avoir des log ( à quelle fréquence sont utilsier les vms, combien de ressources etc pour avoir des stat et des potentiels evolution d'infrastructures aussi un peu de supervision)

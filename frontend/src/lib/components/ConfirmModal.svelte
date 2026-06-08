@@ -23,10 +23,18 @@
     show = false;
     onConfirm();
   }
+
+  // Monte le modal directement sur <body> : sinon, rendu dans un conteneur animé
+  // (transform: translate via animate-fade-*), un position:fixed devient relatif à
+  // cet ancêtre transformé → backdrop décalé et modal non centré.
+  function portal(node: HTMLElement) {
+    if (typeof document !== 'undefined') document.body.appendChild(node);
+    return { destroy() { node.parentNode?.removeChild(node); } };
+  }
 </script>
 
 {#if show}
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0" transition:fade={{ duration: 150 }}>
+  <div use:portal class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0" transition:fade={{ duration: 150 }}>
     <!-- Backdrop -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
