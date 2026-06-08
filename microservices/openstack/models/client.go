@@ -60,6 +60,9 @@ func initStudentClients() error {
 	if err != nil {
 		return fmt.Errorf("failed to parse clouds.yaml: %w", err)
 	}
+	// Renouveler automatiquement le token à son expiration (~1 h) : sans cela,
+	// le client tombe en 401 permanent une fois le token expiré (jusqu'au redémarrage).
+	AuthOptions.AllowReauth = true
 
 	provider, err := config.NewProviderClient(context.Background(),
 		AuthOptions, config.WithTLSConfig(TlsConfig))
@@ -102,6 +105,7 @@ func initInfraClients(cloudName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse clouds.yaml for infra: %w", err)
 	}
+	AuthOptions.AllowReauth = true
 
 	provider, err := config.NewProviderClient(context.Background(),
 		AuthOptions, config.WithTLSConfig(TlsConfig))

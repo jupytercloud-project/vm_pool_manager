@@ -133,7 +133,7 @@ func SyncNetwork(ctx context.Context) {
 }
 
 func SyncVolumes(ctx context.Context) {
-	allVolumes := utils.GetAllVolumes(ctx)
+	allVolumes, _ := utils.GetAllVolumes(ctx)
 
 	for _, vol := range allVolumes {
 		volRecord := models.VolumeDB{
@@ -238,9 +238,9 @@ func delete_serv() {
 }
 
 func delete_volumes() {
-	allvol := utils.GetAllVolumes(context.Background())
-	if allvol == nil {
-		log.Println("Failed to connect to OpenStack, will retry")
+	allvol, err := utils.GetAllVolumes(context.Background())
+	if err != nil {
+		log.Println("Failed to connect to OpenStack, will retry:", err)
 		return
 	}
 

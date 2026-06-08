@@ -58,19 +58,21 @@ func GetAllNetworks(ctx context.Context) []networks.Network {
 }
 
 // GetAllVolumes lists volumes from the STUDENT project (volumes belong to student VMs)
-func GetAllVolumes(ctx context.Context) []volumes.Volume {
+// Renvoie une erreur explicite : une liste vide (0 volume) n'est PAS une panne,
+// il faut pouvoir la distinguer d'un échec de connexion côté appelant.
+func GetAllVolumes(ctx context.Context) ([]volumes.Volume, error) {
 	allPages, err := volumes.List(models.BlockstorageClient,
 		volumes.ListOpts{}).AllPages(ctx)
 	if err != nil {
 		log.Printf("GetAllVolumes List error: %v", err)
-		return nil
+		return nil, err
 	}
 
 	allVolumes, err := volumes.ExtractVolumes(allPages)
 	if err != nil {
 		log.Printf("GetAllVolumes Extract error: %v", err)
-		return nil
+		return nil, err
 	}
 
-	return allVolumes
+	return allVolumes, nil
 }
