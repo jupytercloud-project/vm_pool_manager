@@ -113,6 +113,7 @@
   const primaryNav = $derived(navLinks().filter(l => !l.secondary));
   const secondaryNav = $derived(navLinks().filter(l => l.secondary));
   let moreOpen = $state(false);
+  let settingsOpen = $state(false);
 
   function isActive(href: string): boolean {
     if (!browser) return false;
@@ -170,7 +171,6 @@
           <div class="relative">
             <button
               onclick={() => moreOpen = !moreOpen}
-              onblur={() => setTimeout(() => moreOpen = false, 150)}
               class="px-3.5 py-1.5 text-sm rounded-full transition-all inline-flex items-center gap-1.5
                 {moreOpen || secondaryNav.some(l => isActive(l.href))
                   ? 'bg-white dark:bg-neutral-900 text-primary-700 dark:text-primary-300 shadow-sm font-semibold'
@@ -180,9 +180,11 @@
               Plus
             </button>
             {#if moreOpen}
-              <div class="absolute right-0 mt-2 w-60 p-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xl z-50 origin-top-right">
+              <!-- Backdrop : ferme le menu si on clique ailleurs -->
+              <button class="fixed inset-0 z-40 cursor-default" aria-label="Fermer le menu" onclick={() => moreOpen = false}></button>
+              <div class="glass-menu absolute right-0 mt-2 w-60 p-1.5 rounded-2xl z-50 origin-top-right animate-fade-in">
                 {#each secondaryNav as link}
-                  <a href={link.href} class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {isActive(link.href) ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-semibold' : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}">
+                  <a href={link.href} onclick={() => moreOpen = false} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors {isActive(link.href) ? 'bg-primary-50/80 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-semibold' : 'text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5'}">
                     {#if ICONS[link.href]}
                       <svg class="w-4 h-4 shrink-0 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d={ICONS[link.href]}/></svg>
                     {/if}
@@ -190,8 +192,8 @@
                   </a>
                 {/each}
                 {#if moodleUrl && $authStore?.role === 'admin'}
-                  <div class="my-1 border-t border-neutral-100 dark:border-neutral-800"></div>
-                  <a href={moodleUrl} target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-[#f98012]/10">
+                  <div class="my-1 border-t border-black/5 dark:border-white/10"></div>
+                  <a href={moodleUrl} target="_blank" rel="noopener noreferrer" onclick={() => moreOpen = false} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-neutral-700 dark:text-neutral-300 hover:bg-[#f98012]/10">
                     <svg class="w-4 h-4 shrink-0 text-[#f98012]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z"/></svg>
                     Ouvrir Moodle
                     <span class="ml-auto text-[10px] text-neutral-400">↗</span>
@@ -204,52 +206,46 @@
       </div>
 
       <!-- Actions -->
-      <div class="flex items-center gap-2.5">
-        <!-- Dark mode toggle -->
-        <button
-          onclick={() => darkMode.update(v => !v)}
-          class="p-1.5 rounded text-neutral-500 hover:text-primary-700 hover:bg-primary-50 dark:text-neutral-400 dark:hover:text-primary-300 dark:hover:bg-neutral-800 transition-colors"
-          title={$darkMode ? 'Mode clair' : 'Mode sombre'}
-        >
-          {#if $darkMode}
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-          {:else}
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-            </svg>
-          {/if}
-        </button>
-
-        {#if $authStore?.role === 'admin'}
-          <!-- Simple/Expert mode toggle -->
+      <div class="flex items-center gap-2">
+        <!-- Réglages (thème, mode expert, rôle) -->
+        <div class="relative">
           <button
-            onclick={() => simpleMode.update(v => !v)}
-            class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all border
-              {$simpleMode
-                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700'
-                : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600'}"
-            title={$simpleMode ? 'Passer en mode expert' : 'Passer en mode simple'}
+            onclick={() => settingsOpen = !settingsOpen}
+            class="p-2 rounded-full transition-colors {settingsOpen ? 'text-primary-700 dark:text-primary-300 bg-black/5 dark:bg-white/10' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-black/5 dark:hover:bg-white/5'}"
+            title="Réglages" aria-label="Réglages"
           >
-            {#if $simpleMode}
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-              </svg>
-              Mode simple
-            {:else}
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-              Mode expert
-            {/if}
+            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>
           </button>
-        {/if}
+          {#if settingsOpen}
+            <button class="fixed inset-0 z-40 cursor-default" aria-label="Fermer" onclick={() => settingsOpen = false}></button>
+            <div class="glass-menu absolute right-0 mt-2 w-56 p-1.5 rounded-2xl z-50 origin-top-right animate-fade-in">
+              {#if $authStore?.role === 'admin'}
+                <div class="px-3 pt-1.5 pb-2 flex items-center gap-2">
+                  <span class="badge badge-admin">Admin</span>
+                  <span class="text-xs text-neutral-500 truncate">{$authStore.email}</span>
+                </div>
+                <div class="mb-1 border-t border-black/5 dark:border-white/10"></div>
+              {/if}
+              <button onclick={() => darkMode.update(v => !v)} class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                {#if $darkMode}
+                  <svg class="w-4 h-4 shrink-0 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                  Mode clair
+                {:else}
+                  <svg class="w-4 h-4 shrink-0 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                  Mode sombre
+                {/if}
+              </button>
+              {#if $authStore?.role === 'admin'}
+                <button onclick={() => simpleMode.update(v => !v)} class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-neutral-700 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                  <svg class="w-4 h-4 shrink-0 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  {$simpleMode ? 'Passer en mode expert' : 'Passer en mode simple'}
+                </button>
+              {/if}
+            </div>
+          {/if}
+        </div>
 
         {#if $authStore}
-          {#if $authStore.role === 'admin'}
-            <span class="badge badge-admin hidden sm:inline-flex">Admin</span>
-          {/if}
           <button onclick={logout} class="btn btn-secondary text-xs px-3.5 py-2">Déconnexion</button>
         {:else if $githubStore}
           <span class="hidden sm:flex items-center gap-1.5 text-xs text-neutral-500">
@@ -290,10 +286,10 @@
           <a
             href={link.href}
             onclick={() => mobileOpen = false}
-            class="block px-4 py-2.5 text-sm font-semibold transition-colors rounded
+            class="block px-4 py-2.5 text-sm font-semibold transition-colors rounded-xl
               {isActive(link.href)
-                ? 'text-primary-700 bg-primary-50 border-l-2 border-primary-700'
-                : 'text-neutral-600 hover:text-primary-700 hover:bg-primary-50 border-l-2 border-transparent'}"
+                ? 'text-primary-700 bg-primary-50 dark:bg-primary-900/30 dark:text-primary-300'
+                : 'text-neutral-600 dark:text-neutral-300 hover:text-primary-700 hover:bg-primary-50 dark:hover:bg-white/5'}"
           >{link.label}</a>
         {/each}
       </div>

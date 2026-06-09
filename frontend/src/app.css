@@ -106,6 +106,20 @@
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
 
+  /* Liquid glass — menus translucides façon Apple (verre dépoli + reflet) */
+  .glass-menu {
+    background: rgba(255, 255, 255, 0.68);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .dark .glass-menu {
+    background: rgba(22, 24, 33, 0.72);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
   /* Cards — coins arrondis + ombre douce façon Apple */
   .card {
     background: #ffffff;
