@@ -214,11 +214,12 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-2">
-        <!-- Paramètres : lien direct vers la page dédiée (thème, mode, profil) -->
-        {#if $authStore}
+        <!-- Paramètres : lien direct vers la page dédiée (admin: Paramètres ; étudiant: Mon compte) -->
+        {#if $authStore || $githubStore || $moodleStudentStore}
+          {@const settingsHref = $authStore ? '/profile' : '/student/settings'}
           <a
-            href="/profile" title="Paramètres" aria-label="Paramètres"
-            class="p-2 rounded-full transition-colors {isActive('/profile') ? 'text-primary-700 dark:text-primary-300 bg-black/5 dark:bg-white/10' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-black/5 dark:hover:bg-white/5'}"
+            href={settingsHref} title="Paramètres" aria-label="Paramètres"
+            class="p-2 rounded-full transition-colors {isActive(settingsHref) ? 'text-primary-700 dark:text-primary-300 bg-black/5 dark:bg-white/10' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-black/5 dark:hover:bg-white/5'}"
           >
             <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>
           </a>

@@ -29,13 +29,21 @@
 
 <div class="space-y-7 animate-fade-up">
 
-  <!-- Header -->
-  <div class="flex items-start justify-between">
-    <div>
-      <h1 class="text-3xl font-bold text-primary-800 dark:text-primary-300">Paramètres</h1>
-      <p class="text-sm text-neutral-500 mt-1">{$authStore?.email}</p>
+  <h1 class="text-3xl font-bold text-primary-800 dark:text-primary-300">Paramètres</h1>
+
+  <!-- Hero identité -->
+  <div class="card card-interactive p-6 flex items-center gap-4">
+    <div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white shrink-0 shadow-md bg-primary-700 dark:bg-primary-600">
+      {($authStore?.email ?? '?').charAt(0).toUpperCase()}
     </div>
-    <button onclick={() => sshModal = true} class="btn btn-secondary text-sm">
+    <div class="min-w-0 flex-1">
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-bold text-neutral-900 dark:text-white truncate">{$authStore?.email}</h2>
+        {#if $authStore?.role === 'admin'}<span class="badge badge-admin">Admin</span>{/if}
+      </div>
+      <p class="text-sm text-neutral-500 mt-0.5">Compte enseignant · connecté via Polytechnique</p>
+    </div>
+    <button onclick={() => sshModal = true} class="btn btn-secondary text-sm shrink-0">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
