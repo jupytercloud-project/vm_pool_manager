@@ -310,19 +310,28 @@ func handleNbgraderGrades(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := nbgraderSSHClient(poolID, userID)
+	grades, err := fetchNbgraderGrades(poolID, userID, assignment)
 	if err != nil {
 		log.Printf("[nbgrader] grades SSH error: %v", err)
 		http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"grades": grades})
+}
+
+// fetchNbgraderGrades lit les notes d'un assignment sur la VM instructeur (nbgrader export
+// CSV, fallback sqlite gradebook.db). Réutilisé par le push vers Moodle.
+func fetchNbgraderGrades(poolID, userID, assignment string) ([]NbgraderGrade, error) {
+	client, err := nbgraderSSHClient(poolID, userID)
+	if err != nil {
+		return nil, err
+	}
 	defer client.Close()
 
-	// Export CSV then filter by assignment, parse student/score/max_score columns
 	tmpFile := fmt.Sprintf("/tmp/nbgrader_export_%d.csv", time.Now().UnixNano())
 	innerGrades := fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader export --to=%s && cat %s; rm -f %s", tmpFile, tmpFile, tmpFile)
 	out, err := runSSHOutput(client, dockerExec(innerGrades))
-	// Cleanup in background (best effort)
 	go func() {
 		s, _ := client.NewSession()
 		if s != nil {
@@ -332,26 +341,18 @@ func handleNbgraderGrades(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil || out == "" {
-		// Fallback: try reading gradebook.db via sqlite3
+		// Fallback: gradebook.db via sqlite3
 		sqlInner := fmt.Sprintf(
 			`sqlite3 /home/jovyan/nbgrader/gradebook.db "SELECT s.name, nb.score, nb.max_score FROM grade nb JOIN student s ON nb.student_id = s.id JOIN notebook n ON nb.notebook_id = n.id JOIN assignment a ON n.assignment_id = a.id WHERE a.name='%s' ORDER BY s.name;" 2>/dev/null || echo ""`,
 			strings.ReplaceAll(assignment, "'", "''"),
 		)
 		out2, err2 := runSSHOutput(client, dockerExec(sqlInner))
 		if err2 != nil || out2 == "" {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]any{"grades": []NbgraderGrade{}})
-			return
+			return []NbgraderGrade{}, nil
 		}
-		grades := parseSQLiteGrades(out2)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"grades": grades})
-		return
+		return parseSQLiteGrades(out2), nil
 	}
-
-	grades := parseCSVGrades(out, assignment)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"grades": grades})
+	return parseCSVGrades(out, assignment), nil
 }
 
 // POST /api/nbgrader/submit?pool_id=X&user_id=Y&assignment=Z&student_ip=W

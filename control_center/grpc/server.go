@@ -179,6 +179,8 @@ func Start_grpc(ctx context.Context) {
 	mux.HandleFunc("/api/moodle/session", handleMoodleSession)
 	mux.HandleFunc("/api/moodle/my-pools", handleMoodleMyPools)
 	mux.HandleFunc("/api/moodle/attrib-vm", handleMoodleAttribVM)
+	mux.HandleFunc("/api/moodle/assignments", handleMoodleAssignments)
+	mux.HandleFunc("/api/moodle/push-grades", handleMoodlePushGrades)
 	mux.HandleFunc("/api/image-proposals", handleImageProposals)
 	mux.HandleFunc("/api/jupyter-proxy/", handleJupyterProxy)
 	mux.HandleFunc("/vm-registrar", func(w http.ResponseWriter, r *http.Request) {

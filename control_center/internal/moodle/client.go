@@ -237,6 +237,49 @@ func (c *Client) GetEnrolledUsers(courseID int) ([]EnrolledUser, error) {
 	return users, nil
 }
 
+// ─── Devoirs (mod_assign) ───────────────────────────────────────────────────
+
+type Assignment struct {
+	ID       int     `json:"id"`
+	CMID     int     `json:"cmid"`
+	Name     string  `json:"name"`
+	MaxGrade float64 `json:"max_grade"`
+}
+
+// GetAssignments liste les activités "devoir" d'un cours (cible du push de notes).
+func (c *Client) GetAssignments(courseID int) ([]Assignment, error) {
+	v := url.Values{}
+	v.Set("courseids[0]", strconv.Itoa(courseID))
+	body, err := c.call("mod_assign_get_assignments", v)
+	if err != nil {
+		return nil, err
+	}
+	var resp struct {
+		Courses []struct {
+			Assignments []struct {
+				ID    int         `json:"id"`
+				CMID  int         `json:"cmid"`
+				Name  string      `json:"name"`
+				Grade json.Number `json:"grade"`
+			} `json:"assignments"`
+		} `json:"courses"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("get_assignments: %w", err)
+	}
+	var out []Assignment
+	for _, co := range resp.Courses {
+		for _, a := range co.Assignments {
+			max, _ := a.Grade.Float64()
+			if max <= 0 {
+				max = 100
+			}
+			out = append(out, Assignment{ID: a.ID, CMID: a.CMID, Name: a.Name, MaxGrade: max})
+		}
+	}
+	return out, nil
+}
+
 // ─── Notes ──────────────────────────────────────────────────────────────────
 
 // SaveAssignGrade pousse une note sur une activité "devoir" (mod_assign) pour un utilisateur.

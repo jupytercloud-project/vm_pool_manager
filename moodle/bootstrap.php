@@ -126,6 +126,37 @@ function enrol_in($courseid, $userid, $roleshortname) {
 foreach ($courses as $c) {
     foreach ($students as $s) { enrol_in($c->id, $s->id, 'student'); }
     enrol_in($c->id, $teacher->id, 'editingteacher');
+    // L'admin (= utilisateur du token de service) doit être enseignant pour que
+    // mod_assign_get_assignments liste les devoirs via les Web Services.
+    enrol_in($c->id, $admin->id, 'editingteacher');
+}
+
+// ── 6b. Une activité "devoir" (mod_assign) par cours : cible du push de notes ──
+require_once($CFG->dirroot.'/course/modlib.php');
+function ensure_assign($courseid, $name) {
+    global $DB, $CFG;
+    $found = $DB->get_record('assign', ['course' => $courseid, 'name' => $name]);
+    if ($found) { return $found->id; }
+    $module = $DB->get_record('modules', ['name' => 'assign']);
+    $mi = new stdClass();
+    $mi->modulename = 'assign'; $mi->module = $module->id; $mi->course = $courseid;
+    $mi->section = 0; $mi->visible = 1; $mi->name = $name; $mi->intro = ' '; $mi->introformat = FORMAT_HTML;
+    $mi->grade = 100;
+    $mi->submissiondrafts = 0; $mi->requiresubmissionstatement = 0;
+    $mi->sendnotifications = 0; $mi->sendlatenotifications = 0; $mi->sendstudentnotifications = 1;
+    $mi->duedate = 0; $mi->cutoffdate = 0; $mi->allowsubmissionsfromdate = 0; $mi->gradingduedate = 0;
+    $mi->teamsubmission = 0; $mi->requireallteammemberssubmit = 0; $mi->teamsubmissiongroupingid = 0;
+    $mi->blindmarking = 0; $mi->attemptreopenmethod = 'none'; $mi->maxattempts = -1;
+    $mi->markingworkflow = 0; $mi->markingallocation = 0; $mi->completion = 0; $mi->completionsubmit = 0;
+    $mi->assignsubmission_onlinetext_enabled = 0; $mi->assignsubmission_file_enabled = 0;
+    $mi->assignsubmission_file_maxfiles = 1; $mi->assignsubmission_file_maxsizebytes = 0;
+    $mi->assignfeedback_comments_enabled = 1; $mi->assignfeedback_file_enabled = 0; $mi->assignfeedback_offline_enabled = 0;
+    $res = add_moduleinfo($mi, get_course($courseid));
+    return $res->instance;
+}
+foreach ($courses as $c) {
+    $aid = ensure_assign($c->id, 'TP nbgrader (démo)');
+    echo "ASSIGN course={$c->id} assign_id={$aid}\n";
 }
 
 // ── 7. S'assurer que le service mobile est activé (login/token.php des élèves) ──

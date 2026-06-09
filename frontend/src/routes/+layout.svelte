@@ -50,6 +50,10 @@
       window.location.href = 'https://10.202.3.109' + window.location.pathname;
       return;
     }
+    try {
+      const mr = await fetch('/api/moodle/status');
+      if (mr.ok) { const md = await mr.json(); if (md.configured) moodleUrl = md.url ?? ''; }
+    } catch { /* ignore */ }
     const token = get(authStore);
     if (!token) {
       const path = page.url?.pathname ?? '';
@@ -73,6 +77,7 @@
   });
 
   let mobileOpen = $state(false);
+  let moodleUrl = $state('');
 
   const navLinks = $derived(() => {
     const auth = $authStore;
@@ -145,6 +150,12 @@
             {/if}
           </a>
         {/each}
+        {#if moodleUrl && $authStore?.role === 'admin'}
+          <a href={moodleUrl} target="_blank" rel="noopener noreferrer"
+             class="px-4 py-2 text-sm font-600 rounded text-neutral-600 hover:text-[#f98012] hover:bg-[#f98012]/10 transition-all inline-flex items-center gap-1">
+            Moodle ↗
+          </a>
+        {/if}
       </div>
 
       <!-- Actions -->

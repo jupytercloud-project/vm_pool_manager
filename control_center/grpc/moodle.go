@@ -265,6 +265,114 @@ func handleMoodleMyPools(w http.ResponseWriter, r *http.Request) {
 	writeJSONMoodle(w, http.StatusOK, map[string]any{"pools": pools})
 }
 
+// GET /api/moodle/assignments?course_id=X  (ou ?pool_id=&user_id=) — devoirs Moodle.
+// Avec pool_id+user_id, le cours est résolu via le pool (champ moodle_course_id).
+func handleMoodleAssignments(w http.ResponseWriter, r *http.Request) {
+	courseID, _ := strconv.Atoi(r.URL.Query().Get("course_id"))
+	if courseID <= 0 {
+		poolID, userID := r.URL.Query().Get("pool_id"), r.URL.Query().Get("user_id")
+		if poolID != "" && userID != "" {
+			var pool models.Serverpool
+			if err := config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).First(&pool).Error; err == nil {
+				courseID = pool.MoodleCourseID
+			}
+		}
+	}
+	if courseID <= 0 {
+		// Pas de cours Moodle lié à ce pool : pas une erreur, juste rien à proposer.
+		writeJSONMoodle(w, http.StatusOK, map[string]any{"assignments": []any{}, "course_id": 0})
+		return
+	}
+	c, err := moodle.New()
+	if err != nil {
+		writeJSONMoodle(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+		return
+	}
+	assigns, err := c.GetAssignments(courseID)
+	if err != nil {
+		writeJSONMoodle(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSONMoodle(w, http.StatusOK, map[string]any{"assignments": assigns, "course_id": courseID})
+}
+
+// POST /api/moodle/push-grades — remonte les notes nbgrader d'un assignment vers un devoir Moodle.
+func handleMoodlePushGrades(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
+		return
+	}
+	var req struct {
+		PoolID         string `json:"pool_id"`
+		UserID         string `json:"user_id"`
+		Assignment     string `json:"assignment"`
+		MoodleAssignID int    `json:"moodle_assign_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil ||
+		req.PoolID == "" || req.UserID == "" || req.Assignment == "" || req.MoodleAssignID <= 0 {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "pool_id, user_id, assignment et moodle_assign_id requis"})
+		return
+	}
+	c, err := moodle.New()
+	if err != nil {
+		writeJSONMoodle(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+		return
+	}
+
+	// 1) Notes nbgrader (student = email).
+	grades, err := fetchNbgraderGrades(req.PoolID, req.UserID, req.Assignment)
+	if err != nil {
+		writeJSONMoodle(w, http.StatusBadGateway, map[string]string{"error": "lecture des notes impossible: " + err.Error()})
+		return
+	}
+
+	// 2) Map email → moodle_user_id (depuis les élèves importés du pool).
+	var pool models.Serverpool
+	if err := config.Database.Preload("ListStudents.Students").
+		Where("serverpool_id = ? AND user_id = ?", req.PoolID, req.UserID).First(&pool).Error; err != nil {
+		writeJSONMoodle(w, http.StatusNotFound, map[string]string{"error": "pool introuvable"})
+		return
+	}
+	uidByEmail := map[string]int{}
+	for _, s := range pool.ListStudents.Students {
+		if s.MoodleEmail != "" && s.MoodleUserID != 0 {
+			uidByEmail[strings.ToLower(s.MoodleEmail)] = s.MoodleUserID
+		}
+	}
+
+	// 3) Barème du devoir Moodle (pour mettre la note à l'échelle).
+	maxGrade := 100.0
+	if assigns, e := c.GetAssignments(pool.MoodleCourseID); e == nil {
+		for _, a := range assigns {
+			if a.ID == req.MoodleAssignID {
+				maxGrade = a.MaxGrade
+			}
+		}
+	}
+
+	pushed, skipped := 0, 0
+	var failures []string
+	for _, g := range grades {
+		uid := uidByEmail[strings.ToLower(g.Student)]
+		if uid == 0 {
+			skipped++
+			continue
+		}
+		grade := g.Score
+		if g.MaxScore > 0 {
+			grade = g.Score / g.MaxScore * maxGrade
+		}
+		if err := c.SaveAssignGrade(req.MoodleAssignID, uid, grade, ""); err != nil {
+			failures = append(failures, g.Student)
+			continue
+		}
+		pushed++
+	}
+	writeJSONMoodle(w, http.StatusOK, map[string]any{
+		"pushed": pushed, "skipped": skipped, "failures": failures, "total": len(grades),
+	})
+}
+
 // POST /api/moodle/attrib-vm {pool_id, user_id, email} — attribue une VM sans clé SSH.
 func handleMoodleAttribVM(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

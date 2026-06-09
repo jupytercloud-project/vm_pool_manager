@@ -17,13 +17,16 @@ if ! curl -s -o /dev/null --max-time 8 "$MOODLE_URL/login/index.php"; then
   exit 1
 fi
 
-echo "→ Correction des permissions moodledata (dev) pour login/token.php…"
-docker compose exec -T -u root moodle chmod -R a+rwX /bitnami/moodledata >/dev/null 2>&1 || true
-
 echo "→ Exécution du bootstrap dans le conteneur (API Moodle)…"
 docker compose cp bootstrap.php moodle:/tmp/cpm-bootstrap.php >/dev/null
 OUT="$(docker compose exec -T moodle php /tmp/cpm-bootstrap.php)"
 echo "$OUT"
+
+# moodledata doit rester inscriptible par le process web (sinon les WS qui créent des
+# dossiers temporaires échouent en invaliddatarootpermissions). À refaire APRÈS le
+# bootstrap car purge_all_caches/création d'activités recrée des dossiers (dev only).
+echo "→ Permissions moodledata (dev)…"
+docker compose exec -T -u root moodle chmod -R a+rwX /bitnami/moodledata >/dev/null 2>&1 || true
 
 if ! grep -q '^OK$' <<<"$OUT"; then
   echo "✗ Bootstrap incomplet (pas de ligne OK). Voir la sortie ci-dessus."

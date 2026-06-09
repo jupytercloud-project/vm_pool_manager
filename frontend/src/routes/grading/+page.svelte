@@ -52,7 +52,7 @@
     grades = [];
     actionOutput = '';
     error = '';
-    await Promise.all([loadAssignments(), loadJupyterURL()]);
+    await Promise.all([loadAssignments(), loadJupyterURL(), loadMoodleForPool()]);
   }
 
   async function loadJupyterURL() {
@@ -209,6 +209,50 @@
     window.open(`/api/nbgrader/export-csv?${params}`, '_blank');
   }
 
+  // ── Moodle ──
+  let moodleCourseId = $state(0);
+  let moodleUrl = $state('');
+  let moodleAssignments = $state<{ id: number; name: string; max_grade: number }[]>([]);
+  let selectedMoodleAssign = $state<number | null>(null);
+  let moodlePushing = $state(false);
+  let moodlePushMsg = $state('');
+
+  async function loadMoodleForPool() {
+    moodleCourseId = 0; moodleAssignments = []; selectedMoodleAssign = null; moodlePushMsg = '';
+    if (!selectedPool) return;
+    try {
+      const st = await fetch('/api/moodle/status');
+      if (st.ok) moodleUrl = (await st.json()).url ?? '';
+      const r = await fetch(`/api/moodle/assignments?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}`);
+      if (r.ok) {
+        const d = await r.json();
+        moodleCourseId = d.course_id ?? 0;
+        moodleAssignments = d.assignments ?? [];
+        if (moodleAssignments.length === 1) selectedMoodleAssign = moodleAssignments[0].id;
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function pushToMoodle() {
+    if (!selectedPool || !selectedAssignment || !selectedMoodleAssign) return;
+    moodlePushing = true; moodlePushMsg = '';
+    try {
+      const r = await fetch('/api/moodle/push-grades', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pool_id: selectedPool.name, user_id: selectedPool.userId,
+          assignment: selectedAssignment, moodle_assign_id: selectedMoodleAssign,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) { moodlePushMsg = 'Erreur : ' + (d.error ?? 'échec'); return; }
+      moodlePushMsg = `${d.pushed} note(s) envoyée(s)`
+        + (d.skipped ? `, ${d.skipped} ignorée(s)` : '')
+        + (d.failures?.length ? `, ${d.failures.length} échec(s)` : '');
+    } catch { moodlePushMsg = "Erreur lors de l'envoi vers Moodle."; }
+    finally { moodlePushing = false; }
+  }
+
 
   function scoreColor(grade: Grade): string {
     if (grade.max_score === 0) return 'text-neutral-500';
@@ -350,6 +394,40 @@
           </svg>
           Exporter CSV
         </button>
+
+        {#if moodleCourseId > 0}
+          <div class="mt-1 p-3 rounded border border-[#f98012]/30 bg-[#f98012]/5 space-y-2">
+            <p class="section-label flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-[#f98012]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z"/></svg>
+              Moodle
+            </p>
+            <select class="field text-xs" bind:value={selectedMoodleAssign}>
+              <option value={null} disabled selected>— Devoir Moodle cible —</option>
+              {#each moodleAssignments as a}
+                <option value={a.id}>{a.name} (/{a.max_grade})</option>
+              {/each}
+            </select>
+            <button
+              onclick={pushToMoodle}
+              disabled={moodlePushing || !selectedAssignment || !selectedMoodleAssign}
+              class="btn btn-secondary w-full text-xs justify-center gap-2"
+            >
+              {#if moodlePushing}
+                <span class="w-3.5 h-3.5 border-2 border-neutral-400/40 border-t-neutral-600 rounded-full" style="animation: spinnerGlow 0.7s linear infinite;"></span>
+              {/if}
+              Envoyer les notes vers Moodle
+            </button>
+            {#if moodlePushMsg}
+              <p class="text-xs {moodlePushMsg.startsWith('Erreur') ? 'text-red-600' : 'text-green-600'}">{moodlePushMsg}</p>
+            {/if}
+            {#if moodleUrl}
+              <a href={`${moodleUrl}/grade/report/grader/index.php?id=${moodleCourseId}`} target="_blank" rel="noopener noreferrer"
+                 class="text-xs text-[#f98012] hover:underline inline-flex items-center gap-1">
+                Carnet de notes Moodle ↗
+              </a>
+            {/if}
+          </div>
+        {/if}
 
         {#if actionOutput}
           <details class="mt-1">
