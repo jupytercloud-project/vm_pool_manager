@@ -19,6 +19,7 @@ via GitHub et accèdent à leur VM (terminal web Guacamole, SSH, ou JupyterLab).
 | 7 | [Snapshots & images](08-snapshots-images.md) | Construction des images Jupyter/nbgrader |
 | 8 | [Développement & exploitation](09-developpement-exploitation.md) | `dev.sh`, `.env`, services, dépannage |
 | 9 | [Observabilité](10-observabilite.md) | Grafana + Prometheus + Loki : métriques d'usage, logs, dashboards |
+| 10 | [Intégration Moodle](11-moodle.md) | Import élèves, connexion Moodle (sans clé SSH), remontée des notes |
 
 ## Vue d'ensemble (30 secondes)
 
