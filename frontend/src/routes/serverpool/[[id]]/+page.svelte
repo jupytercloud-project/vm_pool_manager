@@ -166,7 +166,7 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
         {@const spVMs = invPool?.vms ?? []}
         {@const activeCount = spVMs.filter(v => v.activity_status !== 'idle').length}
         {@const readyCount = spVMs.filter(v => v.status === 'ready').length}
-        <div class="card p-5 space-y-4 hover:border-primary-200 transition-colors">
+        <div class="card card-interactive p-5 space-y-4 hover:border-primary-200">
           <div class="flex items-start justify-between">
             <div>
               <h2 class="text-base font-bold text-neutral-900">{sp.name}</h2>

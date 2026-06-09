@@ -132,6 +132,15 @@
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 16px;
   }
+  /* Carte cliquable : légère élévation au survol (façon Apple) */
+  .card-interactive {
+    transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.09);
+  }
+  .dark .card-interactive:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 
   /* Modal overlay */
   .modal-overlay {
