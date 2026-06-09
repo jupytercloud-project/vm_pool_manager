@@ -160,7 +160,11 @@
       actionOutput = data.output ?? data.message ?? '';
       if (data.status === 'ok' || data.distributed !== undefined) {
         if (endpoint === 'collect' || endpoint === 'release') await loadAssignments();
-        if (endpoint === 'autograde') await loadGrades();
+        if (endpoint === 'autograde') {
+          await loadGrades();
+          // Envoi automatique vers Moodle si activé.
+          if (autoPushMoodle && selectedMoodleAssign) await pushToMoodle();
+        }
         // Confirmation message per action
         const a = selectedAssignment ? ` « ${selectedAssignment} »` : '';
         if (endpoint === 'release') {
@@ -216,13 +220,18 @@
   let selectedMoodleAssign = $state<number | null>(null);
   let moodlePushing = $state(false);
   let moodlePushMsg = $state('');
+  let moodleConfigured = $state(false);
+  let autoPushMoodle = $state(false);
+  let moodleCourses = $state<{ id: number; shortname: string; fullname: string }[]>([]);
+  let linkCourseId = $state<number | null>(null);
+  let linking = $state(false);
 
   async function loadMoodleForPool() {
     moodleCourseId = 0; moodleAssignments = []; selectedMoodleAssign = null; moodlePushMsg = '';
     if (!selectedPool) return;
     try {
       const st = await fetch('/api/moodle/status');
-      if (st.ok) moodleUrl = (await st.json()).url ?? '';
+      if (st.ok) { const sd = await st.json(); moodleConfigured = !!sd.configured; moodleUrl = sd.url ?? ''; }
       const r = await fetch(`/api/moodle/assignments?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}`);
       if (r.ok) {
         const d = await r.json();
@@ -230,7 +239,24 @@
         moodleAssignments = d.assignments ?? [];
         if (moodleAssignments.length === 1) selectedMoodleAssign = moodleAssignments[0].id;
       }
+      // Si pas encore lié, charger la liste des cours pour permettre la liaison.
+      if (moodleConfigured && moodleCourseId === 0) {
+        const cr = await fetch('/api/moodle/courses');
+        if (cr.ok) moodleCourses = (await cr.json()).courses ?? [];
+      }
     } catch { /* ignore */ }
+  }
+
+  async function linkPoolToMoodle() {
+    if (!selectedPool || !linkCourseId) return;
+    linking = true;
+    try {
+      const r = await fetch('/api/moodle/link-pool', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pool_id: selectedPool.name, user_id: selectedPool.userId, course_id: linkCourseId }),
+      });
+      if (r.ok) await loadMoodleForPool();
+    } catch { /* ignore */ } finally { linking = false; }
   }
 
   async function pushToMoodle() {
@@ -417,6 +443,10 @@
               {/if}
               Envoyer les notes vers Moodle
             </button>
+            <label class="flex items-center gap-2 text-xs text-neutral-600 cursor-pointer">
+              <input type="checkbox" bind:checked={autoPushMoodle} class="w-3.5 h-3.5 accent-[#f98012]" />
+              Envoyer automatiquement après « Notation automatique »
+            </label>
             {#if moodlePushMsg}
               <p class="text-xs {moodlePushMsg.startsWith('Erreur') ? 'text-red-600' : 'text-green-600'}">{moodlePushMsg}</p>
             {/if}
@@ -426,6 +456,24 @@
                 Carnet de notes Moodle ↗
               </a>
             {/if}
+          </div>
+        {:else if moodleConfigured && selectedPool}
+          <div class="mt-1 p-3 rounded border border-neutral-200 bg-neutral-50 space-y-2">
+            <p class="section-label flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-[#f98012]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z"/></svg>
+              Moodle
+            </p>
+            <p class="text-xs text-neutral-500">Ce pool n'est lié à aucun cours Moodle. Liez-le pour envoyer les notes.</p>
+            <select class="field text-xs" bind:value={linkCourseId}>
+              <option value={null} disabled selected>— Cours Moodle —</option>
+              {#each moodleCourses as c}
+                <option value={c.id}>{c.shortname} — {c.fullname}</option>
+              {/each}
+            </select>
+            <button onclick={linkPoolToMoodle} disabled={linking || !linkCourseId} class="btn btn-secondary w-full text-xs justify-center gap-2">
+              {#if linking}<span class="w-3.5 h-3.5 border-2 border-neutral-400/40 border-t-neutral-600 rounded-full" style="animation: spinnerGlow 0.7s linear infinite;"></span>{/if}
+              Lier ce pool au cours
+            </button>
           </div>
         {/if}
 

@@ -265,6 +265,53 @@ func handleMoodleMyPools(w http.ResponseWriter, r *http.Request) {
 	writeJSONMoodle(w, http.StatusOK, map[string]any{"pools": pools})
 }
 
+// POST /api/moodle/ssh-key {email, ssh_key} — ajoute/maj la clé SSH d'un élève (login Moodle).
+func handleMoodleSSHKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
+		return
+	}
+	var req struct {
+		Email  string `json:"email"`
+		SSHKey string `json:"ssh_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" || req.SSHKey == "" {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "email et ssh_key requis"})
+		return
+	}
+	if err := attribvm.New(config.Database).SetStudentKeyByEmail(req.Email, strings.TrimSpace(req.SSHKey)); err != nil {
+		writeJSONMoodle(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+	writeJSONMoodle(w, http.StatusOK, map[string]any{"success": true})
+}
+
+// POST /api/moodle/link-pool {pool_id, user_id, course_id} — lie un pool à un cours Moodle
+// (sans importer d'élèves), pour permettre le push de notes.
+func handleMoodleLinkPool(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
+		return
+	}
+	var req struct {
+		PoolID   string `json:"pool_id"`
+		UserID   string `json:"user_id"`
+		CourseID int    `json:"course_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PoolID == "" || req.UserID == "" || req.CourseID <= 0 {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "pool_id, user_id, course_id requis"})
+		return
+	}
+	res := config.Database.Model(&models.Serverpool{}).
+		Where("serverpool_id = ? AND user_id = ?", req.PoolID, req.UserID).
+		Update("moodle_course_id", req.CourseID)
+	if res.Error != nil || res.RowsAffected == 0 {
+		writeJSONMoodle(w, http.StatusNotFound, map[string]string{"error": "pool introuvable"})
+		return
+	}
+	writeJSONMoodle(w, http.StatusOK, map[string]any{"success": true, "course_id": req.CourseID})
+}
+
 // GET /api/moodle/assignments?course_id=X  (ou ?pool_id=&user_id=) — devoirs Moodle.
 // Avec pool_id+user_id, le cours est résolu via le pool (champ moodle_course_id).
 func handleMoodleAssignments(w http.ResponseWriter, r *http.Request) {

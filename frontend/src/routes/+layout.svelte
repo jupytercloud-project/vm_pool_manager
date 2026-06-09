@@ -7,6 +7,7 @@
   } from '$lib/index'
   import { authStore, startOIDCLogin } from '$lib/store/authStore';
   import { githubStore, disconnectGitHub } from '$lib/store/githubStore';
+  import { moodleStudentStore, disconnectMoodleStudent } from '$lib/store/moodleStudentStore';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { goto } from '$app/navigation';
@@ -82,21 +83,25 @@
   const navLinks = $derived(() => {
     const auth = $authStore;
     const simple = $simpleMode;
-    const links: { href: string; label: string }[] = [];
+    const links: { href: string; label: string; secondary?: boolean }[] = [];
     if (auth?.role === 'admin') {
       // '/serverpool' is the admin home — no separate "Accueil" tab (it pointed
       // to the same page). In simple mode it's labelled "Mes cours".
       links.push({ href: '/inventory', label: simple ? 'Mes étudiants' : 'Inventaire' });
       links.push({ href: '/serverpool', label: simple ? 'Mes cours' : 'Serverpools' });
-      if (!simple) links.push({ href: '/config', label: 'Configurations' });
       links.push({ href: '/grading', label: 'Notation' });
-      links.push({ href: '/propose-image', label: 'Proposer une image' });
+      // Secondaires : regroupées dans un menu "Plus" pour désencombrer la barre.
+      if (!simple) links.push({ href: '/config', label: 'Configurations', secondary: true });
+      links.push({ href: '/propose-image', label: 'Proposer une image', secondary: true });
     } else if (auth) {
       links.push({ href: '/student', label: 'Mes cours' });
     }
     if (auth) links.push({ href: '/profile', label: 'Profil' });
     return links;
   });
+  const primaryNav = $derived(navLinks().filter(l => !l.secondary));
+  const secondaryNav = $derived(navLinks().filter(l => l.secondary));
+  let moreOpen = $state(false);
 
   function isActive(href: string): boolean {
     if (!browser) return false;
@@ -135,7 +140,7 @@
 
       <!-- Desktop links -->
       <div class="hidden md:flex items-center gap-1">
-        {#each navLinks() as link}
+        {#each primaryNav as link}
           <a
             href={link.href}
             class="px-4 py-2 text-sm font-600 transition-all duration-150 relative rounded
@@ -150,11 +155,32 @@
             {/if}
           </a>
         {/each}
-        {#if moodleUrl && $authStore?.role === 'admin'}
-          <a href={moodleUrl} target="_blank" rel="noopener noreferrer"
-             class="px-4 py-2 text-sm font-600 rounded text-neutral-600 hover:text-[#f98012] hover:bg-[#f98012]/10 transition-all inline-flex items-center gap-1">
-            Moodle ↗
-          </a>
+
+        {#if secondaryNav.length || (moodleUrl && $authStore?.role === 'admin')}
+          <div class="relative">
+            <button
+              onclick={() => moreOpen = !moreOpen}
+              onblur={() => setTimeout(() => moreOpen = false, 150)}
+              class="px-4 py-2 text-sm font-600 rounded text-neutral-600 hover:text-primary-700 hover:bg-primary-50 transition-all inline-flex items-center gap-1"
+            >
+              Plus
+              <svg class="w-3.5 h-3.5 transition-transform {moreOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {#if moreOpen}
+              <div class="absolute right-0 mt-1 w-52 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg z-50">
+                {#each secondaryNav as link}
+                  <a href={link.href} class="block px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-primary-50 dark:hover:bg-neutral-800 {isActive(link.href) ? 'text-primary-700 font-semibold' : ''}">
+                    {link.label}
+                  </a>
+                {/each}
+                {#if moodleUrl && $authStore?.role === 'admin'}
+                  <a href={moodleUrl} target="_blank" rel="noopener noreferrer" class="block px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-[#f98012]/10 inline-flex items-center gap-1">
+                    Ouvrir Moodle ↗
+                  </a>
+                {/if}
+              </div>
+            {/if}
+          </div>
         {/if}
       </div>
 
@@ -212,6 +238,12 @@
             <span class="font-mono font-semibold text-neutral-700">{$githubStore.login}</span>
           </span>
           <button onclick={disconnectGitHub} class="btn btn-secondary text-xs px-3.5 py-2">Déconnexion</button>
+        {:else if $moodleStudentStore}
+          <span class="hidden sm:flex items-center gap-1.5 text-xs text-neutral-500">
+            <svg class="w-3.5 h-3.5 text-[#f98012]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z"/></svg>
+            <span class="font-mono font-semibold text-neutral-700">{$moodleStudentStore.email}</span>
+          </span>
+          <button onclick={disconnectMoodleStudent} class="btn btn-secondary text-xs px-3.5 py-2">Déconnexion</button>
         {:else}
           <button onclick={startOIDCLogin} class="btn btn-primary text-xs px-3.5 py-2">Se connecter</button>
         {/if}

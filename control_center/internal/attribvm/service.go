@@ -274,6 +274,35 @@ func (s *Service) AttribVMByEmail(poolID, userID, email string) (string, int32, 
 	return server.IP_Address, int32(pool.AppPort), nil
 }
 
+// SetStudentKeyByEmail enregistre une clé SSH pour l'étudiant (identifié par email Moodle)
+// et l'injecte dans sa VM si elle est déjà attribuée.
+func (s *Service) SetStudentKeyByEmail(email, pubkey string) error {
+	if email == "" || pubkey == "" {
+		return fmt.Errorf("email et clé requis")
+	}
+	if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubkey)); err != nil {
+		return fmt.Errorf("clé SSH invalide")
+	}
+	var students []models.Student
+	s.DB.Where("LOWER(moodle_email) = LOWER(?)", email).Find(&students)
+	if len(students) == 0 {
+		return fmt.Errorf("aucun étudiant pour cet email — rejoignez d'abord un cours")
+	}
+	for i := range students {
+		s.DB.Model(&students[i]).Update("ssh_key", pubkey)
+		students[i].SshKey = pubkey
+		if students[i].IP != "" {
+			var server models.Server
+			if err := s.DB.Where("ip_address = ?", students[i].IP).First(&server).Error; err == nil {
+				if err := s.installSSHKey(&server, &students[i]); err != nil {
+					log.Printf("[attribvm] injection clé (ajout manuel) échouée sur %s: %v", server.IP_Address, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Service) installSSHKey(server *models.Server, student *models.Student) error {
 	signer, err := sshinject.LoadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
 	if err != nil {

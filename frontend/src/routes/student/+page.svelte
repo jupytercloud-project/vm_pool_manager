@@ -1,9 +1,11 @@
 <script lang="ts">
   import { returnPoolsWithKey, attribVMinPool } from "$lib/grpc/attribVMService/attribVMService";
   import { githubStore, disconnectGitHub } from '$lib/store/githubStore';
+  import { moodleStudentStore, disconnectMoodleStudent } from '$lib/store/moodleStudentStore';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
 
   let sshkey = $state("");
   let availablePools: { pool_id: string; user_id: string }[] = $state([]);
@@ -30,6 +32,11 @@
   let moodleUser = $state("");
   let moodlePass = $state("");
   let moodleLoading = $state(false);
+  // Ajout optionnel d'une clé SSH (pour les élèves Moodle qui veulent du SSH direct)
+  let showAddKey = $state(false);
+  let sshKeyInput = $state("");
+  let addingKey = $state(false);
+  let addKeyMsg = $state("");
 
   let githubLogin = $derived($githubStore?.login ?? null);
   let githubKeys = $derived($githubStore?.keys ?? []);
@@ -39,6 +46,13 @@
       const sr = await fetch('/api/moodle/status');
       if (sr.ok) moodleConfigured = !!(await sr.json()).configured;
     } catch { /* ignore */ }
+
+    // Réhydrate une session Moodle persistée (rester connecté entre les pages).
+    const ms = get(moodleStudentStore);
+    if (ms?.email) {
+      moodleEmail = ms.email;
+      await refreshMoodlePools();
+    }
 
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('github_session');
@@ -141,6 +155,17 @@
     if (availablePools.length === 0) noCoursFound = true;
   }
 
+  async function refreshMoodlePools() {
+    if (!moodleEmail) return;
+    noCoursFound = false;
+    try {
+      const pr = await fetch(`/api/moodle/my-pools?email=${encodeURIComponent(moodleEmail)}`);
+      const pd = await pr.json().catch(() => ({ pools: [] }));
+      availablePools = pd.pools ?? [];
+      if (!availablePools.length) noCoursFound = true;
+    } catch { /* ignore */ }
+  }
+
   async function loginMoodle() {
     if (!moodleUser.trim() || !moodlePass) return;
     moodleLoading = true; errorMsg = ""; noCoursFound = false;
@@ -154,10 +179,8 @@
       const data = await r.json();
       moodleEmail = data.email ?? "";
       moodlePass = "";
-      const pr = await fetch(`/api/moodle/my-pools?email=${encodeURIComponent(moodleEmail)}`);
-      const pd = await pr.json().catch(() => ({ pools: [] }));
-      availablePools = pd.pools ?? [];
-      if (!availablePools.length) noCoursFound = true;
+      moodleStudentStore.set({ email: moodleEmail, fullname: data.fullname ?? "" });
+      await refreshMoodlePools();
     } catch { errorMsg = "Erreur de connexion Moodle."; }
     finally { moodleLoading = false; }
   }
@@ -165,6 +188,24 @@
   function disconnectMoodle() {
     moodleEmail = ""; showMoodleForm = false; moodleUser = ""; moodlePass = "";
     availablePools = []; noCoursFound = false;
+    showAddKey = false; sshKeyInput = ""; addKeyMsg = "";
+    moodleStudentStore.set(null);
+  }
+
+  async function addMoodleSSHKey() {
+    if (!sshKeyInput.trim() || !moodleEmail) return;
+    addingKey = true; addKeyMsg = "";
+    try {
+      const r = await fetch('/api/moodle/ssh-key', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: moodleEmail, ssh_key: sshKeyInput.trim() }),
+      });
+      const d = await r.json();
+      if (!d.success) { addKeyMsg = "Erreur : " + (d.error ?? "échec"); return; }
+      addKeyMsg = "Clé SSH enregistrée.";
+      sshKeyInput = ""; showAddKey = false;
+    } catch { addKeyMsg = "Erreur lors de l'enregistrement."; }
+    finally { addingKey = false; }
   }
 
   function computeUsername(poolId: string): string {
@@ -242,6 +283,30 @@
           </div>
           <button onclick={disconnectMoodle} class="text-blue-500 hover:text-blue-700 text-xs">Déconnecter</button>
         </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick={refreshMoodlePools} class="btn btn-secondary text-xs gap-1.5 flex-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Rafraîchir mes cours
+          </button>
+          <button onclick={() => showAddKey = !showAddKey} class="btn btn-secondary text-xs flex-1">
+            {showAddKey ? 'Annuler' : 'Ajouter une clé SSH'}
+          </button>
+        </div>
+
+        {#if showAddKey}
+          <div class="space-y-2 p-3 rounded border border-neutral-200 bg-neutral-50">
+            <p class="text-xs text-neutral-500">Optionnel — pour vous connecter aussi en SSH direct. Sinon, JupyterLab et le terminal web suffisent.</p>
+            <textarea bind:value={sshKeyInput} rows="3" placeholder="ssh-ed25519 AAAA..." class="field font-mono text-xs resize-none"></textarea>
+            <button onclick={addMoodleSSHKey} disabled={addingKey || !sshKeyInput.trim()} class="btn btn-primary text-xs w-full">
+              {#if addingKey}<span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>{/if}
+              Enregistrer la clé
+            </button>
+          </div>
+        {/if}
+        {#if addKeyMsg}
+          <p class="text-xs {addKeyMsg.startsWith('Erreur') ? 'text-red-600' : 'text-green-600'}">{addKeyMsg}</p>
+        {/if}
       {:else}
       {#if githubLogin}
         <!-- GitHub connected banner -->
@@ -534,10 +599,13 @@
 
       <button
         onclick={() => {
-        vmIp = ""; vmUser = ""; vmAppPort = 0; guacUrl = ""; availablePools = []; sshkey = "";
-        moodleEmail = ""; showMoodleForm = false;
+        // Revenir à la liste des cours SANS déconnecter (on garde la session Moodle/SSH).
+        vmIp = ""; vmUser = ""; vmAppPort = 0; guacUrl = "";
+        selectedPool = null;
         appReady = false; probing = false;
         if (probeInterval) { clearInterval(probeInterval); probeInterval = null; }
+        if (moodleEmail) refreshMoodlePools();
+        else { availablePools = []; sshkey = ""; }
       }}
         class="btn btn-secondary text-sm"
       >

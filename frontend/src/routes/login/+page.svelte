@@ -1,12 +1,44 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { authStore, startOIDCLogin } from '$lib/store/authStore';
+  import { moodleStudentStore } from '$lib/store/moodleStudentStore';
   import logoX from '$lib/assets/logo_polytechnique_crop.png';
   import { browser } from '$app/environment';
+  import { onMount } from 'svelte';
 
   // If already logged in, redirect away
   if (browser && $authStore) {
     goto($authStore.role === 'admin' ? '/serverpool' : '/');
+  }
+
+  let moodleConfigured = $state(false);
+  let showMoodle = $state(false);
+  let mUser = $state('');
+  let mPass = $state('');
+  let mLoading = $state(false);
+  let mErr = $state('');
+
+  onMount(async () => {
+    try {
+      const r = await fetch('/api/moodle/status');
+      if (r.ok) moodleConfigured = !!(await r.json()).configured;
+    } catch { /* ignore */ }
+  });
+
+  async function loginMoodle() {
+    if (!mUser.trim() || !mPass) return;
+    mLoading = true; mErr = '';
+    try {
+      const r = await fetch('/api/moodle/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: mUser.trim(), password: mPass }),
+      });
+      if (!r.ok) { mErr = 'Identifiants Moodle invalides.'; return; }
+      const d = await r.json();
+      moodleStudentStore.set({ email: d.email ?? '', fullname: d.fullname ?? '' });
+      goto('/student');
+    } catch { mErr = 'Erreur de connexion Moodle.'; }
+    finally { mLoading = false; }
   }
 </script>
 
@@ -92,6 +124,32 @@
             <span class="flex-1 text-left">Se connecter avec GitHub</span>
             <span class="text-xs text-white/50 font-normal">portail étudiant</span>
           </a>
+
+          <!-- Moodle login -->
+          {#if moodleConfigured}
+            {#if !showMoodle}
+              <button
+                onclick={() => showMoodle = true}
+                class="w-full flex items-center gap-3 px-5 py-3 rounded font-semibold text-sm transition-all
+                  bg-[#f98012] hover:bg-[#e06f0a] text-white"
+              >
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z"/></svg>
+                <span class="flex-1 text-left">Se connecter avec Moodle</span>
+                <span class="text-xs text-white/60 font-normal">portail étudiant</span>
+              </button>
+            {:else}
+              <div class="space-y-2 p-3 rounded border border-[#f98012]/40 bg-[#f98012]/5">
+                <input class="field text-sm" type="text" placeholder="Identifiant Moodle" bind:value={mUser} autocomplete="username" />
+                <input class="field text-sm" type="password" placeholder="Mot de passe" bind:value={mPass} autocomplete="current-password"
+                  onkeydown={(e) => { if (e.key === 'Enter') loginMoodle(); }} />
+                {#if mErr}<p class="text-xs text-red-600">{mErr}</p>{/if}
+                <button onclick={loginMoodle} disabled={mLoading || !mUser.trim() || !mPass}
+                  class="w-full px-5 py-2.5 rounded font-semibold text-sm bg-[#f98012] hover:bg-[#e06f0a] text-white disabled:opacity-50">
+                  {mLoading ? 'Connexion…' : 'Se connecter'}
+                </button>
+              </div>
+            {/if}
+          {/if}
 
           <!-- Portail étudiant sans compte -->
           <a
