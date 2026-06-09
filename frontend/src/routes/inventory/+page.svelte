@@ -168,9 +168,9 @@
         { label: 'Santé',       value: `${healthyVMs}/${totalVMs}`,    accent: 'stat-accent-emerald', color: 'text-green-600'   },
         { label: 'Actives SSH', value: activeVMs,                      accent: 'stat-accent-amber',   color: 'text-amber-600'   },
       ] as stat, i}
-        <div class="card p-5 {stat.accent} animate-fade-up" style="animation-delay:{i*0.05}s">
+        <div class="card card-interactive p-5 animate-fade-up" style="animation-delay:{i*0.05}s">
           <p class="section-label mb-2">{stat.label}</p>
-          <p class="text-2xl font-bold {stat.color}">{stat.value}</p>
+          <p class="text-3xl font-bold {stat.color} tabular-nums tracking-tight">{stat.value}</p>
         </div>
       {/each}
     </div>
