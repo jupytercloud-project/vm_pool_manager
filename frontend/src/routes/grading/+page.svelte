@@ -481,7 +481,7 @@
       </div>
 
       <!-- Récap compact (le détail des notes est dans le panneau de droite) -->
-      {#if selectedAssignment && grades.length > 0}
+      {#if !loadingGrades && selectedAssignment && grades.length > 0}
         <div class="card p-4 flex items-center justify-around text-center">
           <div><p class="text-xl font-bold text-primary-700 dark:text-primary-300 tabular-nums">{gradedCount}</p><p class="text-[10px] text-neutral-500">notées</p></div>
           <div><p class="text-xl font-bold text-neutral-400 tabular-nums">{missingCount}</p><p class="text-[10px] text-neutral-500">non rendu</p></div>
@@ -514,7 +514,12 @@
           </div>
           <p class="text-xs text-neutral-400 -mt-3">JupyterLab et Formgrader s'ouvrent dans un onglet dédié.</p>
 
-          {#if selectedAssignment && grades.length > 0}
+          {#if loadingGrades}
+            <div class="flex-1 flex flex-col items-center justify-center gap-3 py-16 text-neutral-400">
+              <div class="w-8 h-8 rounded-full border-2 border-neutral-200 dark:border-neutral-700 border-t-primary-600" style="animation: spinnerGlow 0.7s linear infinite;"></div>
+              <p class="text-sm">Chargement des notes{selectedAssignment ? ` — ${selectedAssignment}` : ''}…</p>
+            </div>
+          {:else if selectedAssignment && grades.length > 0}
             <!-- Tableau de bord notes -->
             <div>
               <p class="section-label mb-3">Vue d'ensemble — {selectedAssignment}</p>

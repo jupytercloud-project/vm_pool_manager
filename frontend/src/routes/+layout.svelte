@@ -80,6 +80,17 @@
   let mobileOpen = $state(false);
   let moodleUrl = $state('');
 
+  // Icônes (path d, style heroicons outline) par route.
+  const ICONS: Record<string, string> = {
+    '/inventory': 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+    '/serverpool': 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-12-2h.01M7 16h.01',
+    '/grading': 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+    '/config': 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4',
+    '/propose-image': 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+    '/student': 'M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z',
+    '/profile': 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+  };
+
   const navLinks = $derived(() => {
     const auth = $authStore;
     const simple = $simpleMode;
@@ -139,20 +150,19 @@
       </a>
 
       <!-- Desktop links -->
-      <div class="hidden md:flex items-center gap-1">
+      <div class="hidden md:flex items-center gap-0.5 bg-neutral-100/70 dark:bg-neutral-800/50 rounded-full p-1 border border-neutral-200/60 dark:border-neutral-700/60">
         {#each primaryNav as link}
           <a
             href={link.href}
-            class="px-4 py-2 text-sm font-600 transition-all duration-150 relative rounded
+            class="px-3.5 py-1.5 text-sm rounded-full transition-all duration-150 inline-flex items-center gap-2
               {isActive(link.href)
-                ? 'text-primary-700 bg-primary-50'
-                : 'text-neutral-600 hover:text-primary-700 hover:bg-primary-50'}"
-            style="font-weight: {isActive(link.href) ? '700' : '600'};"
+                ? 'bg-white dark:bg-neutral-900 text-primary-700 dark:text-primary-300 shadow-sm font-semibold'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-primary-700 dark:hover:text-primary-300'}"
           >
-            {link.label}
-            {#if isActive(link.href)}
-              <span class="absolute bottom-0 left-2 right-2 h-0.5 bg-primary-700 rounded-full"></span>
+            {#if ICONS[link.href]}
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d={ICONS[link.href]}/></svg>
             {/if}
+            {link.label}
           </a>
         {/each}
 
@@ -161,21 +171,30 @@
             <button
               onclick={() => moreOpen = !moreOpen}
               onblur={() => setTimeout(() => moreOpen = false, 150)}
-              class="px-4 py-2 text-sm font-600 rounded text-neutral-600 hover:text-primary-700 hover:bg-primary-50 transition-all inline-flex items-center gap-1"
+              class="px-3.5 py-1.5 text-sm rounded-full transition-all inline-flex items-center gap-1.5
+                {moreOpen || secondaryNav.some(l => isActive(l.href))
+                  ? 'bg-white dark:bg-neutral-900 text-primary-700 dark:text-primary-300 shadow-sm font-semibold'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:text-primary-700 dark:hover:text-primary-300'}"
             >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16"/></svg>
               Plus
-              <svg class="w-3.5 h-3.5 transition-transform {moreOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
             {#if moreOpen}
-              <div class="absolute right-0 mt-1 w-52 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg z-50">
+              <div class="absolute right-0 mt-2 w-60 p-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xl z-50 origin-top-right">
                 {#each secondaryNav as link}
-                  <a href={link.href} class="block px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-primary-50 dark:hover:bg-neutral-800 {isActive(link.href) ? 'text-primary-700 font-semibold' : ''}">
+                  <a href={link.href} class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors {isActive(link.href) ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-semibold' : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}">
+                    {#if ICONS[link.href]}
+                      <svg class="w-4 h-4 shrink-0 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d={ICONS[link.href]}/></svg>
+                    {/if}
                     {link.label}
                   </a>
                 {/each}
                 {#if moodleUrl && $authStore?.role === 'admin'}
-                  <a href={moodleUrl} target="_blank" rel="noopener noreferrer" class="block px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-[#f98012]/10 inline-flex items-center gap-1">
-                    Ouvrir Moodle ↗
+                  <div class="my-1 border-t border-neutral-100 dark:border-neutral-800"></div>
+                  <a href={moodleUrl} target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-[#f98012]/10">
+                    <svg class="w-4 h-4 shrink-0 text-[#f98012]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3z"/></svg>
+                    Ouvrir Moodle
+                    <span class="ml-auto text-[10px] text-neutral-400">↗</span>
                   </a>
                 {/if}
               </div>
