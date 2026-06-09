@@ -85,17 +85,6 @@
   // Copie triée — NE PAS faire grades.sort() dans le {#each} (mute l'état pendant le rendu
   // → erreur Svelte 5 state_unsafe_mutation qui gèle l'interactivité de la page).
   let sortedGrades = $derived([...grades].sort((a, b) => b.score - a.score));
-  // Score-percentage distribution in 5 buckets (0-20 … 80-100).
-  let distribution = $derived.by(() => {
-    const buckets = [0, 0, 0, 0, 0];
-    for (const g of submittedGrades) {
-      if (g.max_score <= 0) continue;
-      const pct = Math.max(0, Math.min(1, g.score / g.max_score));
-      buckets[Math.min(4, Math.floor(pct * 5))]++;
-    }
-    return buckets;
-  });
-
   async function loadAssignments() {
     if (!selectedPool) return;
     loadingAssignments = true;
@@ -491,69 +480,14 @@
         {/if}
       </div>
 
-      <!-- Grades table -->
-      <div class="card overflow-hidden flex-1 min-h-0 flex flex-col">
-        <div class="px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between shrink-0">
-          <p class="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-            Notes{selectedAssignment ? ` — ${selectedAssignment}` : ''}
-          </p>
-          {#if grades.length > 0}
-            <span class="text-xs text-neutral-500">moy. {avg()}</span>
-          {/if}
-          {#if loadingGrades}
-            <div class="w-3.5 h-3.5 rounded-full border-2 border-neutral-200 border-t-primary-700" style="animation:spinnerGlow 0.7s linear infinite;"></div>
-          {/if}
+      <!-- Récap compact (le détail des notes est dans le panneau de droite) -->
+      {#if selectedAssignment && grades.length > 0}
+        <div class="card p-4 flex items-center justify-around text-center">
+          <div><p class="text-xl font-bold text-primary-700 dark:text-primary-300 tabular-nums">{gradedCount}</p><p class="text-[10px] text-neutral-500">notées</p></div>
+          <div><p class="text-xl font-bold text-neutral-400 tabular-nums">{missingCount}</p><p class="text-[10px] text-neutral-500">non rendu</p></div>
+          <div><p class="text-xl font-bold text-primary-700 dark:text-primary-300 tabular-nums">{avg()}</p><p class="text-[10px] text-neutral-500">moyenne</p></div>
         </div>
-
-        <div class="overflow-y-auto flex-1">
-          {#if grades.length === 0}
-            <div class="flex flex-col items-center justify-center py-10 text-neutral-400 text-center px-4">
-              <svg class="w-8 h-8 mb-2 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/>
-              </svg>
-              <p class="text-xs">
-                {#if !selectedAssignment}Choisissez un assignment
-                {:else}Lancez "Notation automatique"{/if}
-              </p>
-            </div>
-          {:else}
-            {#each sortedGrades as grade, i}
-              <div class="px-4 py-2.5 border-b border-neutral-100 dark:border-neutral-800 last:border-0 animate-slide-right" style="animation-delay:{i*0.02}s">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs font-mono text-neutral-800 dark:text-neutral-200 truncate max-w-[60%]">{grade.student}</span>
-                  {#if grade.status === 'missing'}
-                    <span class="text-xs font-semibold text-neutral-400">Non rendu</span>
-                  {:else}
-                    <span class="text-xs font-bold tabular-nums {scoreColor(grade)}">{grade.score.toFixed(1)}/{grade.max_score.toFixed(1)}</span>
-                  {/if}
-                </div>
-                <div class="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden mb-1.5">
-                  <div
-                    class="h-full rounded-full {grade.status === 'missing' ? 'bg-neutral-300 dark:bg-neutral-600' : grade.max_score > 0 && grade.score/grade.max_score >= 0.8 ? 'bg-green-500' : grade.max_score > 0 && grade.score/grade.max_score >= 0.5 ? 'bg-amber-500' : 'bg-red-500'}"
-                    style="width:{grade.status === 'missing' ? 0 : (grade.max_score > 0 ? Math.round(grade.score/grade.max_score*100) : 0)}%"
-                  ></div>
-                </div>
-                <div class="flex items-center justify-between">
-                  {#if grade.status === 'needs_manual_grade'}
-                    <span class="text-[10px] text-amber-600 dark:text-amber-400">Révision manuelle requise</span>
-                  {:else if grade.status === 'missing'}
-                    <span class="text-[10px] text-neutral-400">En attente de soumission</span>
-                  {:else}
-                    <span></span>
-                  {/if}
-                  <button
-                    onclick={() => openManualGrading(grade.student)}
-                    class="btn btn-secondary px-2.5 py-1 text-[10px] gap-1"
-                  >
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    Correction manuelle
-                  </button>
-                </div>
-              </div>
-            {/each}
-          {/if}
-        </div>
-      </div>
+      {/if}
     </div>
 
     <!-- Espace de travail : lancement + tableau de bord -->
@@ -590,20 +524,32 @@
                 <div class="card p-3 text-center"><p class="text-2xl font-bold tabular-nums {manualCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}">{manualCount}</p><p class="text-xs text-neutral-500">à corriger</p></div>
               </div>
             </div>
-            <!-- Distribution des notes -->
-            <div>
-              <p class="section-label mb-3">Distribution des notes</p>
-              <div class="flex items-end gap-2 h-40">
-                {#each distribution as count, i}
-                  {@const maxC = Math.max(1, ...distribution)}
-                  <div class="flex-1 flex flex-col items-center justify-end gap-1 h-full">
-                    <span class="text-xs text-neutral-500 tabular-nums">{count}</span>
-                    <div class="w-full rounded-t bg-primary-500/80 dark:bg-primary-400/80 transition-all" style="height:{Math.max(3, (count / maxC) * 100)}%"></div>
-                    <span class="text-[10px] text-neutral-400 tabular-nums">{i * 20}–{i * 20 + 20}</span>
+            <!-- Notes des étudiants (liste lisible) -->
+            <div class="flex-1 min-h-0 flex flex-col">
+              <p class="section-label mb-3">Notes des étudiants</p>
+              <div class="card overflow-y-auto divide-y divide-neutral-100 dark:divide-neutral-800">
+                {#each sortedGrades as grade}
+                  <div class="flex items-center gap-4 px-4 py-3">
+                    <span class="font-mono text-sm text-neutral-800 dark:text-neutral-200 flex-1 truncate">{grade.student}</span>
+                    {#if grade.status === 'missing'}
+                      <span class="text-sm text-neutral-400 shrink-0">Non rendu</span>
+                    {:else}
+                      <div class="hidden sm:block w-32 h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden shrink-0">
+                        <div class="h-full rounded-full {grade.max_score > 0 && grade.score/grade.max_score >= 0.8 ? 'bg-green-500' : grade.max_score > 0 && grade.score/grade.max_score >= 0.5 ? 'bg-amber-500' : 'bg-red-500'}"
+                             style="width:{grade.max_score > 0 ? Math.round(grade.score/grade.max_score*100) : 0}%"></div>
+                      </div>
+                      <span class="text-sm font-bold tabular-nums {scoreColor(grade)} w-20 text-right shrink-0">{grade.score.toFixed(1)}/{grade.max_score.toFixed(1)}</span>
+                    {/if}
+                    {#if grade.status === 'needs_manual_grade'}
+                      <span class="hidden md:inline text-[10px] text-amber-600 dark:text-amber-400 shrink-0">à réviser</span>
+                    {/if}
+                    <button onclick={() => openManualGrading(grade.student)} class="btn btn-secondary px-3 py-1.5 text-xs gap-1 shrink-0">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                      Corriger
+                    </button>
                   </div>
                 {/each}
               </div>
-              <p class="text-[10px] text-neutral-400 text-center mt-1">% du barème</p>
             </div>
           {:else}
             <!-- Guide du déroulé -->
