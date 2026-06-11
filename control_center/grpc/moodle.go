@@ -246,7 +246,9 @@ func handleMoodleSession(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/moodle/my-pools?email= — pools où cet email (Moodle) est inscrit.
 func handleMoodleMyPools(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
+	// L'email est dérivé de l'identité authentifiée (anti-IDOR) : un élève ne peut
+	// lister que SES pools ; seul un admin peut interroger un autre email.
+	email := effectiveEmail(r, r.URL.Query().Get("email"))
 	if email == "" {
 		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "email manquant"})
 		return
@@ -275,11 +277,18 @@ func handleMoodleSSHKey(w http.ResponseWriter, r *http.Request) {
 		Email  string `json:"email"`
 		SSHKey string `json:"ssh_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" || req.SSHKey == "" {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "email et ssh_key requis"})
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SSHKey == "" {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "ssh_key requis"})
 		return
 	}
-	if err := attribvm.New(config.Database).SetStudentKeyByEmail(req.Email, strings.TrimSpace(req.SSHKey)); err != nil {
+	// Anti-IDOR : un élève ne peut poser une clé QUE sur son propre compte. L'email du
+	// body est ignoré pour un non-admin (sinon on pourrait injecter sa clé chez autrui).
+	email := effectiveEmail(r, req.Email)
+	if email == "" {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "identité requise"})
+		return
+	}
+	if err := attribvm.New(config.Database).SetStudentKeyByEmail(email, strings.TrimSpace(req.SSHKey)); err != nil {
 		writeJSONMoodle(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
 		return
 	}
@@ -440,8 +449,14 @@ func handleMoodleAttribVM(w http.ResponseWriter, r *http.Request) {
 		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "JSON invalide"})
 		return
 	}
+	// Anti-IDOR : on attribue la VM à l'élève authentifié, jamais à un email arbitraire.
+	email := effectiveEmail(r, req.Email)
+	if email == "" {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "identité requise"})
+		return
+	}
 	svc := attribvm.New(config.Database)
-	ip, appPort, err := svc.AttribVMByEmail(req.PoolID, req.UserID, req.Email)
+	ip, appPort, err := svc.AttribVMByEmail(req.PoolID, req.UserID, email)
 	if err != nil {
 		writeJSONMoodle(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
 		return

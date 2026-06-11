@@ -1,5 +1,6 @@
 <script lang="ts">
   import { returnPoolsWithKey, attribVMinPool } from "$lib/grpc/attribVMService/attribVMService";
+  import { apiFetch } from '$lib/api';
   import { githubStore, disconnectGitHub } from '$lib/store/githubStore';
   import { moodleStudentStore, disconnectMoodleStudent } from '$lib/store/moodleStudentStore';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -43,7 +44,7 @@
 
   onMount(async () => {
     try {
-      const sr = await fetch('/api/moodle/status');
+      const sr = await apiFetch('/api/moodle/status');
       if (sr.ok) moodleConfigured = !!(await sr.json()).configured;
     } catch { /* ignore */ }
 
@@ -59,10 +60,10 @@
     if (sessionId) {
       githubLoading = true;
       try {
-        const res = await fetch(`/api/github/session?id=${encodeURIComponent(sessionId)}`);
+        const res = await apiFetch(`/api/github/session?id=${encodeURIComponent(sessionId)}`);
         if (res.ok) {
           const data = await res.json();
-          githubStore.set({ login: data.login, keys: data.keys ?? [] });
+          githubStore.set({ login: data.login, keys: data.keys ?? [], session: sessionId });
           if ((data.keys ?? []).length === 1) sshkey = data.keys[0];
         }
       } catch { /* ignore */ } finally { githubLoading = false; }
@@ -75,7 +76,7 @@
     probing = true;
     probeInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/app-status?ip=${encodeURIComponent(ip)}&port=${port}`);
+        const res = await apiFetch(`/api/app-status?ip=${encodeURIComponent(ip)}&port=${port}`);
         const data = await res.json();
         if (data.ready) {
           appReady = true;
@@ -102,7 +103,7 @@
     submitting = true;
     submitStatus = "";
     try {
-      const res = await fetch(`/api/nbgrader/submit?pool_id=${encodeURIComponent(selectedPool.pool_id)}&user_id=${encodeURIComponent(selectedPool.user_id)}&student_ip=${encodeURIComponent(vmIp)}`, {
+      const res = await apiFetch(`/api/nbgrader/submit?pool_id=${encodeURIComponent(selectedPool.pool_id)}&user_id=${encodeURIComponent(selectedPool.user_id)}&student_ip=${encodeURIComponent(vmIp)}`, {
         method: "POST"
       });
       if (!res.ok) throw new Error("Erreur serveur: " + await res.text());
@@ -159,7 +160,7 @@
     if (!moodleEmail) return;
     noCoursFound = false;
     try {
-      const pr = await fetch(`/api/moodle/my-pools?email=${encodeURIComponent(moodleEmail)}`);
+      const pr = await apiFetch(`/api/moodle/my-pools?email=${encodeURIComponent(moodleEmail)}`);
       const pd = await pr.json().catch(() => ({ pools: [] }));
       availablePools = pd.pools ?? [];
       if (!availablePools.length) noCoursFound = true;
@@ -171,7 +172,7 @@
     moodleLoading = true; errorMsg = ""; noCoursFound = false;
     availablePools = []; selectedPool = null; vmIp = "";
     try {
-      const r = await fetch('/api/moodle/login', {
+      const r = await apiFetch('/api/moodle/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: moodleUser.trim(), password: moodlePass }),
       });
@@ -179,7 +180,7 @@
       const data = await r.json();
       moodleEmail = data.email ?? "";
       moodlePass = "";
-      moodleStudentStore.set({ email: moodleEmail, fullname: data.fullname ?? "" });
+      moodleStudentStore.set({ email: moodleEmail, fullname: data.fullname ?? "", session: data.session_id ?? "" });
       await refreshMoodlePools();
     } catch { errorMsg = "Erreur de connexion Moodle."; }
     finally { moodleLoading = false; }
@@ -196,7 +197,7 @@
     if (!sshKeyInput.trim() || !moodleEmail) return;
     addingKey = true; addKeyMsg = "";
     try {
-      const r = await fetch('/api/moodle/ssh-key', {
+      const r = await apiFetch('/api/moodle/ssh-key', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: moodleEmail, ssh_key: sshKeyInput.trim() }),
       });
@@ -223,7 +224,7 @@
       let ip = "", port = 0, user = "";
       if (moodleEmail) {
         // Attribution par identité Moodle, sans clé SSH (accès navigateur + Guacamole).
-        const r = await fetch('/api/moodle/attrib-vm', {
+        const r = await apiFetch('/api/moodle/attrib-vm', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pool_id: pool.pool_id, user_id: pool.user_id, email: moodleEmail }),
         });
@@ -237,7 +238,7 @@
       vmIp = ip;
       vmUser = user;
       vmAppPort = port;
-      fetch(`/api/guac-url?ip=${encodeURIComponent(ip)}`)
+      apiFetch(`/api/guac-url?ip=${encodeURIComponent(ip)}`)
         .then(r => r.json())
         .then(data => { if (data.url) guacUrl = data.url; })
         .catch(() => {});

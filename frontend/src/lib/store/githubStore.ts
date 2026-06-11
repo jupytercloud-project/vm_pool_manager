@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export const githubStore = writable<{ login: string; keys: string[] } | null>(null);
+export const githubStore = writable<{ login: string; keys: string[]; session?: string } | null>(null);
 
 export function disconnectGitHub() {
   githubStore.set(null);

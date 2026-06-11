@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-interface MoodleStudent { email: string; fullname: string }
+interface MoodleStudent { email: string; fullname: string; session?: string }
 
 function create() {
   let initial: MoodleStudent | null = null;

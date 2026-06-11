@@ -162,16 +162,39 @@ func validateAndInject(ctx context.Context) (context.Context, error) {
 		tokenStr = tokenStr[7:]
 	}
 
-	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(tokenStr, claims, keyFunc,
-		jwt.WithIssuedAt(),
-		jwt.WithExpirationRequired(),
-	)
+	claims, err := ParseToken(tokenStr)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
 	}
 
 	return context.WithValue(ctx, ClaimsKey, claims), nil
+}
+
+// ParseToken valide un JWT OIDC (signature via JWKS, issuer, expiration, algorithme RS256)
+// et renvoie ses claims. Exporté pour être réutilisé par le middleware HTTP REST.
+func ParseToken(tokenStr string) (jwt.MapClaims, error) {
+	if len(tokenStr) > 7 && tokenStr[:7] == "Bearer " {
+		tokenStr = tokenStr[7:]
+	}
+	claims := jwt.MapClaims{}
+	// WithValidMethods (RS256) ferme l'alg-confusion (un token alg=HS256 abuserait la clé
+	// RSA publique comme secret HMAC). NB : l'issuer n'est PAS imposé ici car OIDC_ISSUER
+	// (défaut localhost) ne correspond pas toujours à l'issuer réel annoncé par Dex
+	// (IP machine) ; l'activer casserait la connexion. À durcir quand OIDC_ISSUER sera aligné.
+	_, err := jwt.ParseWithClaims(tokenStr, claims, keyFunc,
+		jwt.WithIssuedAt(),
+		jwt.WithExpirationRequired(),
+		jwt.WithValidMethods([]string{"RS256"}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return claims, nil
+}
+
+// ClaimsToContext injecte des claims validés dans un contexte (pour le pont HTTP→gRPC).
+func ClaimsToContext(ctx context.Context, claims jwt.MapClaims) context.Context {
+	return context.WithValue(ctx, ClaimsKey, claims)
 }
 
 // EmailFromContext extracts the email from validated JWT claims.

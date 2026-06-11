@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { apiFetch } from '$lib/api';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { githubStore, disconnectGitHub } from '$lib/store/githubStore';
@@ -27,7 +28,7 @@
     if (!sshKey.trim() || !email) return;
     addingKey = true; keyMsg = '';
     try {
-      const r = await fetch('/api/moodle/ssh-key', {
+      const r = await apiFetch('/api/moodle/ssh-key', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, ssh_key: sshKey.trim() }),
       });

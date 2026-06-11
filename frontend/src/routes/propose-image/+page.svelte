@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { apiFetch } from '$lib/api';
   import { authStore } from '$lib/store';
   import { browser } from '$app/environment';
 
@@ -33,7 +34,7 @@
   async function loadProposals() {
     if (!$authStore?.email) return;
     try {
-      const res = await fetch(`/api/image-proposals?user=${encodeURIComponent($authStore.email)}`);
+      const res = await apiFetch(`/api/image-proposals?user=${encodeURIComponent($authStore.email)}`);
       if (res.ok) proposals = (await res.json()) ?? [];
     } catch { /* ignore */ }
   }
@@ -51,7 +52,7 @@
     }
     submitting = true;
     try {
-      const res = await fetch('/api/image-proposals', {
+      const res = await apiFetch('/api/image-proposals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

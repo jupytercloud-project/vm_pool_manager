@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { apiFetch } from '$lib/api';
   import { authStore } from '$lib/store';
   import { simpleMode, refreshInterval } from '$lib/store/uiStore';
   import { browser } from '$app/environment';
@@ -23,7 +24,7 @@
   async function fetchInventory(silent = false) {
     if (!silent) loading = true; else refreshing = true;
     try {
-      const res = await fetch('/api/inventory');
+      const res = await apiFetch('/api/inventory');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       pools = await res.json();
       lastRefresh = new Date().toLocaleTimeString('fr-FR');

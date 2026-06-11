@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { apiFetch } from '$lib/api';
   import { authStore, startOIDCLogin } from '$lib/store/authStore';
   import { moodleStudentStore } from '$lib/store/moodleStudentStore';
   import logoX from '$lib/assets/logo_polytechnique_crop.png';
@@ -20,7 +21,7 @@
 
   onMount(async () => {
     try {
-      const r = await fetch('/api/moodle/status');
+      const r = await apiFetch('/api/moodle/status');
       if (r.ok) moodleConfigured = !!(await r.json()).configured;
     } catch { /* ignore */ }
   });
@@ -29,13 +30,13 @@
     if (!mUser.trim() || !mPass) return;
     mLoading = true; mErr = '';
     try {
-      const r = await fetch('/api/moodle/login', {
+      const r = await apiFetch('/api/moodle/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: mUser.trim(), password: mPass }),
       });
       if (!r.ok) { mErr = 'Identifiants Moodle invalides.'; return; }
       const d = await r.json();
-      moodleStudentStore.set({ email: d.email ?? '', fullname: d.fullname ?? '' });
+      moodleStudentStore.set({ email: d.email ?? '', fullname: d.fullname ?? '', session: d.session_id ?? '' });
       goto('/student');
     } catch { mErr = 'Erreur de connexion Moodle.'; }
     finally { mLoading = false; }

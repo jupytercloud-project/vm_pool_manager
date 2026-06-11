@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { apiFetch } from '$lib/api';
   import { authStore, serverPools } from '$lib/store';
   import { browser } from '$app/environment';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -150,7 +151,7 @@
         user_id: selectedPool!.userId,
       });
       if (selectedAssignment) params.set('assignment', selectedAssignment);
-      const res = await fetch(`/api/nbgrader/${endpoint}?${params}`, { method: 'POST' });
+      const res = await apiFetch(`/api/nbgrader/${endpoint}?${params}`, { method: 'POST' });
       const data = await res.json();
       actionOutput = data.output ?? data.message ?? '';
       if (data.status === 'ok' || data.distributed !== undefined) {
@@ -225,9 +226,9 @@
     moodleCourseId = 0; moodleAssignments = []; selectedMoodleAssign = null; moodlePushMsg = '';
     if (!selectedPool) return;
     try {
-      const st = await fetch('/api/moodle/status');
+      const st = await apiFetch('/api/moodle/status');
       if (st.ok) { const sd = await st.json(); moodleConfigured = !!sd.configured; moodleUrl = sd.url ?? ''; }
-      const r = await fetch(`/api/moodle/assignments?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}`);
+      const r = await apiFetch(`/api/moodle/assignments?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}`);
       if (r.ok) {
         const d = await r.json();
         moodleCourseId = d.course_id ?? 0;
@@ -236,7 +237,7 @@
       }
       // Si pas encore lié, charger la liste des cours pour permettre la liaison.
       if (moodleConfigured && moodleCourseId === 0) {
-        const cr = await fetch('/api/moodle/courses');
+        const cr = await apiFetch('/api/moodle/courses');
         if (cr.ok) moodleCourses = (await cr.json()).courses ?? [];
       }
     } catch { /* ignore */ }
@@ -246,7 +247,7 @@
     if (!selectedPool || !linkCourseId) return;
     linking = true;
     try {
-      const r = await fetch('/api/moodle/link-pool', {
+      const r = await apiFetch('/api/moodle/link-pool', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pool_id: selectedPool.name, user_id: selectedPool.userId, course_id: linkCourseId }),
       });
@@ -258,7 +259,7 @@
     if (!selectedPool || !selectedAssignment || !selectedMoodleAssign) return;
     moodlePushing = true; moodlePushMsg = '';
     try {
-      const r = await fetch('/api/moodle/push-grades', {
+      const r = await apiFetch('/api/moodle/push-grades', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pool_id: selectedPool.name, user_id: selectedPool.userId,

@@ -3,6 +3,7 @@ import {
   rebuildServer, RebuildServerRequestSchema, CreatePoolRequestSchema,
   DeletePoolRequestSchema, deletePool, createPool, addServer, addSSHKeys,
 } from '$lib/index';
+import { apiFetch } from '$lib/api';
 import type { ServerPool, Server, CreatePoolRequest, DeletePoolRequest, RebuildServerRequest, Image } from '$lib/type';
 import { authStore, serverPools, servers, configs, images, flavors, networks } from '$lib/store';
 import { simpleMode } from '$lib/store/uiStore';
@@ -13,7 +14,7 @@ import { page } from '$app/state';
 let inventoryPools: { pool_id: string; user_id: string; vms: { status: string; activity_status: string }[] }[] = $state([]);
 async function loadInventory() {
   try {
-    const res = await fetch('/api/inventory');
+    const res = await apiFetch('/api/inventory');
     if (res.ok) inventoryPools = await res.json();
   } catch { /* ignore */ }
 }

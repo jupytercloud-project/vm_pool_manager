@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../app.css';
+  import { apiFetch } from '$lib/api';
   import favicon from '$lib/assets/favicon.svg';
   import logoX from '$lib/assets/logo_polytechnique_crop.png';
   import {
@@ -52,7 +53,7 @@
       return;
     }
     try {
-      const mr = await fetch('/api/moodle/status');
+      const mr = await apiFetch('/api/moodle/status');
       if (mr.ok) { const md = await mr.json(); if (md.configured) moodleUrl = md.url ?? ''; }
     } catch { /* ignore */ }
     const token = get(authStore);

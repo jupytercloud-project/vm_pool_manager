@@ -190,6 +190,9 @@ func Start_grpc(ctx context.Context) {
 		http.ServeFile(w, r, "vm-registrar")
 	})
 
+	// Toutes les routes REST passent par le middleware d'authentification (JWT OIDC ou
+	// session Moodle/GitHub) avec contrôle de rôle ; le gRPC-Web garde sa propre auth.
+	authedMux := httpAuthMiddleware(mux)
 	httpServer := &http.Server{
 		Addr: ":50055",
 		// withRecovery : un panic dans un handler renvoie un 500 propre au lieu de couper la connexion.
@@ -198,7 +201,7 @@ func Start_grpc(ctx context.Context) {
 				strings.HasPrefix(r.URL.Path, "/auth/") ||
 				r.URL.Path == "/vm-registrar" ||
 				r.URL.Path == "/metrics" {
-				mux.ServeHTTP(w, r)
+				authedMux.ServeHTTP(w, r)
 				return
 			}
 			wrappedGrpc.ServeHTTP(w, r)

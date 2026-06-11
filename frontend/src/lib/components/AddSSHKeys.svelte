@@ -4,6 +4,7 @@
     AddStudentRequestSchema, type AddStudentRequest, type AddStudentResponse,
     DeleteStudentRequestSchema, type DeleteStudentRequest, type DeleteStudentResponse,
   } from '$lib/grpc/frontcontrol_pb';
+  import { apiFetch } from '$lib/api';
   import { addStudents, listStudents, deleteStudent } from '$lib/index';
   import { create } from '@bufbuild/protobuf';
   import { authStore } from '$lib/store';
@@ -34,7 +35,7 @@
   async function loadGitHubStudents() {
     githubLoading = true;
     try {
-      const res = await fetch('/api/github/students');
+      const res = await apiFetch('/api/github/students');
       if (res.ok) {
         const data: GitHubStudent[] = await res.json() ?? [];
         const seen = new Map<string, GitHubStudent>();
@@ -88,21 +89,21 @@
 
   async function checkMoodle() {
     try {
-      const r = await fetch('/api/moodle/status');
+      const r = await apiFetch('/api/moodle/status');
       if (r.ok) moodleConfigured = !!(await r.json()).configured;
     } catch { /* ignore */ }
   }
   async function loadMoodleCourses() {
     moodleLoading = true;
     try {
-      const r = await fetch('/api/moodle/courses');
+      const r = await apiFetch('/api/moodle/courses');
       if (r.ok) moodleCourses = (await r.json()).courses ?? [];
     } catch { /* ignore */ } finally { moodleLoading = false; }
   }
   async function loadMoodleEnrolments(courseId: number) {
     moodleLoading = true; moodleStudents = []; moodleSelected = new Set();
     try {
-      const r = await fetch(`/api/moodle/enrolments?course_id=${courseId}`);
+      const r = await apiFetch(`/api/moodle/enrolments?course_id=${courseId}`);
       if (r.ok) {
         const list: MoodleStudent[] = ((await r.json()).students ?? []).filter((s: MoodleStudent) => !s.is_teacher);
         moodleStudents = list;
@@ -121,7 +122,7 @@
     if (!emails.length) { error = 'Sélectionnez au moins un étudiant.'; return; }
     try {
       loading = true; error = null;
-      const r = await fetch('/api/moodle/import', {
+      const r = await apiFetch('/api/moodle/import', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pool_id: poolname, user_id: $authStore?.email, course_id: moodleCourseId, emails }),
       });
