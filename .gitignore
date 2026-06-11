@@ -78,3 +78,10 @@ monitoring/grafana/data/
 monitoring/prometheus/data/
 monitoring/loki/data/
 monitoring/docker-compose.override.yml
+
+example/
+
+# Doc — éléments personnels / non publiés (on garde les .md numérotés)
+doc/rapport-stage.md
+doc/presentation-cloudpoolmanager.md
+doc/figures/
