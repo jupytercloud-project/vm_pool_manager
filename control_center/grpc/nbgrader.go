@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -72,11 +73,68 @@ func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
 }
 
-// shArg entoure une valeur de guillemets doubles pour l'utiliser comme argument/chemin
-// shell À L'INTÉRIEUR d'une commande passée à `bash -c '...'` (dockerExec). Indispensable
-// pour les noms d'assignment contenant des espaces (ex: "Devoir corps").
-func shArg(s string) string {
-	return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"`
+// validAssignment valide un nom d'assignment AVANT toute utilisation dans une commande
+// shell ou SQL. C'est la défense principale contre l'injection : seuls des caractères
+// sûrs sont autorisés (lettres, chiffres, espace, . _ -), pas de traversée de chemin.
+// Le quoting (shellQuote, '') reste appliqué en plus, mais aucun métacaractère ($, `,
+// ", ', ;, |, \n…) ne peut atteindre une commande.
+func validAssignment(s string) bool {
+	if s == "" || len(s) > 128 || strings.Contains(s, "..") {
+		return false
+	}
+	for _, r := range s {
+		ok := r == ' ' || r == '.' || r == '_' || r == '-' ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// validRelPath valide un chemin de fichier RELATIF issu d'un `find` exécuté sur une VM
+// (donc potentiellement contrôlé par un étudiant). Rejette la traversée (..), les chemins
+// absolus et tout métacaractère shell.
+func validRelPath(s string) bool {
+	if s == "" || len(s) > 512 || strings.Contains(s, "..") || strings.HasPrefix(s, "/") {
+		return false
+	}
+	for _, r := range s {
+		ok := r == ' ' || r == '.' || r == '_' || r == '-' || r == '/' ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// validStudentID valide un identifiant étudiant (= email) avant usage shell/SQL.
+func validStudentID(s string) bool {
+	if s == "" || len(s) > 254 || strings.Contains(s, "..") {
+		return false
+	}
+	for _, r := range s {
+		ok := r == '@' || r == '.' || r == '_' || r == '-' || r == '+' ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// ipBelongsToPool vérifie qu'une IP correspond à une VM réellement enregistrée dans le
+// pool donné. Empêche le SSRF / l'abus de la clé SSH maître vers une IP arbitraire.
+func ipBelongsToPool(ip, poolID string) bool {
+	if net.ParseIP(ip) == nil {
+		return false
+	}
+	var count int64
+	config.Database.Model(&models.Server{}).
+		Where("serverpool_id = ? AND ip_address = ?", poolID, ip).
+		Count(&count)
+	return count > 0
 }
 
 // runSSHOutput runs a command via SSH and returns its stdout as a string.
@@ -153,6 +211,10 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
 		return
 	}
+	if !validAssignment(assignment) {
+		http.Error(w, "invalid assignment name", http.StatusBadRequest)
+		return
+	}
 
 	instrClient, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
@@ -192,6 +254,9 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(s models.Student) {
 			defer wg.Done()
+			// s.Name (= email) sert d'identifiant dans des chemins/commandes : on rejette
+			// tout nom non conforme plutôt que de l'interpoler.
+			if !validStudentID(s.Name) { return }
 			cfg := sshinject.SshConfig("vmuser", signer)
 			studentClient, err := ssh.Dial("tcp", s.IP+":22", cfg)
 			if err != nil { return }
@@ -200,31 +265,35 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 			// Get files from student's submitted_copies/<assignment> or fallback to nbgrader/<assignment>
 			scDir := fmt.Sprintf("/home/vmuser/nbgrader/submitted_copies/%s", assignment)
 			nbDir := fmt.Sprintf("/home/vmuser/nbgrader/%s", assignment)
-			fileListInner := fmt.Sprintf(`find %s -type f 2>/dev/null | sed "s|%s/||" || find %s -type f 2>/dev/null | sed "s|%s/||" || echo ""`, shArg(scDir), scDir, shArg(nbDir), nbDir)
+			fileListInner := fmt.Sprintf(`find %s -type f 2>/dev/null | sed "s|%s/||" || find %s -type f 2>/dev/null | sed "s|%s/||" || echo ""`, shellQuote(scDir), scDir, shellQuote(nbDir), nbDir)
 			fileList, err := runSSHOutput(studentClient, fileListInner)
 			if err != nil || fileList == "" { return }
 
 			// Create submitted directory on instructor
-			mkdirCmd := dockerExec("mkdir -p " + shArg(fmt.Sprintf("/home/jovyan/nbgrader/submitted/%s/%s", s.Name, assignment)))
+			mkdirCmd := dockerExec("mkdir -p " + shellQuote(fmt.Sprintf("/home/jovyan/nbgrader/submitted/%s/%s", s.Name, assignment)))
 			runSSHOutput(instrClient, mkdirCmd)
-			
+
 			// Add student to nbgrader DB if not exists
-			addStudentCmd := dockerExec(fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader db student add %s 2>/dev/null || true", s.Name))
+			addStudentCmd := dockerExec(fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader db student add %s 2>/dev/null || true", shellQuote(s.Name)))
 			runSSHOutput(instrClient, addStudentCmd)
 
 			filesFound := 0
 			for _, relFile := range strings.Split(strings.TrimSpace(fileList), "\n") {
 				relFile = strings.TrimSpace(relFile)
 				if relFile == "" { continue }
-				
+				// Nom de fichier issu de la VM étudiant → potentiellement hostile : on l'ignore
+				// s'il contient une traversée ou un métacaractère shell.
+				if !validRelPath(relFile) { continue }
+
 				// Read from student
-				catCmd := fmt.Sprintf("cat %s 2>/dev/null || cat %s", shArg(fmt.Sprintf("/home/vmuser/nbgrader/submitted_copies/%s/%s", assignment, relFile)), shArg(fmt.Sprintf("/home/vmuser/nbgrader/%s/%s", assignment, relFile)))
+				catCmd := fmt.Sprintf("cat %s 2>/dev/null || cat %s", shellQuote(fmt.Sprintf("/home/vmuser/nbgrader/submitted_copies/%s/%s", assignment, relFile)), shellQuote(fmt.Sprintf("/home/vmuser/nbgrader/%s/%s", assignment, relFile)))
 				content, readErr := runSSHOutput(studentClient, catCmd)
 				if readErr != nil { continue }
-				
-				// Ensure dest dir exists
+
+				// Ensure dest dir exists (dirname calculé côté Go, jamais via $(...) shell)
 				destPath := fmt.Sprintf("/home/vmuser/nbgrader/submitted/%s/%s/%s", s.Name, assignment, relFile)
-				runSSHOutput(instrClient, fmt.Sprintf("mkdir -p $(dirname %q)", destPath))
+				destDir := destPath[:strings.LastIndex(destPath, "/")]
+				runSSHOutput(instrClient, "mkdir -p "+shellQuote(destDir))
 
 				// Write to instructor via SCP helper
 				scpWriteFile(instrClient, destPath, []byte(content))
@@ -270,6 +339,10 @@ func handleNbgraderAutograde(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
 		return
 	}
+	if !validAssignment(assignment) {
+		http.Error(w, "invalid assignment name", http.StatusBadRequest)
+		return
+	}
 
 	client, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
@@ -279,7 +352,7 @@ func handleNbgraderAutograde(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Close()
 
-	cmd := dockerExec(fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader autograde %s", shArg(assignment)))
+	cmd := dockerExec(fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader autograde %s", shellQuote(assignment)))
 	out, err := runSSHOutput(client, cmd)
 	if err != nil {
 		log.Printf("[nbgrader] autograde error: %v", err)
@@ -332,6 +405,9 @@ func handleNbgraderGrades(w http.ResponseWriter, r *http.Request) {
 // fetchNbgraderGrades lit les notes d'un assignment sur la VM instructeur (nbgrader export
 // CSV, fallback sqlite gradebook.db). Réutilisé par le push vers Moodle.
 func fetchNbgraderGrades(poolID, userID, assignment string) ([]NbgraderGrade, error) {
+	if !validAssignment(assignment) {
+		return nil, fmt.Errorf("invalid assignment name")
+	}
 	client, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
 		return nil, err
@@ -378,6 +454,16 @@ func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing pool_id, user_id, or student_ip", http.StatusBadRequest)
 		return
 	}
+	if assignment != "" && !validAssignment(assignment) {
+		http.Error(w, "invalid assignment name", http.StatusBadRequest)
+		return
+	}
+	// Anti-SSRF : on n'accepte de se connecter en SSH (avec la clé maître) qu'à une IP
+	// qui correspond à une VM réellement enregistrée dans ce pool, jamais à une IP arbitraire.
+	if !ipBelongsToPool(studentIP, poolID) {
+		http.Error(w, "student_ip does not belong to this pool", http.StatusForbidden)
+		return
+	}
 
 	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")
 	if keyPath == "" { keyPath = os.Getenv("SSH_KEY_PATH") }
@@ -399,7 +485,8 @@ func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
 	// chmod -R a-w (not 444): keep read+EXECUTE so directories stay traversable.
 	// 444 strips the x bit on dirs -> "Permission denied" -> collect finds nothing.
 	if assignment != "" {
-		cmd = fmt.Sprintf("mkdir -p ~/nbgrader/submitted_copies/%q && cp -r ~/nbgrader/%q/* ~/nbgrader/submitted_copies/%q/ 2>/dev/null || true; chmod -R a-w ~/nbgrader/submitted_copies/%q || true", assignment, assignment, assignment, assignment)
+		qa := shellQuote(assignment)
+		cmd = fmt.Sprintf("mkdir -p ~/nbgrader/submitted_copies/%s && cp -r ~/nbgrader/%s/* ~/nbgrader/submitted_copies/%s/ 2>/dev/null || true; chmod -R a-w ~/nbgrader/submitted_copies/%s || true", qa, qa, qa, qa)
 	} else {
 		cmd = "mkdir -p ~/nbgrader/submitted_copies && rsync -av --exclude='submitted_copies' ~/nbgrader/ ~/nbgrader/submitted_copies/ 2>/dev/null || true; chmod -R a-w ~/nbgrader/submitted_copies || true"
 	}
@@ -424,6 +511,10 @@ func handleNbgraderSubmissionURL(w http.ResponseWriter, r *http.Request) {
 	student := r.URL.Query().Get("student")
 	if poolID == "" || userID == "" || assignment == "" || student == "" {
 		http.Error(w, "missing pool_id, user_id, assignment or student", http.StatusBadRequest)
+		return
+	}
+	if !validAssignment(assignment) || !validStudentID(student) {
+		http.Error(w, "invalid assignment or student", http.StatusBadRequest)
 		return
 	}
 
@@ -581,6 +672,10 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
 		return
 	}
+	if !validAssignment(assignment) {
+		http.Error(w, "invalid assignment name", http.StatusBadRequest)
+		return
+	}
 
 	// 1. SSH on instructor VM → nbgrader release
 	instrClient, err := nbgraderSSHClient(poolID, userID)
@@ -598,7 +693,7 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 	// Générer la version distribuable AVANT de distribuer : si l'enseignant a seulement
 	// créé/marqué les cellules sans cliquer "Generate", release/<a> serait vide.
 	// generate_assignment (peuple release/) puis release_assignment (ancien nom: release).
-	qa := shArg(assignment)
+	qa := shellQuote(assignment)
 	releaseInner := fmt.Sprintf("cd /home/jovyan/nbgrader && (nbgrader generate_assignment %s --force 2>&1 || nbgrader assign %s --force 2>&1); nbgrader release_assignment %s 2>&1 || nbgrader release %s 2>&1", qa, qa, qa, qa)
 	releaseOut, err := runSSHOutput(instrClient, dockerExec(releaseInner))
 	if err != nil {
@@ -608,7 +703,7 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Read released files from instructor VM
 	relDir := fmt.Sprintf("/home/jovyan/nbgrader/release/%s", assignment)
-	fileListInner := fmt.Sprintf(`find %s -type f 2>/dev/null | sed "s|%s/||" || echo ""`, shArg(relDir), relDir)
+	fileListInner := fmt.Sprintf(`find %s -type f 2>/dev/null | sed "s|%s/||" || echo ""`, shellQuote(relDir), relDir)
 	fileList, err := runSSHOutput(instrClient, dockerExec(fileListInner))
 	if err != nil || fileList == "" {
 		w.Header().Set("Content-Type", "application/json")
@@ -668,7 +763,7 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 			defer studentClient.Close()
 
 			// Create assignment directory
-			mkdirCmd := fmt.Sprintf("mkdir -p ~/nbgrader/%q", assignment)
+			mkdirCmd := fmt.Sprintf("mkdir -p ~/nbgrader/%s", shellQuote(assignment))
 			if err := sshinject.RunSSHcmd(studentClient, mkdirCmd); err != nil {
 				mu.Lock()
 				distErrors = append(distErrors, fmt.Sprintf("%s: mkdir failed: %v", s.Name, err))
@@ -682,9 +777,12 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 				if relFile == "" {
 					continue
 				}
+				if !validRelPath(relFile) {
+					continue
+				}
 				// Read file from instructor VM
 				// Read from Docker container via SSH pipe
-				catCmd := dockerExec("cat " + shArg(fmt.Sprintf("/home/jovyan/nbgrader/release/%s/%s", assignment, relFile)))
+				catCmd := dockerExec("cat " + shellQuote(fmt.Sprintf("/home/jovyan/nbgrader/release/%s/%s", assignment, relFile)))
 				content, readErr := func() ([]byte, error) {
 					out, e := runSSHOutput(instrClient, catCmd)
 					return []byte(out), e
@@ -815,6 +913,10 @@ func handleNbgraderExportCSV(w http.ResponseWriter, r *http.Request) {
 	assignment := r.URL.Query().Get("assignment")
 	if poolID == "" || userID == "" {
 		http.Error(w, "missing pool_id or user_id", http.StatusBadRequest)
+		return
+	}
+	if assignment != "" && !validAssignment(assignment) {
+		http.Error(w, "invalid assignment name", http.StatusBadRequest)
 		return
 	}
 

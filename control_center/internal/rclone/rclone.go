@@ -20,10 +20,16 @@ import (
 // ===========================
 //
 
-func runLocalCmd(cmd string) error {
+func runLocalCmd(cmd string, env ...string) error {
 	log.Printf("runLocalCmd: executing\n%s", cmd)
 
 	c := exec.Command("bash", "-c", cmd)
+	// Les valeurs hostiles (ex: clé publique avec commentaire arbitraire) sont passées
+	// via l'environnement et référencées en "$VAR" dans le script — jamais interpolées
+	// dans la source shell, ce qui éliminerait toute injection de commande.
+	if len(env) > 0 {
+		c.Env = append(os.Environ(), env...)
+	}
 	var stdout, stderr bytes.Buffer
 	c.Stdout = &stdout
 	c.Stderr = &stderr
@@ -106,12 +112,12 @@ sudo touch /home/%[1]s/.ssh/authorized_keys
 sudo chown "%[1]s":"%[1]s" /home/%[1]s/.ssh/authorized_keys
 sudo chmod 600 /home/%[1]s/.ssh/authorized_keys
 
-if ! sudo grep -qF "%[2]s" /home/%[1]s/.ssh/authorized_keys; then
-	echo "%[2]s" | sudo tee -a /home/%[1]s/.ssh/authorized_keys > /dev/null
+if ! sudo grep -qF "$PUBKEY" /home/%[1]s/.ssh/authorized_keys; then
+	echo "$PUBKEY" | sudo tee -a /home/%[1]s/.ssh/authorized_keys > /dev/null
 fi
-`, username, prof.Keypubuser)
+`, username)
 
-	return runLocalCmd(cmd)
+	return runLocalCmd(cmd, "PUBKEY="+prof.Keypubuser)
 }
 
 func CreatePoolLocal(profName, poolName string) error {
@@ -178,12 +184,12 @@ sudo touch "$SSH_DIR/authorized_keys"
 sudo chown "%[1]s":"%[1]s" "$SSH_DIR/authorized_keys"
 sudo chmod 600 "$SSH_DIR/authorized_keys"
 
-if ! sudo grep -qF "%[2]s" "$SSH_DIR/authorized_keys"; then
-	echo "%[2]s" | sudo tee -a "$SSH_DIR/authorized_keys" > /dev/null
+if ! sudo grep -qF "$PUBKEY" "$SSH_DIR/authorized_keys"; then
+	echo "$PUBKEY" | sudo tee -a "$SSH_DIR/authorized_keys" > /dev/null
 fi
-`, username, pubKey)
+`, username)
 
-	return runLocalCmd(cmd)
+	return runLocalCmd(cmd, "PUBKEY="+pubKey)
 }
 
 func AddStudentToPool(profName, studentName, poolName string) error {

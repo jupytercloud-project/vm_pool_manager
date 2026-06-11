@@ -15,6 +15,46 @@ func TestShellQuote(t *testing.T) {
 	}
 }
 
+func TestValidAssignment(t *testing.T) {
+	ok := []string{"Devoir corps", "tp1", "TP_2024-final", "a.b.c"}
+	for _, s := range ok {
+		if !validAssignment(s) {
+			t.Errorf("validAssignment(%q) devrait être vrai", s)
+		}
+	}
+	// Tentatives d'injection / traversée : toutes refusées.
+	bad := []string{"", "$(reboot)", "`id`", "a;rm -rf /", "a|b", "a\"b", "a'b", "../etc", "a\nb", "a&b", strings.Repeat("x", 200)}
+	for _, s := range bad {
+		if validAssignment(s) {
+			t.Errorf("validAssignment(%q) devrait être refusé", s)
+		}
+	}
+}
+
+func TestValidRelPath(t *testing.T) {
+	if !validRelPath("sub/dir/file.ipynb") {
+		t.Error("chemin relatif simple devrait passer")
+	}
+	bad := []string{"", "/abs/path", "../escape", "a/../b", "$(x)", "`x`", "a;b", "a|b", "a\nb"}
+	for _, s := range bad {
+		if validRelPath(s) {
+			t.Errorf("validRelPath(%q) devrait être refusé", s)
+		}
+	}
+}
+
+func TestValidStudentID(t *testing.T) {
+	if !validStudentID("alice.dupont@polytechnique.edu") {
+		t.Error("email valide devrait passer")
+	}
+	bad := []string{"", "a'b@x", "a\"b", "$(id)@x", "a b@x", "../x"}
+	for _, s := range bad {
+		if validStudentID(s) {
+			t.Errorf("validStudentID(%q) devrait être refusé", s)
+		}
+	}
+}
+
 func TestDockerExec(t *testing.T) {
 	out := dockerExec("cd /home/jovyan/nbgrader && ls")
 	if !strings.Contains(out, "sudo docker exec jupyter") {
