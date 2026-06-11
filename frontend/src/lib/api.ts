@@ -23,11 +23,30 @@ export function authToken(): string {
   return '';
 }
 
-export function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
+let redirecting = false;
+
+// handleAuthExpired : appelée quand le serveur renvoie 401 alors qu'on avait pourtant
+// envoyé un jeton → la session/le token est invalide ou expiré (l'ID token OIDC dure 24 h).
+// On nettoie l'état et on renvoie vers l'écran de connexion (au lieu de laisser une page
+// « connectée » mais cassée).
+function handleAuthExpired() {
+  if (typeof window === 'undefined' || redirecting) return;
+  redirecting = true;
+  authStore.set(null);
+  moodleStudentStore.set(null);
+  githubStore.set(null);
+  const p = window.location.pathname;
+  if (p !== '/' && p !== '/login') window.location.href = '/';
+}
+
+export async function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   const tok = authToken();
   if (tok && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${tok}`);
   }
-  return fetch(input, { ...init, headers });
+  const res = await fetch(input, { ...init, headers });
+  // 401 alors qu'on avait un jeton = session expirée → déconnexion propre.
+  if (res.status === 401 && tok) handleAuthExpired();
+  return res;
 }
