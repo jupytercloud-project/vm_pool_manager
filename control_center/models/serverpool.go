@@ -12,27 +12,30 @@ import (
 )
 
 type Serverpool struct {
-	ID           uint   `gorm:"primaryKey;autoIncrement"`
-	ServerpoolID string `gorm:"uniqueIndex:idx_pool_user"`
-	UserID       string `gorm:"uniqueIndex:idx_pool_user"`
-	ImageRef     string
-	FlavorRef    string
-	Networks     JSONStringSlice `gorm:"type:text"`
-	MinVM        int
-	MaxVM        int
-	PendingJobs  int
-	ConfigID     string
-	Timewindow   *time.Duration `gorm:"type:bigint"`
-	TimeStart    *time.Time     `gorm:"type:timestamptz"`
-	Keypublist   pq.StringArray `gorm:"type:text[]"`
-	ListStudents ListStudents   `gorm:"foreignKey:PoolId;constraint:OnDelete:CASCADE"`
-	Keypubuser   string
-	Status       string
-	OffDays      string `gorm:"type:text"`
-	AppPort      int    `gorm:"default:0"`
-	Role         string `gorm:"default:'student'"` // "student" or "instructor"
-	LinkedPoolID string `gorm:"default:''"`        // pool étudiant associé (si role=instructor)
-	MoodleCourseID int  `gorm:"default:0"`         // cours Moodle lié (0 = aucun), renseigné à l'import
+	ID             uint   `gorm:"primaryKey;autoIncrement"`
+	ServerpoolID   string `gorm:"uniqueIndex:idx_pool_user"`
+	UserID         string `gorm:"uniqueIndex:idx_pool_user"`
+	ImageRef       string
+	FlavorRef      string
+	Networks       JSONStringSlice `gorm:"type:text"`
+	MinVM          int
+	MaxVM          int
+	PendingJobs    int
+	ConfigID       string
+	Timewindow     *time.Duration `gorm:"type:bigint"`
+	TimeStart      *time.Time     `gorm:"type:timestamptz"`
+	Keypublist     pq.StringArray `gorm:"type:text[]"`
+	ListStudents   ListStudents   `gorm:"foreignKey:PoolId;constraint:OnDelete:CASCADE"`
+	Keypubuser     string
+	Status         string
+	OffDays        string `gorm:"type:text"`
+	AppPort        int    `gorm:"default:0"`
+	Role           string `gorm:"default:'student'"` // "student" or "instructor"
+	LinkedPoolID   string `gorm:"default:''"`        // pool étudiant associé (si role=instructor)
+	MoodleCourseID int    `gorm:"default:0"`         // cours Moodle lié (0 = aucun), renseigné à l'import
+	XCourseCode    string `gorm:"default:''"`        // cours de l'X lié (shortname, ex. CSC_41M03_EP-2025), renseigné à l'import
+	Label          string `gorm:"default:''"`        // nom d'affichage facultatif (sinon ServerpoolID)
+	Tags           string `gorm:"default:''"`        // étiquettes libres (CSV) pour organiser/filtrer
 }
 
 func (sp *Serverpool) FromPb(pbs *pb.StreamRessourceResponse) error {
@@ -130,4 +133,3 @@ func (sp *Serverpool) ToFrontControlPb() *frontcontrolpb.ServerPool {
 		AppPort:  int32(sp.AppPort),
 	}
 }
-
