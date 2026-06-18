@@ -15,9 +15,16 @@
   import { browser } from '$app/environment';
   import { page } from '$app/state';
   import { simpleMode, darkMode, reduceMotion } from '$lib/store/uiStore';
+  import { meStore, loadMe, resetMe } from '$lib/store/meStore';
+  import NotificationBell from '$lib/components/NotificationBell.svelte';
+  import CommandPalette from '$lib/components/CommandPalette.svelte';
 
   let { children } = $props();
   let userStreamController: AbortController | null = null;
+
+  // Annonce globale (bandeau affiché à tous).
+  let announcement = $state<{ message: string; active: boolean } | null>(null);
+  let announceDismissed = $state(false);
 
   let previousEmail: string | null = null;
 
@@ -32,10 +39,12 @@
       subscribeUserUpdate(auth.email, userStreamController.signal);
       if (auth.email !== previousEmail) {
         previousEmail = auth.email;
+        loadMe();
         await loadAll(auth.email);
       }
     } else {
       previousEmail = null;
+      resetMe();
       resetAll();
       const path = page.url?.pathname ?? '';
       if (!PUBLIC_ROUTES.some(r => path.startsWith(r))) {
@@ -55,6 +64,10 @@
     try {
       const mr = await apiFetch('/api/moodle/status');
       if (mr.ok) { const md = await mr.json(); if (md.configured) moodleUrl = md.url ?? ''; }
+    } catch { /* ignore */ }
+    try {
+      const ar = await apiFetch('/api/announcement');
+      if (ar.ok) announcement = await ar.json();
     } catch { /* ignore */ }
     const token = get(authStore);
     if (!token) {
@@ -99,17 +112,23 @@
 
   const navLinks = $derived(() => {
     const auth = $authStore;
+    const me = $meStore;
     const simple = $simpleMode;
+    // Rôle effectif : /api/me (rôles fins en base) avec repli sur le JWT le temps du chargement.
+    const isAdmin = me?.is_admin ?? (auth?.role === 'admin');
+    const isStaff = me?.is_staff ?? (auth?.role === 'admin');
+    const role = me?.role ?? auth?.role;
     const links: { href: string; label: string; secondary?: boolean }[] = [];
-    if (auth?.role === 'admin') {
-      // '/serverpool' is the admin home — no separate "Accueil" tab (it pointed
-      // to the same page). In simple mode it's labelled "Mes cours".
-      links.push({ href: '/inventory', label: simple ? 'Mes étudiants' : 'Inventaire' });
+    if (isStaff) {
+      // Équipe pédagogique (admin / prof / ta).
+      if (isAdmin) links.push({ href: '/inventory', label: simple ? 'Mes étudiants' : 'Inventaire' });
       links.push({ href: '/serverpool', label: simple ? 'Mes cours' : 'Serverpools' });
       links.push({ href: '/grading', label: 'Notation' });
-      // Secondaires : regroupées dans un menu "Plus" pour désencombrer la barre.
-      if (!simple) links.push({ href: '/config', label: 'Configurations', secondary: true });
-      links.push({ href: '/propose-image', label: 'Proposer une image', secondary: true });
+      if (!simple && isAdmin) links.push({ href: '/config', label: 'Configurations', secondary: true });
+      if (isAdmin) links.push({ href: '/propose-image', label: 'Proposer une image', secondary: true });
+    } else if (role === 'chercheur') {
+      // Chercheur : gère ses propres environnements de calcul.
+      links.push({ href: '/serverpool', label: 'Mes environnements' });
     } else if (auth) {
       links.push({ href: '/student', label: 'Mes cours' });
     }
@@ -215,6 +234,16 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-2">
+        <CommandPalette />
+        <button onclick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+          title="Recherche (⌘K)" aria-label="Recherche"
+          class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:text-primary-700 hover:border-primary-300 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
+          <span class="font-mono">⌘K</span>
+        </button>
+        {#if ($meStore?.is_admin ?? ($authStore?.role === 'admin'))}
+          <NotificationBell />
+        {/if}
         <!-- Paramètres : lien direct vers la page dédiée (admin: Paramètres ; étudiant: Mon compte) -->
         {#if $authStore || $githubStore || $moodleStudentStore}
           {@const settingsHref = $authStore ? '/profile' : '/student/settings'}
@@ -279,6 +308,13 @@
 
   <!-- Main -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-6 pt-8 pb-16">
+    {#if announcement?.active && announcement.message && !announceDismissed}
+      <div class="mb-6 px-4 py-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-sm flex items-start gap-3 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-200">
+        <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+        <span class="flex-1 font-medium">{announcement.message}</span>
+        <button onclick={() => (announceDismissed = true)} class="opacity-60 hover:opacity-100 shrink-0" aria-label="Fermer">✕</button>
+      </div>
+    {/if}
     {@render children?.()}
   </main>
 
