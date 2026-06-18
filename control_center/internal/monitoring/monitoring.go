@@ -27,6 +27,7 @@ func Start_Monitoring(
 	defer ticker.Stop()
 
 	go StartSSHActivityChecker(ctx)
+	go StartAutoSuspend(ctx, clientMicroservice)
 	if guacClient != nil {
 		go guacamoleSyncLoop(ctx, guacClient)
 	}
@@ -291,6 +292,7 @@ func syncGuacamoleRegistrations(client *guacamole.Client) {
 				ActivityStatus:   "idle",
 				RegisteredAt:     now,
 				LastSeen:         now,
+				LastActive:       now,
 				RawMeta:          meta,
 				GuacConnectionID: connID,
 			})
@@ -378,12 +380,17 @@ func checkOneVM(srv models.Server, signer ssh.Signer) {
 	}
 
 	now := time.Now().UTC()
+	updates := map[string]any{
+		"activity_status": status,
+		"last_seen":       now,
+	}
+	// last_active ne bouge QUE sur activité réelle : c'est ce qui mesure l'inactivité.
+	if status == "connected" {
+		updates["last_active"] = now
+	}
 	result := config.Database.Model(&models.VMInstance{}).
 		Where("name = ?", srv.Name).
-		Updates(map[string]any{
-			"activity_status": status,
-			"last_seen":       now,
-		})
+		Updates(updates)
 	if result.RowsAffected == 0 {
 		config.Database.Create(&models.VMInstance{
 			ID:             srv.Name,
@@ -393,6 +400,7 @@ func checkOneVM(srv models.Server, signer ssh.Signer) {
 			Healthy:        true,
 			ActivityStatus: status,
 			LastSeen:       now,
+			LastActive:     now,
 			RegisteredAt:   now,
 			RawMeta:        json.RawMessage("{}"),
 		})

@@ -68,6 +68,21 @@ func handleVMAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	invalidatePowerStates() // refléter le nouvel état au prochain inventaire
+
+	// Réarmer le compteur d'activité à la reprise pour éviter une re-suspension immédiate
+	// par l'auto-suspend (last_active serait sinon resté à la dernière activité réelle).
+	if req.Action == "resume" || req.Action == "start" {
+		var srv models.Server
+		if config.Database.Where("id = ?", req.ServerID).First(&srv).Error == nil {
+			config.Database.Model(&models.VMInstance{}).
+				Where("name = ?", srv.Name).
+				Updates(map[string]any{
+					"activity_status": "connected",
+					"last_active":     time.Now().UTC(),
+				})
+		}
+	}
+
 	writeJSONMoodle(w, http.StatusOK, map[string]any{
 		"server_id": req.ServerID, "action": req.Action, "ok": true})
 }
