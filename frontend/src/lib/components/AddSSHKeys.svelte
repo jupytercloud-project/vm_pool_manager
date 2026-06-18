@@ -14,7 +14,7 @@
     poolname,
   }: { open: boolean; poolname: string } = $props();
 
-  type AddMode = 'form' | 'raw' | 'github' | 'moodle';
+  type AddMode = 'form' | 'raw' | 'github' | 'moodle' | 'xcours';
 
   let addModal = $state(false);
   let loading = $state(false);
@@ -81,11 +81,11 @@
   let moodleStudents = $state<MoodleStudent[]>([]);
   let moodleSelected = $state<Set<string>>(new Set());
   let moodleLoading = $state(false);
-  let modes = $derived<[AddMode, string][]>(
-    moodleConfigured
-      ? [['form', 'Formulaire'], ['raw', 'Import texte'], ['github', 'GitHub'], ['moodle', 'Moodle']]
-      : [['form', 'Formulaire'], ['raw', 'Import texte'], ['github', 'GitHub']]
-  );
+  let modes = $derived<[AddMode, string][]>([
+    ['form', 'Formulaire'], ['raw', 'Import texte'], ['github', 'GitHub'],
+    ...(moodleConfigured ? ([['moodle', 'Moodle']] as [AddMode, string][]) : []),
+    ['xcours', "Cours de l'X"],
+  ]);
 
   async function checkMoodle() {
     try {
@@ -133,10 +133,88 @@
     } catch { error = "Erreur lors de l'import depuis Moodle."; } finally { loading = false; }
   }
 
+  // Cours de l'X (endpoints DSI) : catalogue public + affectations (token DSI requis).
+  interface XCourse { id: string; title: string; category: string }
+  interface XMember { username: string; role: string }
+  let xcoursAffectationsAvailable = $state(false);
+  let xcoursCourses = $state<XCourse[]>([]);
+  let xcoursSearch = $state('');
+  let xcoursYear = $state('');
+  let xcoursDep = $state('');
+  let xcoursCourseId = $state<string | null>(null);
+  let xcoursMembers = $state<XMember[]>([]);
+  let xcoursSelected = $state<Set<string>>(new Set());
+  let xcoursLoading = $state(false);
+  let xcoursError = $state<string | null>(null);
+
+  let xcoursFiltered = $derived(
+    (xcoursSearch.trim()
+      ? xcoursCourses.filter(c => (c.id + ' ' + c.title).toLowerCase().includes(xcoursSearch.trim().toLowerCase()))
+      : xcoursCourses
+    ).slice(0, 100)
+  );
+
+  async function checkXCours() {
+    try {
+      const r = await apiFetch('/api/xcours/status');
+      if (r.ok) xcoursAffectationsAvailable = !!(await r.json()).affectations_available;
+    } catch { /* ignore */ }
+  }
+  async function loadXCoursCatalogue() {
+    xcoursLoading = true; xcoursError = null;
+    try {
+      const q = new URLSearchParams();
+      if (xcoursYear.trim()) q.set('year', xcoursYear.trim());
+      if (xcoursDep.trim()) q.set('dep', xcoursDep.trim().toUpperCase());
+      const r = await apiFetch('/api/xcours/catalogue' + (q.toString() ? '?' + q.toString() : ''));
+      if (r.ok) xcoursCourses = (await r.json()).courses ?? [];
+      else xcoursError = 'Catalogue indisponible.';
+    } catch { xcoursError = 'Catalogue indisponible.'; } finally { xcoursLoading = false; }
+  }
+  async function selectXCours(id: string) {
+    xcoursCourseId = id; xcoursMembers = []; xcoursSelected = new Set();
+    xcoursLoading = true; xcoursError = null;
+    try {
+      const r = await apiFetch(`/api/xcours/members?id=${encodeURIComponent(id)}`);
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) { xcoursError = data.error ?? 'Affectations indisponibles (token DSI requis).'; return; }
+      const students: XMember[] = (data.members ?? []).filter((m: XMember) => m.role !== 'editingteacher');
+      xcoursMembers = students;
+      xcoursSelected = new Set(students.map(m => m.username));
+    } catch { xcoursError = 'Affectations indisponibles.'; } finally { xcoursLoading = false; }
+  }
+  function toggleXCoursStudent(username: string) {
+    const s = new Set(xcoursSelected);
+    if (s.has(username)) s.delete(username); else s.add(username);
+    xcoursSelected = s;
+  }
+  async function handleImportXCours() {
+    if (!xcoursCourseId) { error = 'Choisissez un cours.'; return; }
+    const usernames = Array.from(xcoursSelected);
+    if (!usernames.length) { error = 'Sélectionnez au moins un étudiant.'; return; }
+    try {
+      loading = true; error = null;
+      const r = await apiFetch('/api/xcours/import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pool_id: poolname, user_id: $authStore?.email, course_code: xcoursCourseId, usernames }),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'erreur');
+      await handleListStudents();
+      xcoursSelected = new Set();
+      addModal = false;
+    } catch { error = "Erreur lors de l'import du cours de l'X."; } finally { loading = false; }
+  }
+
   interface User { name: string; sshKey: string; ip: string; }
   interface NewStudent { firstName: string; lastName: string; sshKey: string; }
 
   let users: User[] = $state([]);
+  let studentSearch = $state('');
+  const filteredUsers = $derived(
+    studentSearch.trim()
+      ? users.filter(u => u.name.toLowerCase().includes(studentSearch.trim().toLowerCase()))
+      : users
+  );
   let newStudents: NewStudent[] = $state([{ firstName: '', lastName: '', sshKey: '' }]);
 
   function addRow() { newStudents = [...newStudents, { firstName: '', lastName: '', sshKey: '' }]; }
@@ -205,9 +283,10 @@
     addModal = false;
   }
 
-  $effect(() => { if (open) { handleListStudents(); checkMoodle(); } });
+  $effect(() => { if (open) { handleListStudents(); checkMoodle(); checkXCours(); } });
   $effect(() => { if (addModal) { loadGitHubStudents(); } });
   $effect(() => { if (addModal && addMode === 'moodle' && moodleCourses.length === 0) loadMoodleCourses(); });
+  $effect(() => { if (addModal && addMode === 'xcours' && xcoursCourses.length === 0) loadXCoursCatalogue(); });
   $effect(() => { rawMode = addMode === 'raw'; if (rawMode) newStudents = [{ firstName: '', lastName: '', sshKey: '' }]; });
 </script>
 
@@ -243,8 +322,11 @@
           <p class="text-sm">Aucun étudiant enregistré</p>
         </div>
       {:else}
+        {#if users.length > 4}
+          <input class="field text-sm mb-3" type="text" placeholder="Rechercher un étudiant…" bind:value={studentSearch} />
+        {/if}
         <div class="space-y-1 max-h-72 overflow-y-auto pr-1 mb-4">
-          {#each users as user, i}
+          {#each filteredUsers as user, i}
             <div
               class="flex items-center justify-between px-4 py-3 rounded border border-neutral-100 bg-neutral-50 animate-slide-right"
               style="animation-delay:{i*0.03}s"
@@ -273,6 +355,9 @@
               </div>
             </div>
           {/each}
+          {#if filteredUsers.length === 0}
+            <p class="text-sm text-neutral-400 py-6 text-center">Aucun étudiant ne correspond à « {studentSearch} ».</p>
+          {/if}
         </div>
       {/if}
 
@@ -398,6 +483,71 @@
             </button>
           {:else if moodleCourseId != null}
             <p class="text-sm text-neutral-400 py-6 text-center">Aucun étudiant dans ce cours.</p>
+          {/if}
+        </div>
+      {:else if addMode === 'xcours'}
+        <div class="space-y-3">
+          {#if !xcoursAffectationsAvailable}
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              Catalogue consultable, mais l'import des inscriptions nécessite le token DSI (en attente).
+            </p>
+          {/if}
+          <input class="field text-sm" type="text" placeholder="Rechercher (nom ou code, ex. CSC, APM…)" bind:value={xcoursSearch} />
+          <div class="flex gap-2 items-center">
+            <input class="field text-sm" style="flex:1 1 auto" type="text" placeholder="Année (ex. 2025 — défaut 2026)" bind:value={xcoursYear} />
+            <button onclick={loadXCoursCatalogue} class="btn btn-secondary text-sm shrink-0">Filtrer</button>
+          </div>
+
+          {#if xcoursLoading}
+            <div class="flex items-center justify-center py-10">
+              <div class="w-6 h-6 rounded-full border-2 border-neutral-200 border-t-primary-700" style="animation: spinnerGlow 0.7s linear infinite;"></div>
+            </div>
+          {:else if xcoursCourseId && xcoursMembers.length > 0}
+            <p class="text-xs text-neutral-500">
+              Cours : <span class="font-mono">{xcoursCourseId}</span> —
+              <button class="text-primary-700 underline" onclick={() => { xcoursCourseId = null; xcoursMembers = []; }}>changer</button>
+            </p>
+            <div class="space-y-1 max-h-56 overflow-y-auto pr-1">
+              {#each xcoursMembers as m}
+                <label class="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer transition-colors {xcoursSelected.has(m.username) ? 'border-primary-300 bg-primary-50' : 'border-neutral-200 bg-neutral-50'}">
+                  <input type="checkbox" checked={xcoursSelected.has(m.username)} onchange={() => toggleXCoursStudent(m.username)} class="w-4 h-4 accent-primary-700" />
+                  <span class="text-sm font-mono text-neutral-800">{m.username}</span>
+                </label>
+              {/each}
+            </div>
+            <button onclick={handleImportXCours} disabled={loading || xcoursSelected.size === 0} class="btn btn-primary text-sm w-full">
+              {#if loading}
+                <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style="animation: spinnerGlow 0.6s linear infinite;"></span>
+              {/if}
+              Importer {xcoursSelected.size} étudiant{xcoursSelected.size > 1 ? 's' : ''}
+            </button>
+          {:else if xcoursCourseId}
+            <p class="text-sm text-neutral-400 py-6 text-center">{xcoursError ?? 'Aucun étudiant trouvé pour ce cours.'}</p>
+          {:else}
+            {#if xcoursError}<p class="text-xs text-red-600">{xcoursError}</p>{/if}
+            {#if xcoursCourses.length > 0}
+              <p class="text-xs text-neutral-400">
+                {xcoursCourses.length} cours{xcoursCourses.length > xcoursFiltered.length ? ` · ${xcoursFiltered.length} affichés (affinez la recherche)` : ''}
+              </p>
+            {/if}
+            <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {#each xcoursFiltered as c}
+                <button
+                  type="button"
+                  onclick={() => selectXCours(c.id)}
+                  class="w-full flex items-start gap-2 text-left px-3 py-2.5 rounded-lg border border-neutral-200 bg-white hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                >
+                  <span class="shrink-0 mt-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{c.category}</span>
+                  <span class="text-sm font-semibold text-neutral-800 leading-snug">{c.title}</span>
+                </button>
+              {/each}
+              {#if xcoursCourses.length === 0}
+                <p class="text-sm text-neutral-400 py-6 text-center">Aucun cours. Ajustez les filtres.</p>
+              {:else if xcoursFiltered.length === 0}
+                <p class="text-sm text-neutral-400 py-6 text-center">Aucun résultat pour cette recherche.</p>
+              {/if}
+            </div>
+            <p class="text-xs text-neutral-400">Les étudiants importés se connecteront avec leur compte établissement (clé SSH non requise).</p>
           {/if}
         </div>
       {:else if rawMode}

@@ -20,9 +20,21 @@
   let assignError = $state("");
   let noCoursFound = $state(false);
   let copied = $state(false);
+  let showHelp = $state(true);
+  function dismissHelp() {
+    showHelp = false;
+    try { localStorage.setItem('studentHelpDismissed', '1'); } catch { /* ignore */ }
+  }
   let appReady = $state(false);
   let probing = $state(false);
   let probeInterval: ReturnType<typeof setInterval> | null = null;
+
+  // VS Code (code-server) : lancé au runtime à côté de Jupyter sur un port fixe.
+  // Pas d'image modifiée ; on sonde sa disponibilité séparément (le pull/boot du
+  // conteneur peut être plus lent que Jupyter).
+  const CODE_SERVER_PORT = 8443;
+  let codeReady = $state(false);
+  let codeProbeInterval: ReturnType<typeof setInterval> | null = null;
 
   let githubLoading = $state(false);
 
@@ -43,6 +55,7 @@
   let githubKeys = $derived($githubStore?.keys ?? []);
 
   onMount(async () => {
+    try { if (localStorage.getItem('studentHelpDismissed') === '1') showHelp = false; } catch { /* ignore */ }
     try {
       const sr = await apiFetch('/api/moodle/status');
       if (sr.ok) moodleConfigured = !!(await sr.json()).configured;
@@ -82,6 +95,20 @@
           appReady = true;
           probing = false;
           if (probeInterval) { clearInterval(probeInterval); probeInterval = null; }
+        }
+      } catch { /* keep trying */ }
+    }, 3000);
+  }
+
+  function startProbingCode(ip: string) {
+    codeReady = false;
+    codeProbeInterval = setInterval(async () => {
+      try {
+        const res = await apiFetch(`/api/app-status?ip=${encodeURIComponent(ip)}&port=${CODE_SERVER_PORT}`);
+        const data = await res.json();
+        if (data.ready) {
+          codeReady = true;
+          if (codeProbeInterval) { clearInterval(codeProbeInterval); codeProbeInterval = null; }
         }
       } catch { /* keep trying */ }
     }, 3000);
@@ -218,8 +245,9 @@
 
   async function assignVM(pool: { pool_id: string; user_id: string }) {
     selectedPool = pool; loading = true; errorMsg = ""; assignError = ""; vmIp = ""; vmUser = ""; vmAppPort = 0; guacUrl = "";
-    appReady = false; probing = false;
+    appReady = false; probing = false; codeReady = false;
     if (probeInterval) { clearInterval(probeInterval); probeInterval = null; }
+    if (codeProbeInterval) { clearInterval(codeProbeInterval); codeProbeInterval = null; }
     try {
       let ip = "", port = 0, user = "";
       if (moodleEmail) {
@@ -242,7 +270,7 @@
         .then(r => r.json())
         .then(data => { if (data.url) guacUrl = data.url; })
         .catch(() => {});
-      if (vmAppPort > 0) startProbing(ip, vmAppPort);
+      if (vmAppPort > 0) { startProbing(ip, vmAppPort); startProbingCode(ip); }
     } catch (err: any) {
       assignError = err?.message || "Erreur lors de l'attribution de la VM.";
     } finally { loading = false; }
@@ -271,6 +299,22 @@
         Collez votre clé SSH publique pour accéder à votre machine virtuelle de travaux pratiques.
       </p>
     </div>
+
+    {#if showHelp}
+      <div class="card p-5 mb-5 bg-primary-50/50 border-primary-200">
+        <div class="flex items-start justify-between gap-3">
+          <div class="space-y-2">
+            <h2 class="text-sm font-bold text-primary-800">Comment lancer ma machine ?</h2>
+            <ol class="text-sm text-neutral-600 space-y-1 list-decimal list-inside">
+              <li>Identifiez-vous (clé SSH, compte établissement ou Moodle selon votre cours).</li>
+              <li>Sélectionnez votre cours, puis demandez une machine.</li>
+              <li>Ouvrez <strong>JupyterLab</strong> ou <strong>VS Code</strong>, ou connectez-vous via le terminal web / SSH.</li>
+            </ol>
+          </div>
+          <button onclick={dismissHelp} class="text-neutral-400 hover:text-neutral-600 shrink-0" aria-label="Fermer l'aide">✕</button>
+        </div>
+      </div>
+    {/if}
 
     <div class="card p-6 space-y-5">
 
@@ -504,6 +548,30 @@
             </svg>
             Ouvrir JupyterLab
           </a>
+          <!-- VS Code (code-server) — même environnement/fichiers que Jupyter,
+               lancé au runtime sur {CODE_SERVER_PORT}. Affiché dès qu'il répond. -->
+          {#if codeReady}
+            <a
+              href="https://{vmIp}:{CODE_SERVER_PORT}/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-base
+                bg-sky-600 hover:bg-sky-500 text-white transition-all shadow-sm hover:shadow-md"
+            >
+              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+              </svg>
+              Ouvrir VS Code
+            </a>
+          {:else}
+            <div class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-base
+              bg-neutral-200 text-neutral-500 cursor-not-allowed select-none">
+              <span class="w-4 h-4 border-2 border-neutral-400/40 border-t-neutral-500 rounded-full shrink-0"
+                style="animation: spinnerGlow 0.8s linear infinite;"></span>
+              Démarrage de VS Code…
+            </div>
+          {/if}
           <!-- Jupyter Classic — needed for nbgrader "Assignments" tab -->
           <!-- Submit Button -->
           <div class="flex flex-col gap-2">
@@ -603,8 +671,9 @@
         // Revenir à la liste des cours SANS déconnecter (on garde la session Moodle/SSH).
         vmIp = ""; vmUser = ""; vmAppPort = 0; guacUrl = "";
         selectedPool = null;
-        appReady = false; probing = false;
+        appReady = false; probing = false; codeReady = false;
         if (probeInterval) { clearInterval(probeInterval); probeInterval = null; }
+        if (codeProbeInterval) { clearInterval(codeProbeInterval); codeProbeInterval = null; }
         if (moodleEmail) refreshMoodlePools();
         else { availablePools = []; sshkey = ""; }
       }}
