@@ -136,3 +136,58 @@ func handleVMRebuild(w http.ResponseWriter, r *http.Request) {
 	invalidatePowerStates()
 	writeJSONMoodle(w, http.StatusOK, map[string]any{"server_id": req.ServerID, "ok": true})
 }
+
+// POST /api/vm/resize {server_id, flavor_ref} — change le flavor (gabarit) d'une VM.
+// Le microservice exécute le resize en job asynchrone (RESIZE→VERIFY_RESIZE→confirm).
+// Staff uniquement.
+func handleVMResize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
+		return
+	}
+	var req struct {
+		ServerID  string `json:"server_id"`
+		FlavorRef string `json:"flavor_ref"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil ||
+		strings.TrimSpace(req.ServerID) == "" || strings.TrimSpace(req.FlavorRef) == "" {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "server_id et flavor_ref requis"})
+		return
+	}
+
+	var server models.Server
+	if err := config.Database.Where("id = ?", req.ServerID).First(&server).Error; err != nil {
+		writeJSONMoodle(w, http.StatusNotFound, map[string]string{"error": "VM introuvable"})
+		return
+	}
+
+	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		writeJSONMoodle(w, http.StatusBadGateway, map[string]string{"error": "microservice injoignable"})
+		return
+	}
+	defer conn.Close()
+	client := pb.NewPoolManagerClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	resp, err := client.SendRessources(ctx, &pb.RessourceRequest{
+		User:   server.UserID,
+		Status: pb.Status_UPDATE,
+		Type:   pb.Type_SERVER,
+		Data:   map[string]string{"id": req.ServerID, "action": "resize", "flavor_ref": req.FlavorRef},
+	})
+	if err != nil || (resp != nil && !resp.GetSuccess()) {
+		msg := "échec du redimensionnement"
+		if err != nil {
+			msg = err.Error()
+		}
+		writeJSONMoodle(w, http.StatusBadGateway, map[string]string{"error": msg})
+		return
+	}
+
+	// Reflet optimiste : l'inventaire affichera le nouveau gabarit (le resize réel suit en job).
+	config.Database.Model(&models.Server{}).Where("id = ?", req.ServerID).Update("flavor_ref", req.FlavorRef)
+	invalidatePowerStates()
+	writeJSONMoodle(w, http.StatusOK, map[string]any{"server_id": req.ServerID, "flavor_ref": req.FlavorRef, "ok": true})
+}

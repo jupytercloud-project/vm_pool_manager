@@ -84,6 +84,13 @@ func processJob(workerID int, job models.Job) {
 		} else {
 			log.Println("VM started:", job.Data["instance_id"])
 		}
+
+	case models.ResizeVM:
+		if err := jobs.ResizeVM(job.Data["instance_id"], job.Data["flavor_ref"]); err != nil {
+			log.Println("Failed to resize VM:", err)
+		} else {
+			log.Println("VM resized:", job.Data["instance_id"])
+		}
 	}
 }
 

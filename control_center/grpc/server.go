@@ -197,6 +197,7 @@ func Start_grpc(ctx context.Context) {
 	mux.HandleFunc("/api/admin/announcement", handleAdminAnnouncement)
 	mux.HandleFunc("/api/vm/action", handleVMAction)
 	mux.HandleFunc("/api/vm/rebuild", handleVMRebuild)
+	mux.HandleFunc("/api/vm/resize", handleVMResize)
 	mux.HandleFunc("/api/pool/meta", handlePoolMeta)
 	mux.HandleFunc("/api/image-proposals", handleImageProposals)
 	mux.HandleFunc("/api/jupyter-proxy/", handleJupyterProxy)

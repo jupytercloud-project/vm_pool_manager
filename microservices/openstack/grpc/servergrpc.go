@@ -198,6 +198,13 @@ func (s *ServerMicroOpenstack) handleServer(
 				db.Model(&models.Server{}).Where("id = ?", id).Update("manual_off", false)
 			}
 			switch action {
+			case "resize":
+				// Resize long (RESIZE→VERIFY_RESIZE→confirm) → job asynchrone.
+				worker.AddJob(*worker.CreateJob(models.ResizeVM, map[string]string{
+					"instance_id": id,
+					"flavor_ref":  data["flavor_ref"],
+				}), true)
+				return nil
 			case "start":
 				return servers.Start(ctx, client, id).ExtractErr()
 			case "stop":
