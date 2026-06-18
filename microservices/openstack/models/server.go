@@ -13,20 +13,22 @@ import (
 )
 
 type Server struct {
-	ID             string `gorm:"primaryKey"`
-	Name           string
-	Status         string
-	FlavorRef      string
-	ImageRef       string
-	Networks       JSONStringSlice `gorm:"type:text"`
-	IP_Address     string
-	Metadata       JSONStringMap `gorm:"type:text"`
-	ServerpoolID   string
-	UserID         string
-	ServerPool     *Serverpool `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
-	Reattrib bool `gorm:"default:false; not null"`
-	Progress       int  `gorm:"default:0; not null"`
-	ConfigID       string
+	ID           string `gorm:"primaryKey"`
+	Name         string
+	Status       string
+	FlavorRef    string
+	ImageRef     string
+	Networks     JSONStringSlice `gorm:"type:text"`
+	IP_Address   string
+	Metadata     JSONStringMap `gorm:"type:text"`
+	ServerpoolID string
+	UserID       string
+	ServerPool   *Serverpool `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
+	Reattrib     bool        `gorm:"default:false; not null"`
+	Progress     int         `gorm:"default:0; not null"`
+	ConfigID     string
+	// ManualOff : VM arrêtée volontairement par un admin → le crawler ne doit PAS la relancer.
+	ManualOff bool `gorm:"default:false; not null"`
 }
 
 func (s *Server) ToMap() map[string]string {
@@ -38,7 +40,7 @@ func (s *Server) ToMap() map[string]string {
 		"image_ref":     s.ImageRef,
 		"serverpool_id": s.ServerpoolID,
 		"user_id":       s.UserID,
-		"reattrib": fmt.Sprintf("%t", s.Reattrib),
+		"reattrib":      fmt.Sprintf("%t", s.Reattrib),
 		"progress":      fmt.Sprintf("%d", s.Progress),
 		"config_id":     s.ConfigID,
 		"ip_address":    s.IP_Address,

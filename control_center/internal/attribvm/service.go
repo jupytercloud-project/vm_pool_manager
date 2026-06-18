@@ -219,11 +219,17 @@ func (s *Service) AttribVMByEmail(poolID, userID, email string) (string, int32, 
 		return "", 0, fmt.Errorf("pool introuvable")
 	}
 
-	// Étudiant pré-importé depuis Moodle, identifié par MoodleEmail dans ce pool.
+	// Étudiant pré-importé (Moodle ou cours de l'X), identifié par MoodleEmail dans ce pool.
+	// On matche d'abord l'email complet, puis l'uid seul (partie avant @) : les endpoints
+	// de l'X renvoient uid@polytechnique.fr alors que le login établissement peut être en
+	// .edu — comparer l'uid évite l'échec d'attribution dû au seul domaine.
 	var student models.Student
 	err := s.DB.
 		Joins("JOIN list_students ON list_students.id = students.list_id").
-		Where("LOWER(students.moodle_email) = LOWER(?) AND list_students.pool_id = ?", email, pool.ID).
+		Where(`list_students.pool_id = ? AND (
+			LOWER(students.moodle_email) = LOWER(?)
+			OR LOWER(split_part(students.moodle_email, '@', 1)) = LOWER(split_part(?, '@', 1))
+		)`, pool.ID, email, email).
 		First(&student).Error
 	if err != nil {
 		return "", 0, fmt.Errorf("vous n'êtes pas inscrit à ce cours")

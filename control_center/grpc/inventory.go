@@ -23,6 +23,7 @@ var guacClient *guacamole.Client
 // InventoryVM wraps VMInstance with a derived Guacamole terminal URL.
 type InventoryVM struct {
 	models.VMInstance
+	PowerState   string `json:"power_state,omitempty"` // état Nova live : ACTIVE | SHUTOFF | SUSPENDED…
 	GuacURL      string `json:"guac_url,omitempty"`
 	Student      string `json:"student,omitempty"`       // étudiant attribué (par IP), si VM étudiante
 	IsInstructor bool   `json:"is_instructor,omitempty"` // VM de l'enseignant (la plus ancienne du pool)
@@ -30,9 +31,12 @@ type InventoryVM struct {
 
 // InventoryPool groups VMs by serverpool for the admin dashboard.
 type InventoryPool struct {
-	PoolID string        `json:"pool_id"`
-	UserID string        `json:"user_id"`
-	VMs    []InventoryVM `json:"vms"`
+	LinkedCourse string        `json:"linked_course,omitempty"` // cours lié (Moodle / X), si renseigné
+	Label        string        `json:"label,omitempty"`         // nom d'affichage facultatif
+	Tags         string        `json:"tags,omitempty"`          // étiquettes (CSV)
+	PoolID       string        `json:"pool_id"`
+	UserID       string        `json:"user_id"`
+	VMs          []InventoryVM `json:"vms"`
 }
 
 const registrarStaleAfter = 30 * time.Minute
@@ -43,8 +47,19 @@ func buildInventory() ([]InventoryPool, error) {
 		return nil, err
 	}
 	validPools := make(map[string]bool, len(activePools))
+	linkedByKey := make(map[string]string, len(activePools))
+	labelByKey := make(map[string]string, len(activePools))
+	tagsByKey := make(map[string]string, len(activePools))
 	for _, p := range activePools {
-		validPools[p.ServerpoolID+":"+p.UserID] = true
+		k := p.ServerpoolID + ":" + p.UserID
+		validPools[k] = true
+		labelByKey[k] = p.Label
+		tagsByKey[k] = p.Tags
+		if p.XCourseCode != "" {
+			linkedByKey[k] = "X · " + p.XCourseCode
+		} else if p.MoodleCourseID != 0 {
+			linkedByKey[k] = fmt.Sprintf("Moodle #%d", p.MoodleCourseID)
+		}
 	}
 
 	registrarByName := map[string]models.VMInstance{}
@@ -135,8 +150,11 @@ func buildInventory() ([]InventoryPool, error) {
 	}
 	wg.Wait()
 
+	powerStates := fetchPowerStates()
+
 	for _, p := range pending {
 		ivm := toInventoryVM(p.vm)
+		ivm.PowerState = powerStates[ivm.ID]
 		if name, ok := studentByIP[p.srv.IP_Address]; ok {
 			ivm.Student = name
 		}
@@ -170,6 +188,7 @@ func buildInventory() ([]InventoryPool, error) {
 			}
 		}
 		ivm := toInventoryVM(vm)
+		ivm.PowerState = powerStates[ivm.ID]
 		if name, ok := studentByIP[vm.IP]; ok {
 			ivm.Student = name
 		}
@@ -178,6 +197,10 @@ func buildInventory() ([]InventoryPool, error) {
 
 	result := make([]InventoryPool, 0, len(pools))
 	for _, p := range pools {
+		k := p.PoolID + ":" + p.UserID
+		p.LinkedCourse = linkedByKey[k]
+		p.Label = labelByKey[k]
+		p.Tags = tagsByKey[k]
 		result = append(result, *p)
 	}
 	return result, nil

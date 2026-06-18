@@ -176,7 +176,6 @@ func (s *ServerMicroOpenstack) handleServer(
 		worker.AddJob(*worker.CreateJob(models.CreateVM, jobData), true)
 		return nil
 	case pb.Status_UPDATE:
-		log.Printf("Received UPDATE for pool %s with image_ref %s", data["serverpool_id"], data["image_ref"])
 		opts := &clientconfig.ClientOpts{
 			Cloud: os.Getenv("OPTS_CLOUD"),
 		}
@@ -185,16 +184,42 @@ func (s *ServerMicroOpenstack) handleServer(
 		if err != nil {
 			return err
 		}
+		ctx := context.Background()
+		// Action de cycle de vie (start/stop/suspend/resume/reboot) si demandée.
+		if action := data["action"]; action != "" {
+			id := data["id"]
+			log.Printf("Server action '%s' on %s", action, id)
+			// Marque l'intention pour que le crawler ne contrarie pas une action volontaire :
+			// stop/suspend → ManualOff=true (ne pas relancer) ; start/resume → false.
+			switch action {
+			case "stop", "suspend":
+				db.Model(&models.Server{}).Where("id = ?", id).Update("manual_off", true)
+			case "start", "resume":
+				db.Model(&models.Server{}).Where("id = ?", id).Update("manual_off", false)
+			}
+			switch action {
+			case "start":
+				return servers.Start(ctx, client, id).ExtractErr()
+			case "stop":
+				return servers.Stop(ctx, client, id).ExtractErr()
+			case "suspend":
+				return servers.Suspend(ctx, client, id).ExtractErr()
+			case "resume":
+				return servers.Resume(ctx, client, id).ExtractErr()
+			case "reboot":
+				return servers.Reboot(ctx, client, id, servers.RebootOpts{Type: servers.SoftReboot}).ExtractErr()
+			default:
+				return fmt.Errorf("action serveur inconnue: %s", action)
+			}
+		}
+		// Sinon : rebuild (changement d'image).
+		log.Printf("Received UPDATE for pool %s with image_ref %s", data["serverpool_id"], data["image_ref"])
 		rebuildOpts := servers.RebuildOpts{
-			ImageRef: req.GetData()["image_ref"],
-			Name:     req.GetData()["name"],
+			ImageRef: data["image_ref"],
+			Name:     data["name"],
 		}
-		_, err = servers.Rebuild(context.Background(), client,
-			req.GetData()["id"], rebuildOpts).Extract()
-		if err != nil {
-			return err
-		}
-		return nil
+		_, err = servers.Rebuild(ctx, client, data["id"], rebuildOpts).Extract()
+		return err
 	case pb.Status_DELETE:
 		var serv models.Server
 		if err := db.Where(" user_id = ? AND name = ? ",

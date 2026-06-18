@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"runtime/debug"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -174,7 +174,8 @@ func CheckAndCreate() {
 				}
 			} else {
 				for _, s := range poolServers {
-					if strings.EqualFold(s.Status, "SHUTOFF") && !powerThrottled(s.ID) {
+					// Ne pas relancer une VM arrêtée VOLONTAIREMENT (ManualOff) par un admin.
+					if strings.EqualFold(s.Status, "SHUTOFF") && !s.ManualOff && !powerThrottled(s.ID) {
 						markPower(s.ID)
 						worker.AddJob(*worker.CreateJob(models.StartVM, map[string]string{"instance_id": s.ID}), false)
 						log.Printf("[off-day] pool %s/%s: starting %s", p.ServerpoolID, p.UserID, s.ID)
