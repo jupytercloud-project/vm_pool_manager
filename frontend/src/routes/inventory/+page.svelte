@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
   import { apiFetch } from '$lib/api';
-  import { authStore } from '$lib/store';
+  import { authStore, flavors } from '$lib/store';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import { simpleMode, refreshInterval } from '$lib/store/uiStore';
   import { browser } from '$app/environment';
@@ -131,6 +131,40 @@
     }
   }
 
+  // Resize (changement de flavor) — via un petit modal de sélection.
+  let resizeState = $state<{ show: boolean; vm: VMInstance | null; flavor: string }>(
+    { show: false, vm: null, flavor: '' });
+  const sortedFlavors = $derived(
+    [...$flavors].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })));
+
+  function requestVmResize(vm: VMInstance) {
+    resizeState = { show: true, vm, flavor: '' };
+  }
+  async function vmResize() {
+    const vm = resizeState.vm;
+    const flavor = resizeState.flavor;
+    if (!vm || !flavor || actingId) return;
+    actingId = vm.id;
+    resizeState = { show: false, vm: null, flavor: '' };
+    try {
+      const res = await apiFetch('/api/vm/resize', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ server_id: vm.id, flavor_ref: flavor }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        showVmMsg('err', $_('inventory.resizeFailedPrefix') + (e.error || `HTTP ${res.status}`));
+        actingId = null;
+      } else {
+        showVmMsg('ok', $_('inventory.resizeLaunched'));
+        setTimeout(() => { fetchInventory(true); actingId = null; }, 2500);
+      }
+    } catch {
+      showVmMsg('err', $_('inventory.resizeUnreachable'));
+      actingId = null;
+    }
+  }
+
   async function vmAction(vm: VMInstance, action: string) {
     if (actingId) return;
     actingId = vm.id;
@@ -253,12 +287,36 @@
       <button onclick={() => requestVmAction(vm,'start')} disabled={actingId===vm.id} title={$_('inventory.actionStart')} class="btn btn-secondary text-xs px-2 py-1" aria-label={$_('inventory.actionStart')}>▶</button>
       <button onclick={() => requestVmAction(vm,'stop')} disabled={actingId===vm.id} title={$_('inventory.actionStop')} class="btn btn-secondary text-xs px-2 py-1" aria-label={$_('inventory.actionStop')}>⏹</button>
     {/if}
+    <button onclick={() => requestVmResize(vm)} disabled={actingId===vm.id} title={$_('inventory.resizeTitle')} class="btn btn-secondary text-xs px-2 py-1" aria-label={$_('inventory.resize')}>⤢</button>
     <button onclick={() => requestVmRebuild(vm)} disabled={actingId===vm.id} title={$_('inventory.resetTitle')} class="btn btn-secondary text-xs px-2 py-1 !text-red-600" aria-label={$_('inventory.actionReset')}>⟲</button>
   {/if}
 {/snippet}
 
 <ConfirmModal bind:show={confirmState.show} title={confirmState.title} message={confirmState.message}
   confirmText={confirmState.confirmText} danger={confirmState.danger} onConfirm={confirmState.onConfirm} />
+
+{#if resizeState.show && resizeState.vm}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="fixed inset-0 z-[60] flex items-center justify-center px-4">
+    <div class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm" onclick={() => (resizeState = { show: false, vm: null, flavor: '' })}></div>
+    <div class="relative w-full max-w-sm bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl p-6">
+      <h3 class="text-base font-bold text-neutral-900 dark:text-white mb-1">{$_('inventory.resizeTitle')}</h3>
+      <p class="text-sm text-neutral-500 mb-4">{resizeState.vm.name}</p>
+      <label class="section-label block mb-1" for="resize-flavor">{$_('inventory.resizeChooseFlavor')}</label>
+      <select id="resize-flavor" bind:value={resizeState.flavor} class="field text-sm w-full mb-5">
+        <option value="" disabled>—</option>
+        {#each sortedFlavors as f}
+          <option value={f.id}>{f.name}</option>
+        {/each}
+      </select>
+      <div class="flex justify-end gap-2">
+        <button onclick={() => (resizeState = { show: false, vm: null, flavor: '' })} class="btn btn-secondary text-sm">{$_('inventory.cancel')}</button>
+        <button onclick={vmResize} disabled={!resizeState.flavor} class="btn btn-primary text-sm">{$_('inventory.resizeApply')}</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if vmMsg}
   <div class="fixed top-6 right-6 z-50 max-w-sm px-5 py-4 rounded-xl shadow-2xl text-sm font-medium flex items-start gap-3 animate-fade-in

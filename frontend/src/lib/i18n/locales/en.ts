@@ -102,6 +102,13 @@ export default {
     backToCourses: '← Back to my courses',
   },
   inventory: {
+    "resize": "Resize",
+    "resizeTitle": "Resize (change flavor)",
+    "resizeChooseFlavor": "New flavor",
+    "resizeApply": "Resize",
+    "resizeLaunched": "Resize started — the VM restarts on the new flavor.",
+    "resizeFailedPrefix": "Resize failed: ",
+    "resizeUnreachable": "Resize failed: service unreachable.",
     "powerActive": "On",
     "powerShutoff": "Off",
     "powerSuspended": "Suspended",
@@ -344,6 +351,9 @@ export default {
     "moodlePushError": "Error while pushing to Moodle.",
   },
   serverpool: {
+    "clone": "Clone",
+    "cloneTitle": "Clone this pool (same settings, new name)",
+    "clonePrompt": "Name of the new (cloned) pool:",
     "confirmDeletePool": "Delete server pool",
     "confirmAddServer": "Add a server to pool",
     "errorNameRequired": "Name is required.",

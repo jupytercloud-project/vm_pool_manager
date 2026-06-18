@@ -102,6 +102,13 @@ export default {
     backToCourses: '← Retour à mes cours',
   },
   inventory: {
+    "resize": "Redimensionner",
+    "resizeTitle": "Redimensionner (changer le gabarit)",
+    "resizeChooseFlavor": "Nouveau gabarit (flavor)",
+    "resizeApply": "Redimensionner",
+    "resizeLaunched": "Redimensionnement lancé — la VM redémarre sur le nouveau gabarit.",
+    "resizeFailedPrefix": "Redimensionnement échoué : ",
+    "resizeUnreachable": "Redimensionnement impossible : service injoignable.",
     "powerActive": "Allumée",
     "powerShutoff": "Éteinte",
     "powerSuspended": "Suspendue",
@@ -344,6 +351,9 @@ export default {
     "moodlePushError": "Erreur lors de l'envoi vers Moodle.",
   },
   serverpool: {
+    "clone": "Cloner",
+    "cloneTitle": "Cloner ce pool (mêmes paramètres, nouveau nom)",
+    "clonePrompt": "Nom du nouveau pool (clone) :",
     "confirmDeletePool": "Supprimer le serverpool",
     "confirmAddServer": "Ajouter un serveur au pool",
     "errorNameRequired": "Le nom est obligatoire.",

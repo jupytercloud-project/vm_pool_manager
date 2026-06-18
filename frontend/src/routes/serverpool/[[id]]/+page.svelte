@@ -75,6 +75,29 @@ async function handleCreateServer(sp: ServerPool) {
   try { await addServer(req); } catch(e) { console.error(e); }
 }
 
+// Clone (template) : crée un nouveau pool en réutilisant tous les paramètres d'un pool
+// existant (image, flavor, réseau, config, off_days, port…), avec un nouveau nom.
+async function clonePool(sp: ServerPool) {
+  const suggested = sp.name + '-copie';
+  const newName = typeof window !== 'undefined'
+    ? window.prompt($_('serverpool.clonePrompt'), suggested)
+    : null;
+  if (!newName || !newName.trim()) return;
+  const req: CreatePoolRequest = create(CreatePoolRequestSchema, {
+    user: $authStore?.email ?? '', name: newName.trim(), image: sp.image, flavor: sp.flavor,
+    network: sp.network, minVm: String(sp.minVm), maxVm: String(sp.maxVm), config: sp.config,
+    metadata: sp.metadata ?? {}, appPort: sp.appPort ?? 0,
+  });
+  try {
+    const res = await createPool(req);
+    if (res.success) {
+      const { loadServerPools } = await import('$lib/store/serverpoolStore');
+      await loadServerPools($authStore?.email ?? '');
+      selectedsp = newName.trim();
+    }
+  } catch (e) { console.error(e); }
+}
+
 export function getUniqueFirstAlphaBlocks(imgs: Image[]): string[] {
   const prefixes = imgs.map(img => { const m = img.name.match(/^[A-Za-z]+/); return m ? m[0] : null; }).filter((x): x is string => x !== null);
   return Array.from(new Set(prefixes));
@@ -216,6 +239,15 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
               {$_('serverpool.start')}
             </button>
             <button
+              onclick={() => clonePool(sp)}
+              class="btn btn-secondary text-xs px-2.5"
+              title={$_('serverpool.cloneTitle')}
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+              </svg>
+            </button>
+            <button
               onclick={() => handleDeleteServerpool(sp)}
               class="btn btn-danger text-xs px-2.5"
               title={$_('serverpool.deleteCourseTitle')}
@@ -323,6 +355,12 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
               {$_('serverpool.students')}
+            </button>
+            <button onclick={() => clonePool(selectedPool)} class="btn btn-secondary text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+              </svg>
+              {$_('serverpool.clone')}
             </button>
             <div class="flex-1"></div>
             <button onclick={() => handleDeleteServerpool(selectedPool)} class="btn btn-danger text-sm">
