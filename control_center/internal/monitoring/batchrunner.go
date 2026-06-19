@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,9 +24,18 @@ const (
 	batchMaxRuntime   = 30 * time.Minute
 )
 
-// StartBatchRunner traite les jobs batch en file (un à la fois) : exécute le script
-// sur une VM du pool « calcul » cible via SSH, collecte la sortie, et suspend la VM
-// en fin de job (B4). Phase 4 — B1+B4.
+// batchConcurrency : nombre max de jobs exécutés en parallèle (env BATCH_CONCURRENCY, défaut 2).
+func batchConcurrency() int {
+	if v, err := strconv.Atoi(strings.TrimSpace(os.Getenv("BATCH_CONCURRENCY"))); err == nil && v >= 1 {
+		return v
+	}
+	return 2
+}
+
+// StartBatchRunner traite la file de jobs batch : jusqu'à BATCH_CONCURRENCY jobs en
+// parallèle, par ordre de PRIORITÉ (puis FIFO). Chaque job exécute son script sur une
+// VM du pool cible via SSH, collecte la sortie, et suspend la VM en fin (B4).
+// Phase 4 — B1+B4+B6 (file d'attente & priorités).
 func StartBatchRunner(ctx context.Context, client pb.PoolManagerClient) {
 	ticker := time.NewTicker(batchPollInterval)
 	defer ticker.Stop()
@@ -34,21 +44,34 @@ func StartBatchRunner(ctx context.Context, client pb.PoolManagerClient) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			runNextBatchJob(client)
+			dispatchBatchJobs(client)
 		}
 	}
 }
 
-func runNextBatchJob(client pb.PoolManagerClient) {
-	var job models.BatchJob
-	if err := config.Database.Where("status = ?", "queued").Order("id ASC").First(&job).Error; err != nil {
-		return // file vide
+// dispatchBatchJobs (exécuté séquentiellement par le ticker → claim sans course)
+// lance des jobs tant que la concurrence n'est pas atteinte, par priorité.
+func dispatchBatchJobs(client pb.PoolManagerClient) {
+	conc := batchConcurrency()
+	for {
+		var running int64
+		config.Database.Model(&models.BatchJob{}).Where("status = ?", "running").Count(&running)
+		if int(running) >= conc {
+			return
+		}
+		var job models.BatchJob
+		if err := config.Database.Where("status = ?", "queued").
+			Order("priority DESC, id ASC").First(&job).Error; err != nil {
+			return // file vide
+		}
+		// Claim : passe en running (le ticker est seul à claimer → pas de double-prise).
+		config.Database.Model(&models.BatchJob{}).Where("id = ?", job.ID).
+			Updates(map[string]any{"status": "running", "started_at": time.Now().UTC()})
+		go processBatchJob(client, job)
 	}
+}
 
-	now := time.Now().UTC()
-	config.Database.Model(&models.BatchJob{}).Where("id = ?", job.ID).
-		Updates(map[string]any{"status": "running", "started_at": now})
-
+func processBatchJob(client pb.PoolManagerClient, job models.BatchJob) {
 	// Choisir une VM joignable du pool cible.
 	var servers []models.Server
 	config.Database.Where("serverpool_id = ? AND ip_address <> ''", job.PoolID).Find(&servers)

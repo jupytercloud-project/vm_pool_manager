@@ -7,13 +7,14 @@
 
   interface Job {
     id: number; name: string; pool_id: string; status: string; exit_code: number;
-    log: string; vm_name: string; auto_stop: boolean; created_at: string; finished_at?: string;
+    log: string; vm_name: string; auto_stop: boolean; priority: number; created_at: string; finished_at?: string;
   }
 
   let name = $state('');
   let poolId = $state('');
   let script = $state('#!/usr/bin/env bash\n');
   let autoStop = $state(true);
+  let priority = $state(0);
   let submitting = $state(false);
   let submitMsg = $state('');
   let jobs = $state<Job[]>([]);
@@ -33,7 +34,7 @@
     try {
       const r = await apiFetch('/api/jobs', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), pool_id: poolId, script, auto_stop: autoStop }),
+        body: JSON.stringify({ name: name.trim(), pool_id: poolId, script, priority, auto_stop: autoStop }),
       });
       const d = await r.json();
       if (!r.ok || !d.ok) submitMsg = $_('jobs.submitError') + (d.error ?? '');
@@ -83,6 +84,11 @@
           <option value={p.name}>{p.name}</option>
         {/each}
       </select>
+      <select bind:value={priority} class="field text-sm w-auto">
+        <option value={1}>{$_('jobs.prioHigh')}</option>
+        <option value={0}>{$_('jobs.prioNormal')}</option>
+        <option value={-1}>{$_('jobs.prioLow')}</option>
+      </select>
       <label class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
         <input type="checkbox" bind:checked={autoStop} class="w-4 h-4 accent-primary-700" /> {$_('jobs.autoStop')}
       </label>
@@ -106,6 +112,7 @@
           <div class="px-5 py-3">
             <div class="flex items-center gap-3">
               <span class="text-[10px] font-semibold px-2 py-0.5 rounded border {badgeClass(j.status)}">{$_('jobs.status_' + j.status)}</span>
+              {#if j.priority > 0}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200" title={$_('jobs.prioHigh')}>↑</span>{:else if j.priority < 0}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500 border border-neutral-200" title={$_('jobs.prioLow')}>↓</span>{/if}
               <span class="font-medium text-neutral-800 dark:text-neutral-200">{j.name}</span>
               <span class="text-xs text-neutral-400">{j.pool_id}{#if j.vm_name} · {j.vm_name}{/if}{#if j.status === 'failed' || j.status === 'succeeded'} · exit {j.exit_code}{/if}</span>
               <div class="flex-1"></div>

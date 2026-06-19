@@ -41,6 +41,7 @@ func handleBatchJobs(w http.ResponseWriter, r *http.Request) {
 			Name     string `json:"name"`
 			PoolID   string `json:"pool_id"`
 			Script   string `json:"script"`
+			Priority int    `json:"priority"`
 			AutoStop *bool  `json:"auto_stop"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -59,9 +60,15 @@ func handleBatchJobs(w http.ResponseWriter, r *http.Request) {
 		if name == "" {
 			name = "job"
 		}
+		prio := req.Priority
+		if prio < -1 {
+			prio = -1
+		} else if prio > 1 {
+			prio = 1
+		}
 		job := models.BatchJob{
 			OwnerEmail: owner, Name: name, PoolID: strings.TrimSpace(req.PoolID),
-			Script: req.Script, Status: "queued", AutoStop: autoStop,
+			Script: req.Script, Priority: prio, Status: "queued", AutoStop: autoStop,
 		}
 		if err := config.Database.Create(&job).Error; err != nil {
 			writeJSONMoodle(w, http.StatusInternalServerError, map[string]string{"error": "création du job échouée"})

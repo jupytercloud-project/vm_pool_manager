@@ -11,8 +11,9 @@ type BatchJob struct {
 	ID         uint       `json:"id" gorm:"primaryKey"`
 	OwnerEmail string     `json:"owner_email" gorm:"index"`
 	Name       string     `json:"name"`
-	PoolID     string     `json:"pool_id"` // pool « calcul » cible
-	Script     string     `json:"script"`  // script bash exécuté sur la VM
+	PoolID     string     `json:"pool_id"`               // pool « calcul » cible
+	Script     string     `json:"script"`                // script bash exécuté sur la VM
+	Priority   int        `json:"priority" gorm:"index"` // plus élevé = traité en premier
 	Status     string     `json:"status" gorm:"index"`
 	ExitCode   int        `json:"exit_code"`
 	Log        string     `json:"log"`     // stdout+stderr (tronqué)
