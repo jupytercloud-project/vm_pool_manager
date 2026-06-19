@@ -14,6 +14,10 @@
   let totals = $state<Totals>({ vm_hours: 0, vcpu_hours: 0, gb_hours: 0, cost: 0 });
   let loading = $state(true);
 
+  interface StorageGroup { key: string; vms: number; disk_gb: number; quota_gb: number; over_quota: boolean; }
+  let storageGroups = $state<StorageGroup[]>([]);
+  let storageQuota = $state(0);
+
   async function load() {
     loading = true;
     try {
@@ -23,6 +27,12 @@
         groups = (d.groups ?? []).sort((a: Group, b: Group) => b.cost - a.cost);
         totals = d.totals ?? { vm_hours: 0, vcpu_hours: 0, gb_hours: 0, cost: 0 };
         currency = d.currency ?? '€';
+      }
+      const sr = await apiFetch(`/api/storage?by=${by}`);
+      if (sr.ok) {
+        const sd = await sr.json();
+        storageGroups = (sd.groups ?? []).sort((a: StorageGroup, b: StorageGroup) => b.disk_gb - a.disk_gb);
+        storageQuota = sd.quota_gb ?? 0;
       }
     } catch { /* ignore */ }
     finally { loading = false; }
@@ -94,5 +104,36 @@
       </table>
     {/if}
   </div>
-  <p class="text-xs text-neutral-400">{$_('usage.disclaimer')}</p>
+  <!-- Stockage alloué + quotas (D2) -->
+  <div class="card p-5 space-y-3">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-bold text-neutral-800 dark:text-neutral-200">{$_('usage.storageTitle')}</h2>
+      {#if storageQuota > 0}<span class="text-xs text-neutral-400">{$_('usage.quota')} : {storageQuota} GB</span>{/if}
+    </div>
+    {#if storageGroups.length === 0}
+      <p class="text-sm text-neutral-400 py-2">{$_('usage.empty')}</p>
+    {:else}
+      <div class="space-y-2.5">
+        {#each storageGroups as g}
+          {@const pct = storageQuota > 0 ? Math.min(100, Math.round((g.disk_gb / storageQuota) * 100)) : 0}
+          <div>
+            <div class="flex items-center justify-between text-sm mb-1">
+              <span class="font-medium text-neutral-800 dark:text-neutral-200">{g.key} <span class="text-xs text-neutral-400">· {g.vms} VM{g.vms > 1 ? 's' : ''}</span></span>
+              <span class="tabular-nums {g.over_quota ? 'text-red-600 font-semibold' : 'text-neutral-500'}">
+                {g.disk_gb} GB{#if storageQuota > 0} / {storageQuota} GB{/if}
+                {#if g.over_quota} · {$_('usage.overQuota')}{/if}
+              </span>
+            </div>
+            {#if storageQuota > 0}
+              <div class="h-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+                <div class="h-full rounded-full {g.over_quota ? 'bg-red-500' : 'bg-primary-500'}" style="width: {pct}%"></div>
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+
+  <p class="text-xs text-neutral-400">{$_('usage.disclaimer')} {$_('usage.storageNote')}</p>
 </div>

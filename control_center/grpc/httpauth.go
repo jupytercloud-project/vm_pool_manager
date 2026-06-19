@@ -80,6 +80,7 @@ var adminHTTPPrefixes = []string{
 	"/api/image-proposals",
 	"/api/usage",   // consommation & coûts (équipe pédagogique)
 	"/api/pricing", // tarifs unitaires (estimateur)
+	"/api/storage", // stockage alloué & quotas
 }
 
 func isAdminPath(p string) bool {

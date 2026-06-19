@@ -602,5 +602,9 @@ export default {
     "empty": "Aucune consommation enregistrée pour ce mois.",
     "disclaimer": "Estimation indicative basée sur les tarifs configurés et l'échantillonnage d'activité.",
     "accruing": "La consommation se cumule à partir de maintenant (échantillonnage chaque minute des VMs allumées). Reviens dans quelques minutes pour voir des chiffres.",
+    "storageTitle": "Stockage alloué",
+    "quota": "Quota",
+    "overQuota": "quota dépassé",
+    "storageNote": "Le stockage indiqué est l'espace disque provisionné (flavors), pas l'usage réel.",
   },
 };
