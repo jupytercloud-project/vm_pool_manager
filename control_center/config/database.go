@@ -74,6 +74,7 @@ func Start_DB(ctx context.Context) {
 		&models.Announcement{},
 		&models.VMUsage{},
 		&models.PoolPreset{},
+		&models.BatchJob{},
 	)
 
 	syncSequences(Database)

@@ -118,6 +118,7 @@
     '/student': 'M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z',
     '/profile': 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
     '/usage': 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+    '/jobs': 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
   };
 
   const navLinks = $derived(() => {
@@ -136,10 +137,12 @@
       links.push({ href: '/grading', label: $_('nav.grading') });
       if (!simple && isAdmin) links.push({ href: '/config', label: $_('nav.configs'), secondary: true });
       if (isAdmin) links.push({ href: '/usage', label: $_('nav.costs'), secondary: true });
+      links.push({ href: '/jobs', label: $_('nav.jobs'), secondary: true });
       if (isAdmin) links.push({ href: '/propose-image', label: $_('nav.proposeImage'), secondary: true });
     } else if (role === 'chercheur') {
       // Chercheur : gère ses propres environnements de calcul.
       links.push({ href: '/serverpool', label: $_('nav.myEnvironments') });
+      links.push({ href: '/jobs', label: $_('nav.jobs') });
     } else if (auth) {
       links.push({ href: '/student', label: $_('nav.myCourses') });
     }
