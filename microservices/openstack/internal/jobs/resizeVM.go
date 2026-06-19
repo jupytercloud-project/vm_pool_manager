@@ -27,31 +27,39 @@ func ResizeVM(instanceID, flavorRef string) error {
 		return fmt.Errorf("resize de %s échoué: %w", instanceID, err)
 	}
 
-	// Attendre VERIFY_RESIZE (ou un état terminal) avant de confirmer.
-	deadline := time.Now().Add(5 * time.Minute)
+	// Le resize peut impliquer une migration entre hôtes → potentiellement long.
+	// On attend VERIFY_RESIZE puis on confirme. Certains clouds confirment seuls
+	// (RESIZE → ACTIVE sans VERIFY_RESIZE) : on ne considère ACTIVE comme terminal
+	// qu'APRÈS avoir vu le resize démarrer (sinon on sortirait avant qu'il commence).
+	deadline := time.Now().Add(20 * time.Minute)
+	seenResizing := false
 	for {
 		if time.Now().After(deadline) {
-			return fmt.Errorf("resize de %s: délai dépassé en attendant VERIFY_RESIZE", instanceID)
+			return fmt.Errorf("resize de %s: délai dépassé (état non stabilisé)", instanceID)
 		}
 		srv, err := servers.Get(ctx, models.ComputeClient, instanceID).Extract()
 		if err != nil {
 			return fmt.Errorf("resize de %s: lecture d'état échouée: %w", instanceID, err)
 		}
-		status := strings.ToUpper(srv.Status)
-		switch {
-		case status == "VERIFY_RESIZE":
+		switch strings.ToUpper(srv.Status) {
+		case "VERIFY_RESIZE":
 			if err := servers.ConfirmResize(ctx, models.ComputeClient, instanceID).ExtractErr(); err != nil {
 				return fmt.Errorf("confirmation du resize de %s échouée: %w", instanceID, err)
 			}
 			updateFlavorInDB(instanceID, flavorRef)
 			log.Printf("[resize] %s redimensionné vers le flavor %s", instanceID, flavorRef)
 			return nil
-		case status == "ACTIVE":
-			// Certains clouds confirment automatiquement le resize.
-			updateFlavorInDB(instanceID, flavorRef)
-			log.Printf("[resize] %s redimensionné (auto-confirmé) vers %s", instanceID, flavorRef)
-			return nil
-		case status == "ERROR":
+		case "RESIZE", "RESIZED", "MIGRATING":
+			seenResizing = true
+		case "ACTIVE":
+			if seenResizing {
+				// Le cloud a confirmé automatiquement.
+				updateFlavorInDB(instanceID, flavorRef)
+				log.Printf("[resize] %s redimensionné (auto-confirmé) vers %s", instanceID, flavorRef)
+				return nil
+			}
+			// Sinon : le resize n'a pas encore démarré, on continue d'attendre.
+		case "ERROR":
 			return fmt.Errorf("resize de %s: la VM est passée en ERROR", instanceID)
 		}
 		time.Sleep(5 * time.Second)
