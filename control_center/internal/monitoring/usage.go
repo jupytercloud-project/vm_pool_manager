@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -73,15 +74,18 @@ func sampleUsage() {
 		if elapsed < 0 {
 			elapsed = 0
 		}
-		config.Database.Model(&models.VMUsage{}).Where("id = ?", row.ID).Updates(map[string]any{
-			"seconds":      row.Seconds + elapsed,
-			"last_sampled": now,
-			"vcpus":        f.VCPUs,
-			"ram_mb":       f.RAM,
-			"pool_id":      serverPool(srv),
-			"user_id":      srv.UserID,
-			"flavor":       srv.FlavorRef,
-		})
+		// Update piloté par le struct (mapping champ→colonne géré par GORM) — évite
+		// les noms de colonnes en dur qui ne correspondaient pas au schéma.
+		row.Seconds += elapsed
+		row.LastSampled = now
+		row.VCPUs = f.VCPUs
+		row.RAMMB = f.RAM
+		row.PoolID = serverPool(srv)
+		row.UserID = srv.UserID
+		row.Flavor = srv.FlavorRef
+		if err := config.Database.Save(&row).Error; err != nil {
+			log.Printf("[usage] maj %s: %v", srv.ID, err)
+		}
 	}
 }
 
