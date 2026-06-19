@@ -44,6 +44,48 @@ let selectedGroupImage: string | null = $state(null);
 let selectedImage: string | null = $state(null);
 let appPort = $state(0);
 
+// Diffusion d'un fichier à toutes les VMs d'un pool (A2).
+let broadcastFile: File | null = $state(null);
+let broadcastSubdir = $state('');
+let broadcastBusy = $state(false);
+let broadcastMsg = $state('');
+let broadcastErr = $state(false);
+
+async function handleBroadcastFile(sp: ServerPool) {
+  if (!broadcastFile || broadcastBusy) return;
+  broadcastBusy = true; broadcastMsg = ''; broadcastErr = false;
+  try {
+    const buf = await broadcastFile.arrayBuffer();
+    // ArrayBuffer → base64 (par paquets pour éviter le dépassement de pile).
+    let bin = '';
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    const content_b64 = btoa(bin);
+    const res = await apiFetch('/api/pool/broadcast-file', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pool_id: sp.name, user_id: sp.userId,
+        filename: broadcastFile.name, subdir: broadcastSubdir.trim(), content_b64,
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      broadcastErr = true;
+      broadcastMsg = $_('serverpool.broadcastError') + (d.error ?? `HTTP ${res.status}`);
+    } else {
+      broadcastErr = d.failed > 0;
+      broadcastMsg = $_('serverpool.broadcastDone')
+        .replace('{ok}', String(d.succeeded)).replace('{total}', String(d.total));
+      broadcastFile = null;
+    }
+  } catch {
+    broadcastErr = true;
+    broadcastMsg = $_('serverpool.broadcastUnreachable');
+  } finally { broadcastBusy = false; }
+}
+
 onMount(() => {
   if (!token) window.location.href = '/';
   selectedsp = page.params.id || '';
@@ -369,6 +411,33 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
               </svg>
               {$_('serverpool.delete')}
             </button>
+          </div>
+
+          <hr class="divider"/>
+
+          <!-- Pousser un fichier à toutes les VMs du pool (A2) -->
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+              <p class="section-label">{$_('serverpool.broadcastTitle')}</p>
+            </div>
+            <p class="text-xs text-neutral-400 mb-3">{$_('serverpool.broadcastHint')}</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="file" onchange={(e) => broadcastFile = (e.currentTarget.files?.[0] ?? null)}
+                class="text-sm file:btn file:btn-secondary file:text-xs file:mr-3" />
+              <input type="text" bind:value={broadcastSubdir} placeholder={$_('serverpool.broadcastSubdir')}
+                class="field text-sm w-44 py-1.5" />
+              <button onclick={() => handleBroadcastFile(selectedPool)}
+                disabled={!broadcastFile || broadcastBusy} class="btn btn-primary text-sm">
+                {#if broadcastBusy}<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full inline-block" style="animation: spinnerGlow 0.6s linear infinite;"></span>{/if}
+                {$_('serverpool.broadcastSend')}
+              </button>
+            </div>
+            {#if broadcastMsg}
+              <p class="text-xs mt-2 {broadcastErr ? 'text-red-600' : 'text-green-600'}">{broadcastMsg}</p>
+            {/if}
           </div>
         </div>
 

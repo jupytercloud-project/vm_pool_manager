@@ -351,6 +351,13 @@ export default {
     "moodlePushError": "Erreur lors de l'envoi vers Moodle.",
   },
   serverpool: {
+    "broadcastTitle": "Pousser un fichier à toutes les VMs",
+    "broadcastHint": "Le fichier (sujet, jeu de données…) est déposé dans le home de chaque VM du pool.",
+    "broadcastSubdir": "sous-dossier (option.)",
+    "broadcastSend": "Envoyer à toutes les VMs",
+    "broadcastDone": "Fichier poussé sur {ok}/{total} VMs.",
+    "broadcastError": "Échec : ",
+    "broadcastUnreachable": "Diffusion impossible : service injoignable.",
     "clone": "Cloner",
     "cloneTitle": "Cloner ce pool (mêmes paramètres, nouveau nom)",
     "clonePrompt": "Nom du nouveau pool (clone) :",

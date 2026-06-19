@@ -351,6 +351,13 @@ export default {
     "moodlePushError": "Error while pushing to Moodle.",
   },
   serverpool: {
+    "broadcastTitle": "Push a file to all VMs",
+    "broadcastHint": "The file (assignment, dataset…) is dropped into each pool VM's home directory.",
+    "broadcastSubdir": "subfolder (optional)",
+    "broadcastSend": "Send to all VMs",
+    "broadcastDone": "File pushed to {ok}/{total} VMs.",
+    "broadcastError": "Failed: ",
+    "broadcastUnreachable": "Broadcast failed: service unreachable.",
     "clone": "Clone",
     "cloneTitle": "Clone this pool (same settings, new name)",
     "clonePrompt": "Name of the new (cloned) pool:",
