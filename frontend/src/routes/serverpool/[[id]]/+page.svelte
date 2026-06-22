@@ -12,7 +12,10 @@ import { page } from '$app/state';
 import { _ } from 'svelte-i18n';
 
 // Inventory data for simple mode (more reliable than gRPC servers store)
-let inventoryPools: { pool_id: string; user_id: string; vms: { status: string; activity_status: string }[] }[] = $state([]);
+let inventoryPools: { pool_id: string; user_id: string; label?: string; vms: { status: string; activity_status: string }[] }[] = $state([]);
+// Nom d'affichage d'un pool (label défini dans l'inventaire, sinon l'identifiant).
+const poolLabel = (name: string, user: string) =>
+  inventoryPools.find(p => p.pool_id === name && p.user_id === user)?.label || name;
 async function loadInventory() {
   try {
     const res = await apiFetch('/api/inventory');
@@ -132,7 +135,7 @@ async function handleBroadcastFile(sp: ServerPool) {
 onMount(() => {
   if (!token) window.location.href = '/';
   selectedsp = page.params.id || '';
-  if ($simpleMode) loadInventory();
+  loadInventory();
 });
 
 let selectedPool = $derived($serverPools.find(p => p.name === selectedsp));
@@ -282,7 +285,7 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
         <div class="card card-interactive p-5 space-y-4 hover:border-primary-200">
           <div class="flex items-start justify-between">
             <div>
-              <h2 class="text-base font-bold text-neutral-900">{sp.name}</h2>
+              <h2 class="text-base font-bold text-neutral-900">{invPool?.label || sp.name}</h2>
               <p class="text-xs text-neutral-400 mt-0.5">
                 {#if activeCount > 0}
                   <span class="text-green-600 font-semibold">{activeCount} {activeCount > 1 ? $_('serverpool.studentsConnected') : $_('serverpool.studentConnected')}</span>
@@ -380,7 +383,7 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
         >
           <div class="flex items-center gap-2.5">
             <span class="w-1.5 h-1.5 rounded-full {selectedsp === sp.name ? 'bg-primary-600' : 'bg-neutral-300'}"></span>
-            {sp.name}
+            {poolLabel(sp.name, sp.userId)}
           </div>
         </button>
       {/each}
@@ -398,7 +401,7 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
           <!-- Pool name + range -->
           <div class="flex items-start justify-between">
             <div>
-              <h2 class="text-xl font-bold text-neutral-900">{selectedPool.name}</h2>
+              <h2 class="text-xl font-bold text-neutral-900">{poolLabel(selectedPool.name, selectedPool.userId)}</h2>
               <p class="text-sm text-neutral-500 mt-0.5">{selectedPool.image}</p>
             </div>
             <div class="card-elevated px-4 py-2.5 text-center">
