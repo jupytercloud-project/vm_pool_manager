@@ -107,7 +107,7 @@ func (c *Client) Catalogue(year, dep string) ([]Course, error) {
 
 // CourseMembers récupère profs + élèves d'un cours (endpoint protégé : token POST).
 func (c *Client) CourseMembers(id string) ([]Member, error) {
-	if c.Token == "" && mockEnabled() {
+	if mockEnabled() { // mock prioritaire : permet de garder le token en .env tout en testant en local (IP non whitelistée)
 		return mockMembers(), nil
 	}
 	body, err := c.postProtected("affectations_cours.php", id)
@@ -123,7 +123,7 @@ func (c *Client) CourseMembers(id string) ([]Member, error) {
 
 // CourseGroups récupère les groupes (TD/PC) d'un cours (endpoint protégé : token POST).
 func (c *Client) CourseGroups(id string) ([]GroupMember, error) {
-	if c.Token == "" && mockEnabled() {
+	if mockEnabled() { // mock prioritaire (cf. CourseMembers)
 		return mockGroups(id), nil
 	}
 	body, err := c.postProtected("affectations_groupes.php", id)
