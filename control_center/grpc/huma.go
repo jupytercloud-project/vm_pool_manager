@@ -13,6 +13,10 @@ import (
 // encore migrés restent en mux.HandleFunc et coexistent (migration incrémentale).
 // Fournit en plus l'OpenAPI 3.1 (/api/openapi.json|yaml) et la doc (/api/docs).
 func newHumaAPI(mux *http.ServeMux) huma.API {
+	// Format d'erreur identique à l'historique : {"error": "..."} (le frontend lit .error).
+	huma.NewError = func(status int, msg string, _ ...error) huma.StatusError {
+		return &apiError{status: status, Err: msg}
+	}
 	config := huma.DefaultConfig("CloudPoolManager API", "1.0.0")
 	config.OpenAPIPath = "/api/openapi"
 	config.DocsPath = "/api/docs"
@@ -21,9 +25,20 @@ func newHumaAPI(mux *http.ServeMux) huma.API {
 	return api
 }
 
+// apiError : enveloppe d'erreur HUMA produisant {"error": "..."} (compat frontend).
+type apiError struct {
+	status int
+	Err    string `json:"error"`
+}
+
+func (e *apiError) Error() string  { return e.Err }
+func (e *apiError) GetStatus() int { return e.status }
+
 // registerHumaRoutes enregistre les opérations migrées vers HUMA.
 // On y déplace les endpoints au fur et à mesure (et on retire le mux.HandleFunc correspondant).
 func registerHumaRoutes(api huma.API) {
+	registerJobsHuma(api)
+
 	// GET /api/me — identité + rôle effectif de l'appelant.
 	huma.Register(api, huma.Operation{
 		OperationID: "get-me",
@@ -74,6 +89,12 @@ func registerHumaRoutes(api huma.API) {
 		out.Body.GBHour = priceGBHour()
 		return out, nil
 	})
+}
+
+// AnyOutput : réponse JSON dynamique (forme identique aux anciens handlers map[string]any).
+// Le schéma OpenAPI reste générique (objet libre) mais le JSON émis est strictement le même.
+type AnyOutput struct {
+	Body any
 }
 
 // InventoryOutput : réponse de GET /api/inventory ([]InventoryPool, forme inchangée).
