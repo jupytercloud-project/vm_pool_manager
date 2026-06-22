@@ -72,7 +72,17 @@ func dispatchBatchJobs(client pb.PoolManagerClient) {
 }
 
 func processBatchJob(client pb.PoolManagerClient, job models.BatchJob) {
-	// Choisir une VM joignable du pool cible.
+	signer, err := sshinject.LoadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
+	if err != nil {
+		finishJob(job.ID, "failed", -1, "Clé SSH indisponible: "+err.Error(), "")
+		return
+	}
+	if job.Ephemeral {
+		processEphemeralJob(client, job, signer)
+		return
+	}
+
+	// Mode réutilisation : exécute sur une VM existante du pool cible.
 	var servers []models.Server
 	config.Database.Where("serverpool_id = ? AND ip_address <> ''", job.PoolID).Find(&servers)
 	var target *models.Server
@@ -87,29 +97,168 @@ func processBatchJob(client pb.PoolManagerClient, job models.BatchJob) {
 		return
 	}
 
-	signer, err := sshinject.LoadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
-	if err != nil {
-		finishJob(job.ID, "failed", -1, "Clé SSH indisponible: "+err.Error(), target.Name)
-		return
-	}
-
 	out, code, runErr := runScriptOnVM(target.IP_Address, signer, job.Script)
-	if len(out) > batchMaxLog {
-		out = out[len(out)-batchMaxLog:] // garder la fin (la plus utile)
+	status, out := jobOutcome(out, code, runErr)
+	finishJob(job.ID, status, code, out, target.Name)
+
+	if job.AutoStop && client != nil {
+		_ = suspendServer(client, *target) // B4 : suspend la VM en fin de job
 	}
-	status := "succeeded"
+}
+
+// jobOutcome dérive le statut + tronque la sortie.
+func jobOutcome(out string, code int, runErr error) (string, string) {
+	if len(out) > batchMaxLog {
+		out = out[len(out)-batchMaxLog:]
+	}
 	if runErr != nil || code != 0 {
-		status = "failed"
 		if runErr != nil && out == "" {
 			out = runErr.Error()
 		}
+		return "failed", out
 	}
-	finishJob(job.ID, status, code, out, target.Name)
+	return "succeeded", out
+}
 
-	// B4 : auto-arrêt — suspendre la VM en fin de job.
-	if job.AutoStop && client != nil {
-		_ = suspendServer(client, *target)
+// processEphemeralJob provisionne un pool transitoire (1 VM, ou N pour un cluster),
+// exécute le script sur le nœud « head », puis DÉTRUIT le pool (et donc les VMs).
+// ⚠️ Orchestration OpenStack — calquée sur le cycle de vie de pool existant.
+func processEphemeralJob(client pb.PoolManagerClient, job models.BatchJob, signer ssh.Signer) {
+	n := job.Nodes
+	if n < 1 {
+		n = 1
 	}
+	poolID := fmt.Sprintf("jobvm-%d", job.ID)
+
+	if err := provisionTransientPool(client, job, poolID, n); err != nil {
+		finishJob(job.ID, "failed", -1, "Provisionnement échoué : "+err.Error(), "")
+		return
+	}
+	// Toujours détruire le pool transitoire (et ses VMs) en sortie.
+	defer teardownTransientPool(client, job.OwnerEmail, poolID)
+
+	vms, err := waitForPoolVMs(poolID, n, 12*time.Minute)
+	if err != nil {
+		finishJob(job.ID, "failed", -1, "VMs non prêtes : "+err.Error(), "")
+		return
+	}
+	head := vms[0]
+
+	// Cluster : écrire un hostfile (IPs des nœuds) sur chaque VM pour MPI/Dask.
+	if n > 1 {
+		hostfile := ""
+		for _, vm := range vms {
+			hostfile += vm.IP_Address + "\n"
+		}
+		for _, vm := range vms {
+			_ = writeFileOnVM(vm.IP_Address, signer, "/home/"+sshVMUser()+"/hostfile", hostfile)
+		}
+	}
+
+	script := job.Script
+	if n > 1 {
+		script = "export CLUSTER_NODES=" + fmt.Sprint(n) + "\nexport HOSTFILE=/home/" + sshVMUser() + "/hostfile\n" + script
+	}
+	out, code, runErr := runScriptOnVM(head.IP_Address, signer, script)
+	status, out := jobOutcome(out, code, runErr)
+	vmLabel := head.Name
+	if n > 1 {
+		vmLabel = fmt.Sprintf("%s (+%d nœuds)", head.Name, n-1)
+	}
+	finishJob(job.ID, status, code, out, vmLabel)
+}
+
+// provisionTransientPool crée un pool transitoire (copie la config du pool source)
+// et déclenche le provisionnement de n VMs via le microservice.
+func provisionTransientPool(client pb.PoolManagerClient, job models.BatchJob, poolID string, n int) error {
+	var src models.Serverpool
+	if err := config.Database.Where("serverpool_id = ?", job.PoolID).First(&src).Error; err != nil {
+		return fmt.Errorf("pool source « %s » introuvable", job.PoolID)
+	}
+	tp := models.Serverpool{
+		ServerpoolID: poolID, UserID: job.OwnerEmail,
+		ImageRef: src.ImageRef, FlavorRef: src.FlavorRef, Networks: src.Networks,
+		ConfigID: src.ConfigID, MinVM: n, MaxVM: n, Status: "running",
+	}
+	if err := config.Database.Create(&tp).Error; err != nil {
+		return err
+	}
+	data := tp.ToMap()
+	if tp.ConfigID != "" {
+		var cfg models.ConfigPool
+		if config.Database.Where("name = ?", tp.ConfigID).
+			Order("CASE WHEN user_id = 'system' THEN 0 ELSE 1 END, id").First(&cfg).Error == nil {
+			data["config_data"] = cfg.Data
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	resp, err := client.SendRessources(ctx, &pb.RessourceRequest{
+		User: job.OwnerEmail, Data: data, Status: pb.Status_CREATE, Type: pb.Type_SERVERPOOL,
+	})
+	if err != nil {
+		return err
+	}
+	if resp != nil && !resp.GetSuccess() {
+		return fmt.Errorf("le microservice a refusé la création du pool")
+	}
+	return nil
+}
+
+// waitForPoolVMs attend que n VMs du pool soient ACTIVE, avec IP, et joignables en SSH.
+func waitForPoolVMs(poolID string, n int, timeout time.Duration) ([]models.Server, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		var servers []models.Server
+		config.Database.Where("serverpool_id = ? AND ip_address <> '' AND status = ?", poolID, "ACTIVE").
+			Order("created_at ASC").Find(&servers)
+		ready := servers[:0]
+		for _, s := range servers {
+			if sshReachable(s.IP_Address) {
+				ready = append(ready, s)
+			}
+		}
+		if len(ready) >= n {
+			return ready[:n], nil
+		}
+		if time.Now().After(deadline) {
+			if len(ready) > 0 {
+				return ready, nil // dégradé : on lance sur ce qui est prêt
+			}
+			return nil, fmt.Errorf("délai dépassé (aucune VM prête)")
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
+// teardownTransientPool détruit le pool transitoire et ses VMs (même séquence que la
+// suppression de pool : purge les serveurs en base puis DELETE SERVERPOOL côté microservice).
+func teardownTransientPool(client pb.PoolManagerClient, owner, poolID string) {
+	config.Database.Where("serverpool_id = ?", poolID).Delete(&models.Server{})
+	config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, owner).Delete(&models.Serverpool{})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, _ = client.SendRessources(ctx, &pb.RessourceRequest{
+		User: owner, Data: map[string]string{"serverpool_id": poolID}, Status: pb.Status_DELETE, Type: pb.Type_SERVERPOOL,
+	})
+}
+
+// writeFileOnVM écrit un contenu dans un fichier sur la VM via SSH.
+func writeFileOnVM(ip string, signer ssh.Signer, dest, content string) error {
+	cfg := sshinject.SshConfig(sshVMUser(), signer)
+	cfg.Timeout = 10 * time.Second
+	cl, err := ssh.Dial("tcp", ip+":22", cfg)
+	if err != nil {
+		return err
+	}
+	defer cl.Close()
+	sess, err := cl.NewSession()
+	if err != nil {
+		return err
+	}
+	defer sess.Close()
+	sess.Stdin = strings.NewReader(content)
+	return sess.Run("cat > '" + dest + "'")
 }
 
 func finishJob(jobID uint, status string, code int, log, vmName string) {

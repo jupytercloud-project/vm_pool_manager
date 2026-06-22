@@ -14,6 +14,8 @@ type BatchJob struct {
 	PoolID     string     `json:"pool_id"`               // pool « calcul » cible
 	Script     string     `json:"script"`                // script bash exécuté sur la VM
 	Priority   int        `json:"priority" gorm:"index"` // plus élevé = traité en premier
+	Ephemeral  bool       `json:"ephemeral"`             // provisionne une VM dédiée (détruite en fin) au lieu de réutiliser le pool
+	Nodes      int        `json:"nodes"`                 // nb de nœuds pour un cluster (>1) ; 0/1 = mono-VM
 	Status     string     `json:"status" gorm:"index"`
 	ExitCode   int        `json:"exit_code"`
 	Log        string     `json:"log"`     // stdout+stderr (tronqué)

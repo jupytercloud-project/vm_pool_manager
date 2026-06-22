@@ -38,11 +38,13 @@ func handleBatchJobs(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		var req struct {
-			Name     string `json:"name"`
-			PoolID   string `json:"pool_id"`
-			Script   string `json:"script"`
-			Priority int    `json:"priority"`
-			AutoStop *bool  `json:"auto_stop"`
+			Name      string `json:"name"`
+			PoolID    string `json:"pool_id"`
+			Script    string `json:"script"`
+			Priority  int    `json:"priority"`
+			Ephemeral bool   `json:"ephemeral"`
+			Nodes     int    `json:"nodes"`
+			AutoStop  *bool  `json:"auto_stop"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "JSON invalide"})
@@ -66,9 +68,17 @@ func handleBatchJobs(w http.ResponseWriter, r *http.Request) {
 		} else if prio > 1 {
 			prio = 1
 		}
+		nodes := req.Nodes
+		if nodes < 1 {
+			nodes = 1
+		} else if nodes > 16 {
+			nodes = 16
+		}
+		ephemeral := req.Ephemeral || nodes > 1 // un cluster (>1 nœud) est forcément éphémère
 		job := models.BatchJob{
 			OwnerEmail: owner, Name: name, PoolID: strings.TrimSpace(req.PoolID),
-			Script: req.Script, Priority: prio, Status: "queued", AutoStop: autoStop,
+			Script: req.Script, Priority: prio, Ephemeral: ephemeral, Nodes: nodes,
+			Status: "queued", AutoStop: autoStop,
 		}
 		if err := config.Database.Create(&job).Error; err != nil {
 			writeJSONMoodle(w, http.StatusInternalServerError, map[string]string{"error": "création du job échouée"})

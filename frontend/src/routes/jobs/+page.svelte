@@ -18,6 +18,8 @@
   let sweepMode = $state(false);
   let paramName = $state('PARAM');
   let paramValues = $state('');
+  let ephemeral = $state(false);
+  let nodes = $state(1);
   let submitting = $state(false);
   let submitMsg = $state('');
   let jobs = $state<Job[]>([]);
@@ -46,7 +48,7 @@
       } else {
         r = await apiFetch('/api/jobs', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name.trim(), pool_id: poolId, script, priority, auto_stop: autoStop }),
+          body: JSON.stringify({ name: name.trim(), pool_id: poolId, script, priority, auto_stop: autoStop, ephemeral: ephemeral || nodes > 1, nodes }),
         });
       }
       const d = await r.json();
@@ -110,6 +112,13 @@
       </label>
       <label class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
         <input type="checkbox" bind:checked={sweepMode} class="w-4 h-4 accent-primary-700" /> {$_('jobs.sweepMode')}
+      </label>
+      <label class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300" title={$_('jobs.ephemeralHint')}>
+        <input type="checkbox" bind:checked={ephemeral} class="w-4 h-4 accent-primary-700" /> {$_('jobs.ephemeral')}
+      </label>
+      <label class="flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-300" title={$_('jobs.nodesHint')}>
+        {$_('jobs.nodes')}
+        <input type="number" min="1" max="16" bind:value={nodes} class="field text-sm w-16 py-1" />
       </label>
     </div>
     {#if sweepMode}
