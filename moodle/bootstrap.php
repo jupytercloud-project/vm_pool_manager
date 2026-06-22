@@ -82,10 +82,22 @@ function ensure_course($shortname, $fullname) {
     ];
     return create_course($data);
 }
-$courses = [
-    ensure_course('CPM-PY101', 'Python 101 (démo CloudPoolManager)'),
-    ensure_course('CPM-DS200', 'Data Science 200 (démo CloudPoolManager)'),
+// Cours de démo : [shortname, fullname, nb d'élèves à inscrire].
+$courseDefs = [
+    ['CPM-PY101',  'Python 101 (démo CloudPoolManager)',                 12],
+    ['CPM-DS200',  'Data Science 200 (démo CloudPoolManager)',           10],
+    ['CPM-MEC431', 'Mécanique des fluides MEC431 (démo)',                 8],
+    ['CPM-ECO589', 'Économie computationnelle ECO589 (démo)',            14],
+    ['CPM-MAP579', 'Optimisation & calcul scientifique MAP579 (démo)',   16],
+    ['CPM-BIO583', 'Bio-informatique BIO583 (démo)',                      6],
 ];
+$courses = [];
+$courseEnrolCount = [];
+foreach ($courseDefs as $cd) {
+    $c = ensure_course($cd[0], $cd[1]);
+    $courses[] = $c;
+    $courseEnrolCount[$c->id] = $cd[2];
+}
 
 // ── 5. Utilisateurs de démo ─────────────────────────────────────────────────
 function ensure_user($username, $first, $last, $email) {
@@ -101,12 +113,31 @@ function ensure_user($username, $first, $last, $email) {
     $id = user_create_user($user, true, false);
     return $DB->get_record('user', ['id' => $id]);
 }
-$students = [
-    ensure_user('alice',   'Alice',   'Martin',  'alice@example.com'),
-    ensure_user('bob',     'Bob',     'Durand',  'bob@example.com'),
-    ensure_user('charlie', 'Charlie', 'Bernard', 'charlie@example.com'),
-    ensure_user('diana',   'Diana',   'Petit',   'diana@example.com'),
+// 18 élèves de démo (mot de passe commun Student_2026!).
+$studentDefs = [
+    ['alice',   'Alice',    'Martin',    'alice@example.com'],
+    ['bob',     'Bob',      'Durand',    'bob@example.com'],
+    ['charlie', 'Charlie',  'Bernard',   'charlie@example.com'],
+    ['diana',   'Diana',    'Petit',     'diana@example.com'],
+    ['emma',    'Emma',     'Robert',    'emma@example.com'],
+    ['lucas',   'Lucas',    'Richard',   'lucas@example.com'],
+    ['lea',     'Léa',      'Dubois',    'lea@example.com'],
+    ['hugo',    'Hugo',     'Moreau',    'hugo@example.com'],
+    ['chloe',   'Chloé',    'Laurent',   'chloe@example.com'],
+    ['nathan',  'Nathan',   'Simon',     'nathan@example.com'],
+    ['manon',   'Manon',    'Michel',    'manon@example.com'],
+    ['enzo',    'Enzo',     'Lefebvre',  'enzo@example.com'],
+    ['camille', 'Camille',  'Garcia',    'camille@example.com'],
+    ['louis',   'Louis',    'David',     'louis@example.com'],
+    ['sarah',   'Sarah',    'Bertrand',  'sarah@example.com'],
+    ['theo',    'Théo',     'Roux',      'theo@example.com'],
+    ['julie',   'Julie',    'Vincent',   'julie@example.com'],
+    ['adam',    'Adam',     'Fournier',  'adam@example.com'],
 ];
+$students = [];
+foreach ($studentDefs as $sd) {
+    $students[] = ensure_user($sd[0], $sd[1], $sd[2], $sd[3]);
+}
 $teacher = ensure_user('prof1', 'Paul', 'Prof', 'prof1@example.com');
 
 // ── 6. Inscriptions (manual enrol) ──────────────────────────────────────────
@@ -123,8 +154,14 @@ function enrol_in($courseid, $userid, $roleshortname) {
     }
     $plugin->enrol_user($instance, $userid, $role->id);
 }
-foreach ($courses as $c) {
-    foreach ($students as $s) { enrol_in($c->id, $s->id, 'student'); }
+foreach ($courses as $i => $c) {
+    // Effectif variable par cours, et décalage du point de départ pour varier la composition.
+    $n = $courseEnrolCount[$c->id] ?? count($students);
+    $offset = ($i * 3) % count($students);
+    for ($k = 0; $k < $n && $k < count($students); $k++) {
+        $s = $students[($offset + $k) % count($students)];
+        enrol_in($c->id, $s->id, 'student');
+    }
     enrol_in($c->id, $teacher->id, 'editingteacher');
     // L'admin (= utilisateur du token de service) doit être enseignant pour que
     // mod_assign_get_assignments liste les devoirs via les Web Services.

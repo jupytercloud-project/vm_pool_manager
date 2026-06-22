@@ -27,7 +27,8 @@ services:
     depends_on:
       - moodle-db
     ports:
-      - "8081:8080"
+      # Confiné à localhost : seul le control center (même hôte) interroge Moodle. Jamais exposé publiquement.
+      - "127.0.0.1:8081:8080"
     environment:
       MOODLE_DATABASE_HOST: moodle-db
       MOODLE_DATABASE_PORT_NUMBER: 3306
