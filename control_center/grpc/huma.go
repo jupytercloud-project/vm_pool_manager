@@ -41,6 +41,10 @@ func registerHumaRoutes(api huma.API) {
 	registerUsageHuma(api)
 	registerStorageHuma(api)
 	registerXCoursHuma(api)
+	registerAnnouncementHuma(api)
+	registerAuditHuma(api)
+	registerAdminUsersHuma(api)
+	registerAdminConsoleHuma(api)
 
 	// GET /api/me — identité + rôle effectif de l'appelant.
 	huma.Register(api, huma.Operation{

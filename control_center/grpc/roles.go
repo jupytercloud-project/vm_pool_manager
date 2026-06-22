@@ -1,12 +1,14 @@
 package grpc
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
 	"strings"
 
 	"control_center/config"
 	"control_center/models"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 // Rôles canoniques de la plateforme.
@@ -86,40 +88,40 @@ func upsertUserRole(email, role string) error {
 
 // GET /api/me est désormais servi par HUMA (registerHumaRoutes dans huma.go).
 
-// GET /api/admin/users — liste des utilisateurs et rôles (admin uniquement).
-func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
-	var users []models.User
-	config.Database.Order("email ASC").Find(&users)
-	out := make([]map[string]any, 0, len(users))
-	for _, u := range users {
-		out = append(out, map[string]any{"email": u.Email, "name": u.Name, "role": u.Role})
-	}
-	writeJSONMoodle(w, http.StatusOK, map[string]any{"users": out, "roles": []string{
-		RoleAdmin, RoleProf, RoleTA, RoleChercheur, RoleStudent,
-	}})
-}
+// registerAdminUsersHuma : GET /api/admin/users + POST /api/admin/users/role (admin uniquement).
+func registerAdminUsersHuma(api huma.API) {
+	// GET /api/admin/users — liste des utilisateurs et rôles.
+	huma.Register(api, huma.Operation{
+		OperationID: "list-users", Method: http.MethodGet, Path: "/api/admin/users",
+		Summary: "Lister les utilisateurs et rôles", Tags: []string{"admin"},
+	}, func(ctx context.Context, _ *struct{}) (*AnyOutput, error) {
+		var users []models.User
+		config.Database.Order("email ASC").Find(&users)
+		out := make([]map[string]any, 0, len(users))
+		for _, u := range users {
+			out = append(out, map[string]any{"email": u.Email, "name": u.Name, "role": u.Role})
+		}
+		return &AnyOutput{Body: map[string]any{"users": out, "roles": []string{
+			RoleAdmin, RoleProf, RoleTA, RoleChercheur, RoleStudent,
+		}}}, nil
+	})
 
-// POST /api/admin/users/role {email, role} — attribue un rôle (admin uniquement).
-func handleAdminSetRole(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
-		return
-	}
-	var req struct {
-		Email string `json:"email"`
-		Role  string `json:"role"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "JSON invalide"})
-		return
-	}
-	if strings.TrimSpace(req.Email) == "" || !validRoles[req.Role] {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "email et rôle valides requis"})
-		return
-	}
-	if err := upsertUserRole(req.Email, req.Role); err != nil {
-		writeJSONMoodle(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
-	}
-	writeJSONMoodle(w, http.StatusOK, map[string]any{"email": strings.ToLower(req.Email), "role": req.Role})
+	// POST /api/admin/users/role {email, role} — attribue un rôle.
+	huma.Register(api, huma.Operation{
+		OperationID: "set-user-role", Method: http.MethodPost, Path: "/api/admin/users/role",
+		Summary: "Attribuer un rôle", Tags: []string{"admin"},
+	}, func(ctx context.Context, in *struct {
+		Body struct {
+			Email string `json:"email"`
+			Role  string `json:"role"`
+		}
+	}) (*AnyOutput, error) {
+		if strings.TrimSpace(in.Body.Email) == "" || !validRoles[in.Body.Role] {
+			return nil, huma.Error400BadRequest("email et rôle valides requis")
+		}
+		if err := upsertUserRole(in.Body.Email, in.Body.Role); err != nil {
+			return nil, huma.Error500InternalServerError(err.Error())
+		}
+		return &AnyOutput{Body: map[string]any{"email": strings.ToLower(in.Body.Email), "role": in.Body.Role}}, nil
+	})
 }

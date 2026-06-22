@@ -11,9 +11,32 @@ import (
 	"control_center/models"
 	"control_center/pb"
 
+	"github.com/danielgtaylor/huma/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+// registerAdminConsoleHuma : console admin globale, kill-switch et purge des orphelins (admin only).
+func registerAdminConsoleHuma(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-console", Method: http.MethodGet, Path: "/api/admin/console",
+		Summary: "Vue d'ensemble admin (pools, VMs, orphelins, alertes)", Tags: []string{"admin"},
+	}, func(ctx context.Context, _ *struct{}) (*AnyOutput, error) {
+		return &AnyOutput{Body: buildAdminConsole()}, nil
+	})
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-kill-switch", Method: http.MethodPost, Path: "/api/admin/kill-switch",
+		Summary: "Arrêt d'urgence de toutes les VMs ACTIVE", Tags: []string{"admin"},
+	}, func(ctx context.Context, _ *struct{}) (*AnyOutput, error) {
+		return adminKillSwitch()
+	})
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-cleanup-orphans", Method: http.MethodPost, Path: "/api/admin/cleanup-orphans",
+		Summary: "Supprimer les serveurs orphelins", Tags: []string{"admin"},
+	}, func(ctx context.Context, _ *struct{}) (*AnyOutput, error) {
+		return adminCleanupOrphans()
+	})
+}
 
 // Ports sensibles qui ne devraient JAMAIS être ouverts à l'extérieur (G1).
 var sensitivePorts = map[int]string{
@@ -21,9 +44,9 @@ var sensitivePorts = map[int]string{
 	9200: "Elasticsearch", 5984: "CouchDB", 11211: "Memcached", 2375: "Docker", 9000: "App/Portainer",
 }
 
-// GET /api/admin/console — vue d'ensemble admin (K1) : pools, VMs, utilisateurs,
-// VMs orphelines, et alertes de sécurité (ports sensibles exposés — G1). Admin only.
-func handleAdminConsole(w http.ResponseWriter, r *http.Request) {
+// buildAdminConsole — vue d'ensemble admin (K1) : pools, VMs, utilisateurs,
+// VMs orphelines, et alertes de sécurité (ports sensibles exposés — G1).
+func buildAdminConsole() map[string]any {
 	inv, _ := buildInventory()
 
 	// Utilisateurs.
@@ -102,7 +125,7 @@ func handleAdminConsole(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSONMoodle(w, http.StatusOK, map[string]any{
+	return map[string]any{
 		"stats": map[string]int{
 			"pools": len(pools), "vms": totalVMs, "active": activeVMs,
 			"users": len(users), "orphans": len(orphans), "alerts": len(alerts),
@@ -111,19 +134,14 @@ func handleAdminConsole(w http.ResponseWriter, r *http.Request) {
 		"users":   users,
 		"orphans": orphans,
 		"alerts":  alerts,
-	})
+	}
 }
 
-// POST /api/admin/kill-switch — arrêt d'urgence : stoppe toutes les VMs ACTIVE. Admin only.
-func handleAdminKillSwitch(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
-		return
-	}
+// adminKillSwitch — arrêt d'urgence : stoppe toutes les VMs ACTIVE.
+func adminKillSwitch() (*AnyOutput, error) {
 	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		writeJSONMoodle(w, http.StatusBadGateway, map[string]string{"error": "microservice injoignable"})
-		return
+		return nil, huma.Error502BadGateway("microservice injoignable")
 	}
 	defer conn.Close()
 	client := pb.NewPoolManagerClient(conn)
@@ -147,15 +165,11 @@ func handleAdminKillSwitch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	invalidatePowerStates()
-	writeJSONMoodle(w, http.StatusOK, map[string]any{"ok": true, "stopped": stopped})
+	return &AnyOutput{Body: map[string]any{"ok": true, "stopped": stopped}}, nil
 }
 
-// POST /api/admin/cleanup-orphans — supprime les serveurs orphelins (pool inexistant). Admin only.
-func handleAdminCleanupOrphans(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
-		return
-	}
+// adminCleanupOrphans — supprime les serveurs orphelins (pool inexistant).
+func adminCleanupOrphans() (*AnyOutput, error) {
 	validPool := map[string]bool{}
 	var pools []models.Serverpool
 	config.Database.Find(&pools)
@@ -188,7 +202,7 @@ func handleAdminCleanupOrphans(w http.ResponseWriter, r *http.Request) {
 		removed++
 	}
 	invalidatePowerStates()
-	writeJSONMoodle(w, http.StatusOK, map[string]any{"ok": true, "removed": removed})
+	return &AnyOutput{Body: map[string]any{"ok": true, "removed": removed}}, nil
 }
 
 func itoa(n int) string {

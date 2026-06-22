@@ -1,13 +1,15 @@
 package grpc
 
 import (
+	"context"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"control_center/config"
 	"control_center/models"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 // clientIP extrait l'IP source réelle (derrière le reverse-proxy Caddy via X-Forwarded-For).
@@ -41,15 +43,20 @@ func isMutating(method string) bool {
 	return false
 }
 
-// GET /api/admin/audit?limit=N — journal d'audit (admin uniquement).
-func handleAdminAudit(w http.ResponseWriter, r *http.Request) {
-	limit := 500
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 5000 {
-			limit = n
+// registerAuditHuma : GET /api/admin/audit?limit=N — journal d'audit (admin uniquement).
+func registerAuditHuma(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "get-audit", Method: http.MethodGet, Path: "/api/admin/audit",
+		Summary: "Journal d'audit", Tags: []string{"admin"},
+	}, func(ctx context.Context, in *struct {
+		Limit int `query:"limit"`
+	}) (*AnyOutput, error) {
+		limit := 500
+		if in.Limit > 0 && in.Limit <= 5000 {
+			limit = in.Limit
 		}
-	}
-	var logs []models.AuditLog
-	config.Database.Order("created_at DESC").Limit(limit).Find(&logs)
-	writeJSONMoodle(w, http.StatusOK, map[string]any{"logs": logs})
+		var logs []models.AuditLog
+		config.Database.Order("created_at DESC").Limit(limit).Find(&logs)
+		return &AnyOutput{Body: map[string]any{"logs": logs}}, nil
+	})
 }
