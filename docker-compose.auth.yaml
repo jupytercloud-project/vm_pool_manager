@@ -3,8 +3,9 @@ services:
     image: ghcr.io/glauth/glauth:latest
     container_name: glauth
     restart: unless-stopped
+    # Confiné à localhost : seul Dex (même hôte) interroge GLAuth (LDAP). Jamais exposé publiquement.
     ports:
-      - "3893:3893"
+      - "127.0.0.1:3893:3893"
     volumes:
       - ./auth/glauth.cfg:/app/config/config.cfg:ro
 
@@ -12,8 +13,9 @@ services:
     image: ghcr.io/dexidp/dex:v2.41.1
     container_name: dex
     restart: unless-stopped
+    # Confiné à localhost : Dex n'est atteint que via Caddy (reverse proxy /dex). Jamais exposé directement.
     ports:
-      - "5556:5556"
+      - "127.0.0.1:5556:5556"
     volumes:
       - ./auth/dex.yaml:/etc/dex/config.yaml:ro
       - ./auth/web:/srv/dex/web/custom:ro
