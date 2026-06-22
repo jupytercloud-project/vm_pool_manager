@@ -9,6 +9,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/plugin/opentelemetry/tracing"
 
 	"control_center/event"
 	"control_center/models"
@@ -53,6 +54,10 @@ func Start_DB(ctx context.Context) {
 	}
 
 	Database = db
+	// Tracing OTel des requêtes SQL (spans enfants des requêtes HTTP/gRPC). No-op si OTel off.
+	if err := db.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
+		log.Printf("[otel] plugin GORM: %v", err)
+	}
 	log.Println("Connexion à PostgreSQL réussie avec GORM")
 
 	Database.AutoMigrate(

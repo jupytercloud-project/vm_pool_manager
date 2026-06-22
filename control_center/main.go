@@ -4,10 +4,12 @@ import (
 	"context"
 	"control_center/config"
 	cc "control_center/grpc"
+	"control_center/internal/telemetry"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -18,6 +20,12 @@ func main() {
 		if err2 := godotenv.Load("../.env"); err2 != nil {
 			log.Fatalf("Error loading .env file: %v", err2)
 		}
+	}
+
+	// OpenTelemetry (traces + métriques + logs OTLP). No-op si non configuré.
+	otelShutdown, err := telemetry.Setup(context.Background(), "control-center")
+	if err != nil {
+		log.Printf("[otel] init: %v", err)
 	}
 
 	// Initialisation de la base de données
@@ -41,6 +49,15 @@ func main() {
 
 	// Annule explicitement le contexte (au cas où)
 	stop()
+
+	// Vidage des traces/métriques/logs OTel encore en file (timeout borné).
+	if otelShutdown != nil {
+		shCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := otelShutdown(shCtx); err != nil {
+			log.Printf("[otel] shutdown: %v", err)
+		}
+		cancel()
+	}
 
 	log.Println("Arrêt terminé proprement ✅")
 }

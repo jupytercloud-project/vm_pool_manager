@@ -23,6 +23,8 @@ import (
 
 	grpcweb "github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -87,6 +89,8 @@ func Start_grpc(ctx context.Context) {
 	}
 
 	s := grpc.NewServer(
+		// Traces/métriques gRPC OTel (no-op si la télémétrie est désactivée).
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		// recovery en premier (outermost) : attrape les panics des autres intercepteurs et des handlers.
 		grpc.ChainUnaryInterceptor(recoveryUnaryInterceptor, oidcmw.UnaryInterceptor(publicMethods)),
 		grpc.ChainStreamInterceptor(recoveryStreamInterceptor, oidcmw.StreamInterceptor(publicMethods)),
@@ -153,7 +157,13 @@ func Start_grpc(ctx context.Context) {
 
 	// Toutes les routes REST passent par le middleware d'authentification (JWT OIDC ou
 	// session Moodle/GitHub) avec contrôle de rôle ; le gRPC-Web garde sa propre auth.
-	authedMux := httpAuthMiddleware(mux)
+	// otelhttp instrumente les routes REST (spans HTTP nommés méthode + chemin).
+	authedMux := otelhttp.NewHandler(
+		httpAuthMiddleware(mux), "rest",
+		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+			return r.Method + " " + r.URL.Path
+		}),
+	)
 	httpServer := &http.Server{
 		Addr: ":50055",
 		// withRecovery : un panic dans un handler renvoie un 500 propre au lieu de couper la connexion.
