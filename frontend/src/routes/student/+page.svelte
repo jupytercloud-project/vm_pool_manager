@@ -137,7 +137,12 @@
       const res = await apiFetch(`/api/nbgrader/submit?pool_id=${encodeURIComponent(selectedPool.pool_id)}&user_id=${encodeURIComponent(selectedPool.user_id)}&student_ip=${encodeURIComponent(vmIp)}`, {
         method: "POST"
       });
-      if (!res.ok) throw new Error($_('studentDash.serverError') + await res.text());
+      if (!res.ok) {
+        const t = await res.text();
+        let msg = t;
+        try { msg = JSON.parse(t).error ?? t; } catch { /* texte brut */ }
+        throw new Error($_('studentDash.serverError') + msg);
+      }
       submitStatus = $_('studentDash.submitSuccess');
     } catch (e: any) {
       submitError = true;

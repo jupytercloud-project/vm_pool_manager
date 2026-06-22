@@ -6,6 +6,12 @@
   import { browser } from '$app/environment';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
+  // Extrait un message d'erreur lisible : l'API renvoie {"error": "..."} (HUMA), à défaut du texte brut.
+  async function errMsg(res: Response): Promise<string> {
+    const t = await res.text();
+    try { return JSON.parse(t).error ?? t; } catch { return t; }
+  }
+
   interface Grade {
     student: string;
     score: number;
@@ -94,7 +100,7 @@
       const res = await apiFetch(
         `/api/nbgrader/assignments?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}`
       );
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await errMsg(res));
       const data = await res.json();
       assignments = data.assignments ?? [];
     } catch (e: any) {
@@ -112,7 +118,7 @@
       const res = await apiFetch(
         `/api/nbgrader/grades?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}&assignment=${encodeURIComponent(selectedAssignment)}`
       );
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await errMsg(res));
       const data = await res.json();
       grades = data.grades ?? [];
     } catch (e: any) {
@@ -175,7 +181,7 @@
           successMsg = $_('grading.operationDone') + ' ✓';
         }
       } else {
-        error = data.output ?? data.message ?? `${endpoint} failed`;
+        error = data.output ?? data.message ?? data.error ?? `${endpoint} failed`;
       }
     } catch (e: any) {
       error = e.message;

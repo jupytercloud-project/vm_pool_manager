@@ -2,10 +2,10 @@ package grpc
 
 import (
 	"bytes"
+	"context"
 	"control_center/config"
 	"control_center/internal/sshinject"
 	"control_center/models"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -17,8 +17,101 @@ import (
 	"sync"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"golang.org/x/crypto/ssh"
 )
+
+// registerNbgraderHuma enregistre les endpoints /api/nbgrader/* (sauf export-csv, qui
+// renvoie un téléchargement CSV et reste un handler brut).
+func registerNbgraderHuma(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-assignments", Method: http.MethodGet, Path: "/api/nbgrader/assignments",
+		Summary: "Lister les assignments", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID string `query:"pool_id"`
+		UserID string `query:"user_id"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderAssignments(in.PoolID, in.UserID)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-collect", Method: http.MethodPost, Path: "/api/nbgrader/collect",
+		Summary: "Collecter les rendus", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID     string `query:"pool_id"`
+		UserID     string `query:"user_id"`
+		Assignment string `query:"assignment"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderCollect(in.PoolID, in.UserID, in.Assignment)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-autograde", Method: http.MethodPost, Path: "/api/nbgrader/autograde",
+		Summary: "Corriger automatiquement", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID     string `query:"pool_id"`
+		UserID     string `query:"user_id"`
+		Assignment string `query:"assignment"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderAutograde(in.PoolID, in.UserID, in.Assignment)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-grades", Method: http.MethodGet, Path: "/api/nbgrader/grades",
+		Summary: "Lire les notes", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID     string `query:"pool_id"`
+		UserID     string `query:"user_id"`
+		Assignment string `query:"assignment"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderGrades(in.PoolID, in.UserID, in.Assignment)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-submit", Method: http.MethodPost, Path: "/api/nbgrader/submit",
+		Summary: "Soumettre (copie figée)", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID     string `query:"pool_id"`
+		UserID     string `query:"user_id"`
+		Assignment string `query:"assignment"`
+		StudentIP  string `query:"student_ip"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderSubmit(in.PoolID, in.UserID, in.Assignment, in.StudentIP)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-submission-url", Method: http.MethodGet, Path: "/api/nbgrader/submission-url",
+		Summary: "URL de correction manuelle d'un rendu", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID     string `query:"pool_id"`
+		UserID     string `query:"user_id"`
+		Assignment string `query:"assignment"`
+		Student    string `query:"student"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderSubmissionURL(in.PoolID, in.UserID, in.Assignment, in.Student)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-jupyter-url", Method: http.MethodGet, Path: "/api/nbgrader/jupyter-url",
+		Summary: "URL JupyterLab de la VM instructeur", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID string `query:"pool_id"`
+		UserID string `query:"user_id"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderJupyterURL(in.PoolID, in.UserID)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "nbgrader-release", Method: http.MethodPost, Path: "/api/nbgrader/release",
+		Summary: "Distribuer un assignment", Tags: []string{"nbgrader"},
+	}, func(ctx context.Context, in *struct {
+		PoolID     string `query:"pool_id"`
+		UserID     string `query:"user_id"`
+		Assignment string `query:"assignment"`
+	}) (*AnyOutput, error) {
+		return handleNbgraderRelease(in.PoolID, in.UserID, in.Assignment)
+	})
+}
 
 // nbgraderSSHClient dials the instructor VM for a given pool and returns a connected SSH client.
 // The caller is responsible for closing the client.
@@ -157,19 +250,15 @@ func runSSHOutput(client *ssh.Client, cmd string) (string, error) {
 
 // handleNbgraderAssignments lists released assignments on the instructor VM.
 // GET /api/nbgrader/assignments?pool_id=X&user_id=Y
-func handleNbgraderAssignments(w http.ResponseWriter, r *http.Request) {
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
+func handleNbgraderAssignments(poolID, userID string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" {
-		http.Error(w, "missing pool_id or user_id", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id or user_id")
 	}
 
 	client, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
 		log.Printf("[nbgrader] assignments SSH error: %v", err)
-		http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		return nil, huma.Error503ServiceUnavailable("cannot connect to instructor VM: " + err.Error())
 	}
 	defer client.Close()
 
@@ -178,8 +267,7 @@ func handleNbgraderAssignments(w http.ResponseWriter, r *http.Request) {
 	// dir (that listed repo files like Manifest.toml/README.md as fake assignments).
 	out, err := runSSHOutput(client, dockerExec(`find /home/jovyan/nbgrader/source/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null || true`))
 	if err != nil {
-		http.Error(w, "SSH command failed: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("SSH command failed: " + err.Error())
 	}
 
 	var assignments []string
@@ -193,43 +281,31 @@ func handleNbgraderAssignments(w http.ResponseWriter, r *http.Request) {
 		assignments = []string{}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"assignments": assignments})
+	return &AnyOutput{Body: map[string]any{"assignments": assignments}}, nil
 }
 
 // handleNbgraderCollect runs `nbgrader collect` on the instructor VM.
 // POST /api/nbgrader/collect?pool_id=X&user_id=Y&assignment=Z
-func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
-	assignment := r.URL.Query().Get("assignment")
+func handleNbgraderCollect(poolID, userID, assignment string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" || assignment == "" {
-		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id, user_id or assignment")
 	}
 	if !validAssignment(assignment) {
-		http.Error(w, "invalid assignment name", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("invalid assignment name")
 	}
 
 	instrClient, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
 		instrClient, err = nbgraderSSHClientAny(poolID, userID)
 		if err != nil {
-			http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
-			return
+			return nil, huma.Error503ServiceUnavailable("cannot connect to instructor VM: " + err.Error())
 		}
 	}
 	defer instrClient.Close()
 
 	var pool models.Serverpool
 	if err := config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).First(&pool).Error; err != nil {
-		http.Error(w, "pool not found", http.StatusNotFound)
-		return
+		return nil, huma.Error404NotFound("pool not found")
 	}
 
 	var list models.ListStudents
@@ -241,8 +317,7 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 	}
 	signer, err := sshinject.LoadPrivateKey(keyPath)
 	if err != nil {
-		http.Error(w, "load SSH key: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("load SSH key: " + err.Error())
 	}
 
 	timestamp := time.Now().UTC().Format("2006-01-02 15:04:05.000000 MST")
@@ -334,37 +409,26 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 		out += "Errors:\n" + strings.Join(distErrors, "\n")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	return &AnyOutput{Body: map[string]any{
 		"status": "ok",
 		"output": out,
-	})
+	}}, nil
 }
 
 // handleNbgraderAutograde runs `nbgrader autograde` on the instructor VM.
 // POST /api/nbgrader/autograde?pool_id=X&user_id=Y&assignment=Z
-func handleNbgraderAutograde(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
-	assignment := r.URL.Query().Get("assignment")
+func handleNbgraderAutograde(poolID, userID, assignment string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" || assignment == "" {
-		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id, user_id or assignment")
 	}
 	if !validAssignment(assignment) {
-		http.Error(w, "invalid assignment name", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("invalid assignment name")
 	}
 
 	client, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
 		log.Printf("[nbgrader] autograde SSH error: %v", err)
-		http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		return nil, huma.Error503ServiceUnavailable("cannot connect to instructor VM: " + err.Error())
 	}
 	defer client.Close()
 
@@ -373,20 +437,17 @@ func handleNbgraderAutograde(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("[nbgrader] autograde error: %v", err)
 		// Return partial output even on error (nbgrader may exit non-zero but still grade)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		return &AnyOutput{Body: map[string]any{
 			"status": "error",
 			"output": out + "\n" + err.Error(),
-		})
-		return
+		}}, nil
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	return &AnyOutput{Body: map[string]any{
 		"status":     "ok",
 		"assignment": assignment,
 		"output":     out,
-	})
+	}}, nil
 }
 
 // NbgraderGrade represents one student's grade for an assignment.
@@ -399,23 +460,17 @@ type NbgraderGrade struct {
 
 // handleNbgraderGrades reads the gradebook via `nbgrader export` CSV on the instructor VM.
 // GET /api/nbgrader/grades?pool_id=X&user_id=Y&assignment=Z
-func handleNbgraderGrades(w http.ResponseWriter, r *http.Request) {
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
-	assignment := r.URL.Query().Get("assignment")
+func handleNbgraderGrades(poolID, userID, assignment string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" || assignment == "" {
-		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id, user_id or assignment")
 	}
 
 	grades, err := fetchNbgraderGrades(poolID, userID, assignment)
 	if err != nil {
 		log.Printf("[nbgrader] grades SSH error: %v", err)
-		http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		return nil, huma.Error503ServiceUnavailable("cannot connect to instructor VM: " + err.Error())
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"grades": grades})
+	return &AnyOutput{Body: map[string]any{"grades": grades}}, nil
 }
 
 // fetchNbgraderGrades lit les notes d'un assignment sur la VM instructeur (nbgrader export
@@ -457,28 +512,17 @@ func fetchNbgraderGrades(poolID, userID, assignment string) ([]NbgraderGrade, er
 }
 
 // POST /api/nbgrader/submit?pool_id=X&user_id=Y&assignment=Z&student_ip=W
-func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
-	assignment := r.URL.Query().Get("assignment") // optional
-	studentIP := r.URL.Query().Get("student_ip")
+func handleNbgraderSubmit(poolID, userID, assignment, studentIP string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" || studentIP == "" {
-		http.Error(w, "missing pool_id, user_id, or student_ip", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id, user_id, or student_ip")
 	}
 	if assignment != "" && !validAssignment(assignment) {
-		http.Error(w, "invalid assignment name", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("invalid assignment name")
 	}
 	// Anti-SSRF : on n'accepte de se connecter en SSH (avec la clé maître) qu'à une IP
 	// qui correspond à une VM réellement enregistrée dans ce pool, jamais à une IP arbitraire.
 	if !ipBelongsToPool(studentIP, poolID) {
-		http.Error(w, "student_ip does not belong to this pool", http.StatusForbidden)
-		return
+		return nil, huma.Error403Forbidden("student_ip does not belong to this pool")
 	}
 
 	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")
@@ -487,15 +531,13 @@ func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	signer, err := sshinject.LoadPrivateKey(keyPath)
 	if err != nil {
-		http.Error(w, "load SSH key: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("load SSH key: " + err.Error())
 	}
 
 	cfg := sshinject.SshConfig("vmuser", signer)
 	studentClient, err := ssh.Dial("tcp", studentIP+":22", cfg)
 	if err != nil {
-		http.Error(w, "ssh dial: "+err.Error(), http.StatusServiceUnavailable)
-		return
+		return nil, huma.Error503ServiceUnavailable("ssh dial: " + err.Error())
 	}
 	defer studentClient.Close()
 
@@ -509,12 +551,10 @@ func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
 		cmd = "mkdir -p ~/nbgrader/submitted_copies && rsync -av --exclude='submitted_copies' ~/nbgrader/ ~/nbgrader/submitted_copies/ 2>/dev/null || true; chmod -R a-w ~/nbgrader/submitted_copies || true"
 	}
 	if err := sshinject.RunSSHcmd(studentClient, cmd); err != nil {
-		http.Error(w, "submit copy failed: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("submit copy failed: " + err.Error())
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+	return &AnyOutput{Body: map[string]any{"status": "ok"}}, nil
 }
 
 // handleNbgraderSubmissionURL resolves the formgrader URL to manually grade a
@@ -522,26 +562,19 @@ func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
 // route — manual grading lives at /formgrader/submissions/<submission_id>/?index=0,
 // where submission_id is the gradebook UUID for (assignment, student).
 // GET /api/nbgrader/submission-url?pool_id=X&user_id=Y&assignment=Z&student=W
-func handleNbgraderSubmissionURL(w http.ResponseWriter, r *http.Request) {
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
-	assignment := r.URL.Query().Get("assignment")
-	student := r.URL.Query().Get("student")
+func handleNbgraderSubmissionURL(poolID, userID, assignment, student string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" || assignment == "" || student == "" {
-		http.Error(w, "missing pool_id, user_id, assignment or student", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id, user_id, assignment or student")
 	}
 	if !validAssignment(assignment) || !validStudentID(student) {
-		http.Error(w, "invalid assignment or student", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("invalid assignment or student")
 	}
 
 	client, err := nbgraderSSHClient(poolID, userID)
 	if err != nil {
 		client, err = nbgraderSSHClientAny(poolID, userID)
 		if err != nil {
-			http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
-			return
+			return nil, huma.Error503ServiceUnavailable("cannot connect to instructor VM: " + err.Error())
 		}
 	}
 	defer client.Close()
@@ -553,8 +586,7 @@ func handleNbgraderSubmissionURL(w http.ResponseWriter, r *http.Request) {
 		strings.ReplaceAll(assignment, "'", "''"), strings.ReplaceAll(student, "'", "''"),
 	)
 	out, _ := runSSHOutput(client, dockerExec(q))
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"submission_id": strings.TrimSpace(out)})
+	return &AnyOutput{Body: map[string]string{"submission_id": strings.TrimSpace(out)}}, nil
 }
 
 // parseCSVGrades parses nbgrader CSV export (columns: student_id,assignment,score,max_score,needs_manual_grade)
@@ -625,12 +657,9 @@ func parseCSVGrades(csv, assignment string) []NbgraderGrade {
 
 // handleNbgraderJupyterURL returns the JupyterLab URL for the instructor VM.
 // GET /api/nbgrader/jupyter-url?pool_id=X&user_id=Y
-func handleNbgraderJupyterURL(w http.ResponseWriter, r *http.Request) {
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
+func handleNbgraderJupyterURL(poolID, userID string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" {
-		http.Error(w, "missing pool_id or user_id", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id or user_id")
 	}
 
 	var server models.Server
@@ -638,9 +667,7 @@ func handleNbgraderJupyterURL(w http.ResponseWriter, r *http.Request) {
 		Where("serverpool_id = ? AND user_id = ?", poolID, userID).
 		Order("created_at ASC").
 		First(&server).Error; err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"url": ""})
-		return
+		return &AnyOutput{Body: map[string]string{"url": ""}}, nil
 	}
 
 	ip := server.IP_Address
@@ -669,30 +696,20 @@ func handleNbgraderJupyterURL(w http.ResponseWriter, r *http.Request) {
 	// Use direct connection without proxy path since base_url is not configured
 	directURL := fmt.Sprintf("http://%s:%d", ip, port)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	return &AnyOutput{Body: map[string]string{
 		"url":       proxyURL + "/",
 		"directUrl": directURL,
-	})
+	}}, nil
 }
 
 // handleNbgraderRelease releases an assignment from the instructor VM to all student VMs.
 // POST /api/nbgrader/release?pool_id=X&user_id=Y&assignment=Z
-func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	poolID := r.URL.Query().Get("pool_id")
-	userID := r.URL.Query().Get("user_id")
-	assignment := r.URL.Query().Get("assignment")
+func handleNbgraderRelease(poolID, userID, assignment string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" || assignment == "" {
-		http.Error(w, "missing pool_id, user_id or assignment", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("missing pool_id, user_id or assignment")
 	}
 	if !validAssignment(assignment) {
-		http.Error(w, "invalid assignment name", http.StatusBadRequest)
-		return
+		return nil, huma.Error400BadRequest("invalid assignment name")
 	}
 
 	// 1. SSH on instructor VM → nbgrader release
@@ -702,8 +719,7 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 		instrClient, err = nbgraderSSHClientAny(poolID, userID)
 		if err != nil {
 			log.Printf("[nbgrader] release SSH error: %v", err)
-			http.Error(w, "cannot connect to instructor VM: "+err.Error(), http.StatusServiceUnavailable)
-			return
+			return nil, huma.Error503ServiceUnavailable("cannot connect to instructor VM: " + err.Error())
 		}
 	}
 	defer instrClient.Close()
@@ -724,13 +740,11 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 	fileListInner := fmt.Sprintf(`find %s -type f 2>/dev/null | sed "s|%s/||" || echo ""`, shellQuote(relDir), relDir)
 	fileList, err := runSSHOutput(instrClient, dockerExec(fileListInner))
 	if err != nil || fileList == "" {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		return &AnyOutput{Body: map[string]any{
 			"status":  "error",
 			"output":  releaseOut,
 			"message": "No files found in release directory",
-		})
-		return
+		}}, nil
 	}
 
 	// 3. Get instructor VM IP for SCP
@@ -744,15 +758,13 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 	}
 	signer, err := sshinject.LoadPrivateKey(keyPath)
 	if err != nil {
-		http.Error(w, "load SSH key: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, huma.Error500InternalServerError("load SSH key: " + err.Error())
 	}
 
 	// 5. Find all student VMs for this pool
 	var pool models.Serverpool
 	if err := config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).First(&pool).Error; err != nil {
-		http.Error(w, "pool not found", http.StatusNotFound)
-		return
+		return nil, huma.Error404NotFound("pool not found")
 	}
 
 	var list models.ListStudents
@@ -841,13 +853,12 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 	errorsSnapshot := append([]string{}, distErrors...)
 	mu.Unlock()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	return &AnyOutput{Body: map[string]any{
 		"status":      "ok",
 		"distributed": distributedSnapshot,
 		"errors":      errorsSnapshot,
 		"output":      releaseOut,
-	})
+	}}, nil
 }
 
 // scpReadFile reads a remote file via SSH/SCP and returns its content.
