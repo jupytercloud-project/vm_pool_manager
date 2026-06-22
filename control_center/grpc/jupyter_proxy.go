@@ -32,7 +32,6 @@ func handleJupyterProxy(w http.ResponseWriter, r *http.Request) {
 	poolID := decodePathSegment(parts[0])
 	userID := decodePathSegment(parts[1])
 
-
 	var server models.Server
 	if err := config.Database.
 		Where("serverpool_id = ? AND user_id = ?", poolID, userID).

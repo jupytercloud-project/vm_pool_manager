@@ -77,8 +77,8 @@ func TestProbeAppPort_ReachableButIdle(t *testing.T) {
 
 func TestMergeInventoryVM_Defaults(t *testing.T) {
 	srv := models.Server{
-		Name:      "test-server",
-		Status:    "ready",
+		Name:       "test-server",
+		Status:     "ready",
 		IP_Address: "10.0.0.1",
 	}
 	reg := models.VMInstance{}
@@ -106,9 +106,9 @@ func TestMergeInventoryVM_CacheOverride(t *testing.T) {
 func TestMergeInventoryVM_RegistrarOverrides(t *testing.T) {
 	srv := models.Server{Name: "reg-vm", Status: "starting", IP_Address: "10.0.0.3"}
 	reg := models.VMInstance{
-		Name:   "reg-vm",
-		Status: "ready",
-		IP:     "10.0.0.5",
+		Name:     "reg-vm",
+		Status:   "ready",
+		IP:       "10.0.0.5",
 		LastSeen: time.Now(),
 	}
 	vm := mergeInventoryVM(srv, reg)

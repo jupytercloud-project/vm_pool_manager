@@ -1,35 +1,43 @@
 package grpc
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"control_center/config"
 	"control_center/models"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
-// /api/pool/presets — presets de création de pool (staff, préfixe /api/pool/).
+// registerPoolPresetsHuma : /api/pool/presets — presets de création de pool (staff).
 //
 //	GET           → liste les presets de l'utilisateur
-//	POST {…}      → enregistre un preset
+//	POST {…}      → enregistre un preset (upsert par nom)
 //	DELETE ?id=N  → supprime un preset (le sien)
-func handlePoolPresets(w http.ResponseWriter, r *http.Request) {
-	id, _ := identityFrom(r.Context())
-	owner := id.Email
-
-	switch r.Method {
-	case http.MethodGet:
+func registerPoolPresetsHuma(api huma.API) {
+	// GET /api/pool/presets — liste les presets de l'utilisateur.
+	huma.Register(api, huma.Operation{
+		OperationID: "list-presets", Method: http.MethodGet, Path: "/api/pool/presets",
+		Summary: "Lister les presets de pool", Tags: []string{"pool"},
+	}, func(ctx context.Context, _ *struct{}) (*AnyOutput, error) {
+		id, _ := identityFrom(ctx)
 		var presets []models.PoolPreset
-		config.Database.Where("owner_email = ?", owner).Order("name").Find(&presets)
-		writeJSONMoodle(w, http.StatusOK, map[string]any{"presets": presets})
+		config.Database.Where("owner_email = ?", id.Email).Order("name").Find(&presets)
+		return &AnyOutput{Body: map[string]any{"presets": presets}}, nil
+	})
 
-	case http.MethodPost:
-		var p models.PoolPreset
-		if err := json.NewDecoder(r.Body).Decode(&p); err != nil || strings.TrimSpace(p.Name) == "" {
-			writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "nom du preset requis"})
-			return
+	// POST /api/pool/presets — enregistre un preset (upsert par (owner, name)).
+	huma.Register(api, huma.Operation{
+		OperationID: "save-preset", Method: http.MethodPost, Path: "/api/pool/presets",
+		Summary: "Enregistrer un preset de pool", Tags: []string{"pool"},
+	}, func(ctx context.Context, in *struct{ Body models.PoolPreset }) (*AnyOutput, error) {
+		id, _ := identityFrom(ctx)
+		owner := id.Email
+		p := in.Body
+		if strings.TrimSpace(p.Name) == "" {
+			return nil, huma.Error400BadRequest("nom du preset requis")
 		}
 		preset := models.PoolPreset{
 			OwnerEmail:  owner,
@@ -44,7 +52,6 @@ func handlePoolPresets(w http.ResponseWriter, r *http.Request) {
 			OffDays:     p.OffDays,
 			ComputeMode: p.ComputeMode,
 		}
-		// Upsert par (owner, name) : ré-enregistrer un même nom met à jour.
 		var existing models.PoolPreset
 		if config.Database.Where("owner_email = ? AND name = ?", owner, preset.Name).First(&existing).Error == nil {
 			preset.ID = existing.ID
@@ -53,18 +60,21 @@ func handlePoolPresets(w http.ResponseWriter, r *http.Request) {
 		} else {
 			config.Database.Create(&preset)
 		}
-		writeJSONMoodle(w, http.StatusOK, map[string]any{"ok": true, "preset": preset})
+		return &AnyOutput{Body: map[string]any{"ok": true, "preset": preset}}, nil
+	})
 
-	case http.MethodDelete:
-		pid, _ := strconv.Atoi(r.URL.Query().Get("id"))
-		if pid <= 0 {
-			writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "id requis"})
-			return
+	// DELETE /api/pool/presets?id=N — supprime un preset (le sien).
+	huma.Register(api, huma.Operation{
+		OperationID: "delete-preset", Method: http.MethodDelete, Path: "/api/pool/presets",
+		Summary: "Supprimer un preset de pool", Tags: []string{"pool"},
+	}, func(ctx context.Context, in *struct {
+		ID int `query:"id"`
+	}) (*AnyOutput, error) {
+		id, _ := identityFrom(ctx)
+		if in.ID <= 0 {
+			return nil, huma.Error400BadRequest("id requis")
 		}
-		config.Database.Where("id = ? AND owner_email = ?", pid, owner).Delete(&models.PoolPreset{})
-		writeJSONMoodle(w, http.StatusOK, map[string]any{"ok": true})
-
-	default:
-		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "méthode non autorisée"})
-	}
+		config.Database.Where("id = ? AND owner_email = ?", in.ID, id.Email).Delete(&models.PoolPreset{})
+		return &AnyOutput{Body: map[string]any{"ok": true}}, nil
+	})
 }

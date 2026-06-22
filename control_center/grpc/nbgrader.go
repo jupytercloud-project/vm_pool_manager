@@ -76,7 +76,7 @@ func shellQuote(s string) string {
 // validAssignment valide un nom d'assignment AVANT toute utilisation dans une commande
 // shell ou SQL. C'est la défense principale contre l'injection : seuls des caractères
 // sûrs sont autorisés (lettres, chiffres, espace, . _ -), pas de traversée de chemin.
-// Le quoting (shellQuote, '') reste appliqué en plus, mais aucun métacaractère ($, `,
+// Le quoting (shellQuote, ”) reste appliqué en plus, mais aucun métacaractère ($, `,
 // ", ', ;, |, \n…) ne peut atteindre une commande.
 func validAssignment(s string) bool {
 	if s == "" || len(s) > 128 || strings.Contains(s, "..") {
@@ -236,7 +236,9 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 	config.Database.Preload("Students").Where("pool_id = ?", pool.ID).First(&list)
 
 	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")
-	if keyPath == "" { keyPath = os.Getenv("SSH_KEY_PATH") }
+	if keyPath == "" {
+		keyPath = os.Getenv("SSH_KEY_PATH")
+	}
 	signer, err := sshinject.LoadPrivateKey(keyPath)
 	if err != nil {
 		http.Error(w, "load SSH key: "+err.Error(), http.StatusInternalServerError)
@@ -250,16 +252,22 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 
 	for _, student := range list.Students {
-		if student.IP == "" { continue }
+		if student.IP == "" {
+			continue
+		}
 		wg.Add(1)
 		go func(s models.Student) {
 			defer wg.Done()
 			// s.Name (= email) sert d'identifiant dans des chemins/commandes : on rejette
 			// tout nom non conforme plutôt que de l'interpoler.
-			if !validStudentID(s.Name) { return }
+			if !validStudentID(s.Name) {
+				return
+			}
 			cfg := sshinject.SshConfig("vmuser", signer)
 			studentClient, err := ssh.Dial("tcp", s.IP+":22", cfg)
-			if err != nil { return }
+			if err != nil {
+				return
+			}
 			defer studentClient.Close()
 
 			// Get files from student's submitted_copies/<assignment> or fallback to nbgrader/<assignment>
@@ -267,7 +275,9 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 			nbDir := fmt.Sprintf("/home/vmuser/nbgrader/%s", assignment)
 			fileListInner := fmt.Sprintf(`find %s -type f 2>/dev/null | sed "s|%s/||" || find %s -type f 2>/dev/null | sed "s|%s/||" || echo ""`, shellQuote(scDir), scDir, shellQuote(nbDir), nbDir)
 			fileList, err := runSSHOutput(studentClient, fileListInner)
-			if err != nil || fileList == "" { return }
+			if err != nil || fileList == "" {
+				return
+			}
 
 			// Create submitted directory on instructor
 			mkdirCmd := dockerExec("mkdir -p " + shellQuote(fmt.Sprintf("/home/jovyan/nbgrader/submitted/%s/%s", s.Name, assignment)))
@@ -280,15 +290,21 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 			filesFound := 0
 			for _, relFile := range strings.Split(strings.TrimSpace(fileList), "\n") {
 				relFile = strings.TrimSpace(relFile)
-				if relFile == "" { continue }
+				if relFile == "" {
+					continue
+				}
 				// Nom de fichier issu de la VM étudiant → potentiellement hostile : on l'ignore
 				// s'il contient une traversée ou un métacaractère shell.
-				if !validRelPath(relFile) { continue }
+				if !validRelPath(relFile) {
+					continue
+				}
 
 				// Read from student
 				catCmd := fmt.Sprintf("cat %s 2>/dev/null || cat %s", shellQuote(fmt.Sprintf("/home/vmuser/nbgrader/submitted_copies/%s/%s", assignment, relFile)), shellQuote(fmt.Sprintf("/home/vmuser/nbgrader/%s/%s", assignment, relFile)))
 				content, readErr := runSSHOutput(studentClient, catCmd)
-				if readErr != nil { continue }
+				if readErr != nil {
+					continue
+				}
 
 				// Ensure dest dir exists (dirname calculé côté Go, jamais via $(...) shell)
 				destPath := fmt.Sprintf("/home/vmuser/nbgrader/submitted/%s/%s/%s", s.Name, assignment, relFile)
@@ -304,7 +320,7 @@ func handleNbgraderCollect(w http.ResponseWriter, r *http.Request) {
 				// Create timestamp.txt
 				tsPath := fmt.Sprintf("/home/vmuser/nbgrader/submitted/%s/%s/timestamp.txt", s.Name, assignment)
 				scpWriteFile(instrClient, tsPath, []byte(timestamp))
-				
+
 				mu.Lock()
 				collected++
 				mu.Unlock()
@@ -466,7 +482,9 @@ func handleNbgraderSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")
-	if keyPath == "" { keyPath = os.Getenv("SSH_KEY_PATH") }
+	if keyPath == "" {
+		keyPath = os.Getenv("SSH_KEY_PATH")
+	}
 	signer, err := sshinject.LoadPrivateKey(keyPath)
 	if err != nil {
 		http.Error(w, "load SSH key: "+err.Error(), http.StatusInternalServerError)
@@ -543,7 +561,7 @@ func handleNbgraderSubmissionURL(w http.ResponseWriter, r *http.Request) {
 func parseCSVGrades(csv, assignment string) []NbgraderGrade {
 	var grades []NbgraderGrade
 	lines := strings.Split(csv, "\n")
-	
+
 	headerIdx := -1
 	for i, line := range lines {
 		if strings.HasPrefix(strings.TrimSpace(line), "assignment,") || strings.Contains(line, "student_id") {
@@ -647,10 +665,10 @@ func handleNbgraderJupyterURL(w http.ResponseWriter, r *http.Request) {
 	// Encode @ explicitly for Caddy proxy URL since Caddy rejects it in path segments
 	encodedUserID := strings.ReplaceAll(url.PathEscape(userID), "@", "%40")
 	proxyURL := fmt.Sprintf("/api/jupyter-proxy/%s/%s", poolID, encodedUserID)
-	
+
 	// Use direct connection without proxy path since base_url is not configured
 	directURL := fmt.Sprintf("http://%s:%d", ip, port)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"url":       proxyURL + "/",

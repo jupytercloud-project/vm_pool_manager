@@ -34,7 +34,12 @@ func identityFrom(ctx context.Context) (httpIdentity, bool) {
 // non-admin, on FORCE l'email de l'identité authentifiée (un email fourni par le client
 // est ignoré → pas d'IDOR). Un admin peut agir pour le compte d'un autre email.
 func effectiveEmail(r *http.Request, requested string) string {
-	id, ok := identityFrom(r.Context())
+	return effectiveEmailCtx(r.Context(), requested)
+}
+
+// effectiveEmailCtx : variante contexte (handlers HUMA reçoivent un context.Context).
+func effectiveEmailCtx(ctx context.Context, requested string) string {
+	id, ok := identityFrom(ctx)
 	if !ok {
 		return ""
 	}

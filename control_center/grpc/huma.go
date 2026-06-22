@@ -45,6 +45,11 @@ func registerHumaRoutes(api huma.API) {
 	registerAuditHuma(api)
 	registerAdminUsersHuma(api)
 	registerAdminConsoleHuma(api)
+	registerVMHuma(api)
+	registerPoolMetaHuma(api)
+	registerPoolBroadcastHuma(api)
+	registerPoolProgressHuma(api)
+	registerPoolPresetsHuma(api)
 
 	// GET /api/me — identité + rôle effectif de l'appelant.
 	huma.Register(api, huma.Operation{

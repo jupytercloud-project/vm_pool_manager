@@ -70,9 +70,9 @@ func TestParseCSVGrades(t *testing.T) {
 	csv := strings.Join([]string{
 		"assignment,duedate,timestamp,student_id,first_name,last_name,email,max_score,score,needs_manual_grade",
 		"TP1,,2026-01-01 10:00,alice@example.com,,,,26,18,False",
-		"TP1,,,bob@example.com,,,,26,0,False", // pas de timestamp => non rendu
+		"TP1,,,bob@example.com,,,,26,0,False",                    // pas de timestamp => non rendu
 		"TP1,,2026-01-01 11:00,charlie@example.com,,,,26,5,True", // à corriger
-		"TP2,,2026-01-01 10:00,alice@example.com,,,,10,9,False", // autre assignment => ignoré
+		"TP2,,2026-01-01 10:00,alice@example.com,,,,10,9,False",  // autre assignment => ignoré
 	}, "\n")
 
 	grades := parseCSVGrades(csv, "TP1")

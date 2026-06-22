@@ -2,8 +2,8 @@ package grpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +17,7 @@ import (
 	"control_center/internal/sshinject"
 	"control_center/models"
 
+	"github.com/danielgtaylor/huma/v2"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -56,113 +57,102 @@ func sanitizeSubdir(sub string) (string, bool) {
 	return sub, true
 }
 
-// POST /api/pool/broadcast-file — pousse un fichier (sujet, jeu de données…) dans le
-// home de chaque VM d'un pool, en une fois. Staff uniquement (préfixe /api/pool/).
+// registerPoolBroadcastHuma : POST /api/pool/broadcast-file — pousse un fichier (sujet,
+// jeu de données…) dans le home de chaque VM d'un pool, en une fois. Staff uniquement.
 // Corps JSON : {pool_id, user_id, filename, subdir?, content_b64}.
-func handlePoolBroadcastFile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
-		return
-	}
-	var req struct {
-		PoolID     string `json:"pool_id"`
-		UserID     string `json:"user_id"`
-		Filename   string `json:"filename"`
-		Subdir     string `json:"subdir"`
-		ContentB64 string `json:"content_b64"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "JSON invalide"})
-		return
-	}
-
-	filename, ok := sanitizeFilename(req.Filename)
-	if !ok {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "nom de fichier invalide"})
-		return
-	}
-	subdir, ok := sanitizeSubdir(req.Subdir)
-	if !ok {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "sous-dossier invalide"})
-		return
-	}
-	if strings.TrimSpace(req.PoolID) == "" {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "pool_id requis"})
-		return
-	}
-
-	content, err := base64.StdEncoding.DecodeString(req.ContentB64)
-	if err != nil {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "contenu (base64) invalide"})
-		return
-	}
-	if len(content) == 0 {
-		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "fichier vide"})
-		return
-	}
-	if len(content) > maxBroadcastBytes {
-		writeJSONMoodle(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "fichier trop volumineux (max 25 Mio)"})
-		return
-	}
-
-	// Le pool appartient à un enseignant : un non-admin ne peut diffuser que sur SES pools.
-	poolUserID := effectiveEmail(r, req.UserID)
-
-	var servers []models.Server
-	if err := config.Database.
-		Where("serverpool_id = ? AND user_id = ? AND ip_address <> ''", req.PoolID, poolUserID).
-		Find(&servers).Error; err != nil {
-		writeJSONMoodle(w, http.StatusInternalServerError, map[string]string{"error": "lecture des VMs échouée"})
-		return
-	}
-	if len(servers) == 0 {
-		writeJSONMoodle(w, http.StatusNotFound, map[string]string{"error": "aucune VM joignable dans ce pool"})
-		return
-	}
-
-	signer, err := sshinject.LoadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
-	if err != nil {
-		writeJSONMoodle(w, http.StatusInternalServerError, map[string]string{"error": "clé SSH indisponible"})
-		return
-	}
-
-	destDir := "/home/" + sshVMUser()
-	if subdir != "" {
-		destDir += "/" + subdir
-	}
-
-	type result struct {
-		name string
-		err  error
-	}
-	results := make([]result, len(servers))
-	var wg sync.WaitGroup
-	for i, srv := range servers {
-		wg.Add(1)
-		go func(i int, srv models.Server) {
-			defer wg.Done()
-			results[i] = result{name: srv.Name, err: pushFileToVM(srv.IP_Address, signer, destDir, filename, content)}
-		}(i, srv)
-	}
-	wg.Wait()
-
-	succeeded := 0
-	var failures []map[string]string
-	for _, res := range results {
-		if res.err == nil {
-			succeeded++
-		} else {
-			failures = append(failures, map[string]string{"vm": res.name, "error": res.err.Error()})
+func registerPoolBroadcastHuma(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "pool-broadcast-file", Method: http.MethodPost, Path: "/api/pool/broadcast-file",
+		Summary: "Diffuser un fichier vers toutes les VMs d'un pool", Tags: []string{"pool"},
+	}, func(ctx context.Context, in *struct {
+		Body struct {
+			PoolID     string `json:"pool_id"`
+			UserID     string `json:"user_id"`
+			Filename   string `json:"filename"`
+			Subdir     string `json:"subdir"`
+			ContentB64 string `json:"content_b64"`
 		}
-	}
+	}) (*AnyOutput, error) {
+		req := in.Body
+		filename, ok := sanitizeFilename(req.Filename)
+		if !ok {
+			return nil, huma.Error400BadRequest("nom de fichier invalide")
+		}
+		subdir, ok := sanitizeSubdir(req.Subdir)
+		if !ok {
+			return nil, huma.Error400BadRequest("sous-dossier invalide")
+		}
+		if strings.TrimSpace(req.PoolID) == "" {
+			return nil, huma.Error400BadRequest("pool_id requis")
+		}
 
-	writeJSONMoodle(w, http.StatusOK, map[string]any{
-		"ok":        true,
-		"total":     len(servers),
-		"succeeded": succeeded,
-		"failed":    len(servers) - succeeded,
-		"path":      destDir + "/" + filename,
-		"failures":  failures,
+		content, err := base64.StdEncoding.DecodeString(req.ContentB64)
+		if err != nil {
+			return nil, huma.Error400BadRequest("contenu (base64) invalide")
+		}
+		if len(content) == 0 {
+			return nil, huma.Error400BadRequest("fichier vide")
+		}
+		if len(content) > maxBroadcastBytes {
+			return nil, huma.NewError(http.StatusRequestEntityTooLarge, "fichier trop volumineux (max 25 Mio)")
+		}
+
+		// Le pool appartient à un enseignant : un non-admin ne peut diffuser que sur SES pools.
+		poolUserID := effectiveEmailCtx(ctx, req.UserID)
+
+		var servers []models.Server
+		if err := config.Database.
+			Where("serverpool_id = ? AND user_id = ? AND ip_address <> ''", req.PoolID, poolUserID).
+			Find(&servers).Error; err != nil {
+			return nil, huma.Error500InternalServerError("lecture des VMs échouée")
+		}
+		if len(servers) == 0 {
+			return nil, huma.Error404NotFound("aucune VM joignable dans ce pool")
+		}
+
+		signer, err := sshinject.LoadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
+		if err != nil {
+			return nil, huma.Error500InternalServerError("clé SSH indisponible")
+		}
+
+		destDir := "/home/" + sshVMUser()
+		if subdir != "" {
+			destDir += "/" + subdir
+		}
+
+		type result struct {
+			name string
+			err  error
+		}
+		results := make([]result, len(servers))
+		var wg sync.WaitGroup
+		for i, srv := range servers {
+			wg.Add(1)
+			go func(i int, srv models.Server) {
+				defer wg.Done()
+				results[i] = result{name: srv.Name, err: pushFileToVM(srv.IP_Address, signer, destDir, filename, content)}
+			}(i, srv)
+		}
+		wg.Wait()
+
+		succeeded := 0
+		var failures []map[string]string
+		for _, res := range results {
+			if res.err == nil {
+				succeeded++
+			} else {
+				failures = append(failures, map[string]string{"vm": res.name, "error": res.err.Error()})
+			}
+		}
+
+		return &AnyOutput{Body: map[string]any{
+			"ok":        true,
+			"total":     len(servers),
+			"succeeded": succeeded,
+			"failed":    len(servers) - succeeded,
+			"path":      destDir + "/" + filename,
+			"failures":  failures,
+		}}, nil
 	})
 }
 
