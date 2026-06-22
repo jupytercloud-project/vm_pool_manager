@@ -5,25 +5,46 @@ import (
 	"context"
 	"log"
 
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 )
 
-// GetAllImages lists images from the INFRA project
+// GetAllImages liste les images des DEUX projets : infra (publiques/partagées) ET étudiant
+// (qui contient les snapshots privés jupyter-snapshot-* / jupyterhub utilisés pour les pools).
+// Fusion dédupliquée par ID (une image partagée peut apparaître dans les deux projets).
 func GetAllImages(ctx context.Context) []images.Image {
-	allPages, err := images.List(models.InfraImageClient, images.ListOpts{}).AllPages(ctx)
-	if err != nil {
-		return nil
+	seen := map[string]bool{}
+	var merged []images.Image
+
+	collect := func(client *gophercloud.ServiceClient) {
+		if client == nil {
+			return
+		}
+		pages, err := images.List(client, images.ListOpts{}).AllPages(ctx)
+		if err != nil {
+			log.Printf("[images] liste échouée: %v", err)
+			return
+		}
+		imgs, err := images.ExtractImages(pages)
+		if err != nil {
+			log.Printf("[images] extraction échouée: %v", err)
+			return
+		}
+		for _, img := range imgs {
+			if seen[img.ID] {
+				continue
+			}
+			seen[img.ID] = true
+			merged = append(merged, img)
+		}
 	}
 
-	allImages, err := images.ExtractImages(allPages)
-	if err != nil {
-		return nil
-	}
-
-	return allImages
+	collect(models.InfraImageClient) // images publiques/partagées (projet infra)
+	collect(models.ImageClient)      // snapshots privés (projet étudiant)
+	return merged
 }
 
 // GetallFlavors lists flavors from the INFRA project
