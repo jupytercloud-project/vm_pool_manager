@@ -15,6 +15,9 @@
   let script = $state('#!/usr/bin/env bash\n');
   let autoStop = $state(true);
   let priority = $state(0);
+  let sweepMode = $state(false);
+  let paramName = $state('PARAM');
+  let paramValues = $state('');
   let submitting = $state(false);
   let submitMsg = $state('');
   let jobs = $state<Job[]>([]);
@@ -32,10 +35,20 @@
     if (!poolId || !script.trim() || submitting) return;
     submitting = true; submitMsg = '';
     try {
-      const r = await apiFetch('/api/jobs', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), pool_id: poolId, script, priority, auto_stop: autoStop }),
-      });
+      let r;
+      if (sweepMode) {
+        const values = paramValues.split(/[\n,]/).map((v) => v.trim()).filter(Boolean);
+        if (values.length === 0) { submitMsg = $_('jobs.sweepNoValues'); submitting = false; return; }
+        r = await apiFetch('/api/jobs/sweep', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), pool_id: poolId, script, param_name: paramName.trim(), values, priority, auto_stop: autoStop }),
+        });
+      } else {
+        r = await apiFetch('/api/jobs', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), pool_id: poolId, script, priority, auto_stop: autoStop }),
+        });
+      }
       const d = await r.json();
       if (!r.ok || !d.ok) submitMsg = $_('jobs.submitError') + (d.error ?? '');
       else { submitMsg = ''; name = ''; await loadJobs(); }
@@ -95,7 +108,23 @@
       <label class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
         <input type="checkbox" bind:checked={autoStop} class="w-4 h-4 accent-primary-700" /> {$_('jobs.autoStop')}
       </label>
+      <label class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+        <input type="checkbox" bind:checked={sweepMode} class="w-4 h-4 accent-primary-700" /> {$_('jobs.sweepMode')}
+      </label>
     </div>
+    {#if sweepMode}
+      <div class="flex flex-wrap items-end gap-3 p-3 rounded-lg bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30">
+        <div>
+          <label class="section-label block mb-1" for="sweep-param">{$_('jobs.paramName')}</label>
+          <input id="sweep-param" bind:value={paramName} class="field text-sm w-40" />
+        </div>
+        <div class="flex-1 min-w-[14rem]">
+          <label class="section-label block mb-1" for="sweep-values">{$_('jobs.paramValues')}</label>
+          <input id="sweep-values" bind:value={paramValues} placeholder={$_('jobs.paramValuesPlaceholder')} class="field text-sm w-full" />
+        </div>
+        <p class="text-xs text-neutral-500 dark:text-neutral-400 basis-full">{$_('jobs.sweepHint').replace('{param}', paramName || 'PARAM')}</p>
+      </div>
+    {/if}
     <textarea bind:value={script} rows="6" spellcheck="false"
       class="field font-mono text-xs resize-y w-full" placeholder="#!/usr/bin/env bash"></textarea>
     <div class="flex items-center justify-between">

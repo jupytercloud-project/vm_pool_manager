@@ -81,6 +81,74 @@ func handleBatchJobs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// POST /api/jobs/sweep — balayage de paramètres (B3) : crée un job par valeur,
+// en injectant la valeur comme variable d'environnement en tête de script.
+// {name, pool_id, script, param_name, values[], priority, auto_stop}
+func handleBatchJobSweep(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
+		return
+	}
+	id, _ := identityFrom(r.Context())
+	var req struct {
+		Name      string   `json:"name"`
+		PoolID    string   `json:"pool_id"`
+		Script    string   `json:"script"`
+		ParamName string   `json:"param_name"`
+		Values    []string `json:"values"`
+		Priority  int      `json:"priority"`
+		AutoStop  *bool    `json:"auto_stop"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "JSON invalide"})
+		return
+	}
+	param := strings.TrimSpace(req.ParamName)
+	if param == "" || !safeSegment.MatchString(param) {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "nom de paramètre invalide (lettres/chiffres/_-.)"})
+		return
+	}
+	if strings.TrimSpace(req.PoolID) == "" || strings.TrimSpace(req.Script) == "" || len(req.Values) == 0 {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "pool_id, script et au moins une valeur requis"})
+		return
+	}
+	if len(req.Values) > 100 {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "100 valeurs maximum"})
+		return
+	}
+	autoStop := true
+	if req.AutoStop != nil {
+		autoStop = *req.AutoStop
+	}
+	prio := req.Priority
+	if prio < -1 {
+		prio = -1
+	} else if prio > 1 {
+		prio = 1
+	}
+	base := strings.TrimSpace(req.Name)
+	if base == "" {
+		base = "sweep"
+	}
+	created := 0
+	for _, v := range req.Values {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			continue
+		}
+		// Injecte le paramètre en tête de script (échappé via single-quote bash).
+		script := param + "='" + strings.ReplaceAll(v, "'", `'\''`) + "'\nexport " + param + "\n" + req.Script
+		job := models.BatchJob{
+			OwnerEmail: id.Email, Name: base + " [" + param + "=" + v + "]", PoolID: strings.TrimSpace(req.PoolID),
+			Script: script, Priority: prio, Status: "queued", AutoStop: autoStop,
+		}
+		if config.Database.Create(&job).Error == nil {
+			created++
+		}
+	}
+	writeJSONMoodle(w, http.StatusOK, map[string]any{"ok": true, "created": created})
+}
+
 // POST /api/jobs/cancel?id=N — annule un job encore en file d'attente.
 func handleBatchJobCancel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
