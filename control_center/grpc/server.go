@@ -49,23 +49,6 @@ type UserServer struct {
 	DB *gorm.DB
 }
 
-func handleInventory(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	result, err := buildInventory()
-	if err != nil {
-		log.Printf("inventory error: %v", err)
-		http.Error(w, "database error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
-}
-
 func handleVMActivity(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -157,7 +140,6 @@ func Start_grpc(ctx context.Context) {
 	// les endpoints migrés sont enregistrés ici ; les autres restent en mux.HandleFunc.
 	newHumaAPI(mux)
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/api/inventory", handleInventory)
 	mux.HandleFunc("/api/vm-activity", handleVMActivity)
 	mux.HandleFunc("/api/guac-url", handleGuacURL)
 	mux.HandleFunc("/api/app-status", handleAppStatus)
@@ -205,7 +187,6 @@ func Start_grpc(ctx context.Context) {
 	mux.HandleFunc("/api/pool/progress", handlePoolProgress)
 	mux.HandleFunc("/api/pool/presets", handlePoolPresets)
 	mux.HandleFunc("/api/usage", handleUsage)
-	mux.HandleFunc("/api/pricing", handlePricing)
 	mux.HandleFunc("/api/storage", handleStorage)
 	mux.HandleFunc("/api/jobs", handleBatchJobs)
 	mux.HandleFunc("/api/jobs/cancel", handleBatchJobCancel)

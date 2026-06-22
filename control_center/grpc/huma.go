@@ -44,6 +44,50 @@ func registerHumaRoutes(api huma.API) {
 		out.Body.Via = id.Via
 		return out, nil
 	})
+
+	// GET /api/inventory — inventaire des VMs groupées par pool.
+	huma.Register(api, huma.Operation{
+		OperationID: "get-inventory",
+		Method:      http.MethodGet,
+		Path:        "/api/inventory",
+		Summary:     "Inventaire des VMs par pool",
+		Tags:        []string{"inventory"},
+	}, func(ctx context.Context, _ *struct{}) (*InventoryOutput, error) {
+		pools, err := buildInventory()
+		if err != nil {
+			return nil, huma.Error500InternalServerError("inventaire indisponible", err)
+		}
+		return &InventoryOutput{Body: pools}, nil
+	})
+
+	// GET /api/pricing — tarifs unitaires (estimateur de coût).
+	huma.Register(api, huma.Operation{
+		OperationID: "get-pricing",
+		Method:      http.MethodGet,
+		Path:        "/api/pricing",
+		Summary:     "Tarifs unitaires (vCPU·h, Go·h)",
+		Tags:        []string{"usage"},
+	}, func(ctx context.Context, _ *struct{}) (*PricingOutput, error) {
+		out := &PricingOutput{}
+		out.Body.Currency = priceCurrency()
+		out.Body.VCPUHour = priceVCPUHour()
+		out.Body.GBHour = priceGBHour()
+		return out, nil
+	})
+}
+
+// InventoryOutput : réponse de GET /api/inventory ([]InventoryPool, forme inchangée).
+type InventoryOutput struct {
+	Body []InventoryPool
+}
+
+// PricingOutput : réponse de GET /api/pricing.
+type PricingOutput struct {
+	Body struct {
+		Currency string  `json:"currency"`
+		VCPUHour float64 `json:"vcpu_hour"`
+		GBHour   float64 `json:"gb_hour"`
+	}
 }
 
 // MeOutput : réponse de GET /api/me (forme JSON identique à l'ancien handler).

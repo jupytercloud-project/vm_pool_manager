@@ -37,14 +37,7 @@ func vmCost(seconds int64, vcpus, ramMB int) (vmHours, vcpuHours, gbHours, cost 
 	return
 }
 
-// GET /api/pricing — tarifs unitaires (pour l'estimateur de coût). Staff uniquement.
-func handlePricing(w http.ResponseWriter, r *http.Request) {
-	writeJSONMoodle(w, http.StatusOK, map[string]any{
-		"currency":  priceCurrency(),
-		"vcpu_hour": priceVCPUHour(),
-		"gb_hour":   priceGBHour(),
-	})
-}
+// GET /api/pricing est servi par HUMA (registerHumaRoutes dans huma.go).
 
 // GET /api/usage?month=YYYY-MM&by=user|pool — consommation et coût du mois (F1/F4).
 // Staff uniquement ; un non-admin ne voit que ses propres pools.
