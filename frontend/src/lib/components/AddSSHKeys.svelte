@@ -9,6 +9,7 @@
   import { create } from '@bufbuild/protobuf';
   import { authStore } from '$lib/store';
   import { _ } from 'svelte-i18n';
+  import { displayName } from '$lib/displayName';
 
   let {
     open = $bindable(),
@@ -333,7 +334,7 @@
               style="animation-delay:{i*0.03}s"
             >
               <div>
-                <p class="text-sm font-semibold text-neutral-900">{user.name}</p>
+                <p class="text-sm font-semibold text-neutral-900">{displayName(user.name)}</p>
                 {#if user.ip}
                   <p class="text-xs text-neutral-500 font-mono mt-0.5">{user.ip}</p>
                 {/if}
@@ -512,7 +513,8 @@
               {#each xcoursMembers as m}
                 <label class="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer transition-colors {xcoursSelected.has(m.username) ? 'border-primary-300 bg-primary-50' : 'border-neutral-200 bg-neutral-50'}">
                   <input type="checkbox" checked={xcoursSelected.has(m.username)} onchange={() => toggleXCoursStudent(m.username)} class="w-4 h-4 accent-primary-700" />
-                  <span class="text-sm font-mono text-neutral-800">{m.username}</span>
+                  <span class="text-sm text-neutral-800">{displayName(m.username)}</span>
+                  <span class="text-xs text-neutral-400 font-mono ml-auto truncate">{m.username}</span>
                 </label>
               {/each}
             </div>

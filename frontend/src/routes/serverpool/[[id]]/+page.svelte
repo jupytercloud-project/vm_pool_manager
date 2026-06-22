@@ -7,6 +7,7 @@ import { apiFetch } from '$lib/api';
 import type { ServerPool, Server, CreatePoolRequest, DeletePoolRequest, RebuildServerRequest, Image } from '$lib/type';
 import { authStore, serverPools, servers, configs, images, flavors, networks } from '$lib/store';
 import { simpleMode } from '$lib/store/uiStore';
+import { displayName } from '$lib/displayName';
 import { onMount } from 'svelte';
 import { page } from '$app/state';
 import { _ } from 'svelte-i18n';
@@ -564,7 +565,7 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
                       {#each progressRows as row}
                         <tr>
                           <td class="px-3 py-2">
-                            <span class="font-medium text-neutral-800 dark:text-neutral-200">{row.name}</span>
+                            <span class="font-medium text-neutral-800 dark:text-neutral-200">{displayName(row.name)}</span>
                             {#if row.email}<span class="text-xs text-neutral-400 ml-1">{row.email}</span>{/if}
                           </td>
                           <td class="px-3 py-2">

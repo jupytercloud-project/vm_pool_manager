@@ -5,6 +5,7 @@
   import { authStore, flavors } from '$lib/store';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import { simpleMode, refreshInterval } from '$lib/store/uiStore';
+  import { displayName } from '$lib/displayName';
   import { browser } from '$app/environment';
 
   interface VMInstance {
@@ -381,7 +382,7 @@
           <div class="divide-y divide-neutral-50">
             {#each pool.vms as vm}
               {@const connected = vm.activity_status !== 'idle'}
-              {@const label = vm.student ? vm.student : connected ? $_('inventory.personalConnectionInstructor') : vm.is_instructor ? $_('inventory.instructorVmReserved') : vm.status === 'ready' ? $_('inventory.freeMachine') : $_('inventory.startingUp')}
+              {@const label = vm.student ? displayName(vm.student) : connected ? $_('inventory.personalConnectionInstructor') : vm.is_instructor ? $_('inventory.instructorVmReserved') : vm.status === 'ready' ? $_('inventory.freeMachine') : $_('inventory.startingUp')}
               <div class="flex items-center justify-between gap-3 px-5 py-3 transition-colors {connected ? 'bg-green-50/70 dark:bg-green-900/10' : 'hover:bg-neutral-50 dark:hover:bg-white/[0.03]'}">
                 <div class="flex items-center gap-3 min-w-0">
                   <!-- Avatar : initiale de l'étudiant, ou icône ; vert vif si connecté -->
@@ -568,7 +569,7 @@
                       </div>
                       <div class="flex flex-col gap-0.5 min-w-0">
                         {#if vm.student}
-                          <span class="text-xs font-semibold truncate {connected ? 'text-green-700 dark:text-green-400' : 'text-neutral-700 dark:text-neutral-300'}">{vm.student}</span>
+                          <span class="text-xs font-semibold truncate {connected ? 'text-green-700 dark:text-green-400' : 'text-neutral-700 dark:text-neutral-300'}">{displayName(vm.student)}</span>
                         {:else if vm.is_instructor}
                           <span class="text-xs font-semibold text-primary-600 dark:text-primary-400">{connected ? $_('inventory.personalConnection') : $_('inventory.instructorVm')}</span>
                         {:else if connected}
