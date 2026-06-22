@@ -12,6 +12,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/plugin/opentelemetry/tracing"
 
 	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/utils"
@@ -30,6 +31,10 @@ func Start_DB() {
 	if err != nil {
 		log.Fatalf("failed to connect to SQLite database: %v", err)
 
+	}
+	// Tracing OTel des requêtes SQL (no-op si OTel désactivé).
+	if err := Database.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
+		log.Printf("[otel] plugin GORM: %v", err)
 	}
 
 	Database.AutoMigrate(&models.User{},

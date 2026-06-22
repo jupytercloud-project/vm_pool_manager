@@ -4,6 +4,7 @@ import (
 	"PoolManagerVM/backend/config"
 	ss "PoolManagerVM/backend/grpc"
 	"PoolManagerVM/backend/internal"
+	"PoolManagerVM/backend/internal/telemetry"
 	"PoolManagerVM/backend/internal/worker"
 	"PoolManagerVM/backend/models"
 	"context"
@@ -12,12 +13,20 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func main() {
 
 	// loading .env
 	config.LoadEnvConfig()
+
+	// OpenTelemetry (traces + métriques + logs OTLP). No-op si non configuré.
+	otelShutdown, err := telemetry.Setup(context.Background(), "openstack-microservice")
+	if err != nil {
+		log.Printf("[otel] init: %v", err)
+	}
+
 	if err := models.CreateParams(); err != nil {
 		log.Fatalf("Failed to initialize OpenStack clients: %v", err)
 	}
@@ -45,6 +54,14 @@ func main() {
 	log.Println("Shutdown signal received")
 	cancel()
 	wg.Wait()
+
+	if otelShutdown != nil {
+		shCtx, shCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := otelShutdown(shCtx); err != nil {
+			log.Printf("[otel] shutdown: %v", err)
+		}
+		shCancel()
+	}
 
 	log.Println("Program exited cleanly")
 }

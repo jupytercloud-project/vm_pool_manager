@@ -17,6 +17,7 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/utils/v2/openstack/clientconfig"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
@@ -34,7 +35,10 @@ func Start_grpc() {
 		log.Fatalf("Error listening: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		// Traces/métriques gRPC OTel (no-op si la télémétrie est désactivée).
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
 
 	pb.RegisterPoolManagerServer(grpcServer, &ServerMicroOpenstack{
 		DB: config.Database,

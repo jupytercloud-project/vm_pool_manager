@@ -11,6 +11,7 @@ import (
 	"control_center/pb"
 
 	"github.com/danielgtaylor/huma/v2"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -37,14 +38,14 @@ func registerVMHuma(api huma.API) {
 		}
 		id, _ := identityFrom(ctx)
 
-		conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
 		if err != nil {
 			return nil, huma.Error502BadGateway("microservice injoignable")
 		}
 		defer conn.Close()
 		client := pb.NewPoolManagerClient(conn)
 
-		rctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		rctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 		resp, err := client.SendRessources(rctx, &pb.RessourceRequest{
 			User:   id.Email,
@@ -95,14 +96,14 @@ func registerVMHuma(api huma.API) {
 			return nil, huma.Error404NotFound("VM introuvable")
 		}
 
-		conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
 		if err != nil {
 			return nil, huma.Error502BadGateway("microservice injoignable")
 		}
 		defer conn.Close()
 		client := pb.NewPoolManagerClient(conn)
 
-		rctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		rctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 		resp, err := client.SendRessources(rctx, &pb.RessourceRequest{
 			User:   server.UserID,
@@ -139,14 +140,14 @@ func registerVMHuma(api huma.API) {
 			return nil, huma.Error404NotFound("VM introuvable")
 		}
 
-		conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
 		if err != nil {
 			return nil, huma.Error502BadGateway("microservice injoignable")
 		}
 		defer conn.Close()
 		client := pb.NewPoolManagerClient(conn)
 
-		rctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		rctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 		resp, err := client.SendRessources(rctx, &pb.RessourceRequest{
 			User:   server.UserID,
