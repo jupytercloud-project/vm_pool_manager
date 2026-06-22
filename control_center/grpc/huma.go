@@ -20,6 +20,10 @@ func newHumaAPI(mux *http.ServeMux) huma.API {
 	config := huma.DefaultConfig("CloudPoolManager API", "1.0.0")
 	config.OpenAPIPath = "/api/openapi"
 	config.DocsPath = "/api/docs"
+	// Champs de body optionnels par défaut : on reproduit le json.Decode permissif
+	// d'origine (la validation « requis » reste faite à la main dans chaque handler,
+	// avec les messages 400 historiques). Sinon HUMA rendrait tout champ obligatoire.
+	config.FieldsOptionalByDefault = true
 	api := humago.New(mux, config)
 	registerHumaRoutes(api)
 	return api
