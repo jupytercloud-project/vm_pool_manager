@@ -117,6 +117,14 @@ func finishJob(jobID uint, status string, code int, log, vmName string) {
 	config.Database.Model(&models.BatchJob{}).Where("id = ?", jobID).Updates(map[string]any{
 		"status": status, "exit_code": code, "log": log, "vm_name": vmName, "finished_at": now,
 	})
+	// Notification de fin (B5) : trace dans le journal d'audit (visible dans la cloche).
+	var j models.BatchJob
+	if config.Database.Select("owner_email", "name").Where("id = ?", jobID).First(&j).Error == nil {
+		config.Database.Create(&models.AuditLog{
+			Actor: j.OwnerEmail, Role: "system", Method: "JOB",
+			Path: "/jobs/" + status + "/" + j.Name, IP: "-",
+		})
+	}
 }
 
 // sshReachable teste rapidement l'ouverture du port SSH.

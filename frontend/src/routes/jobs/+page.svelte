@@ -46,6 +46,9 @@
   async function cancel(id: number) {
     try { await apiFetch(`/api/jobs/cancel?id=${id}`, { method: 'POST' }); await loadJobs(); } catch { /* ignore */ }
   }
+  async function rerun(id: number) {
+    try { await apiFetch(`/api/jobs/rerun?id=${id}`, { method: 'POST' }); await loadJobs(); } catch { /* ignore */ }
+  }
 
   function badgeClass(s: string): string {
     switch (s) {
@@ -118,6 +121,9 @@
               <div class="flex-1"></div>
               {#if j.status === 'queued'}
                 <button onclick={() => cancel(j.id)} class="text-xs text-red-600 hover:underline">{$_('jobs.cancel')}</button>
+              {/if}
+              {#if j.status === 'succeeded' || j.status === 'failed' || j.status === 'canceled'}
+                <button onclick={() => rerun(j.id)} class="text-xs text-primary-600 hover:underline">{$_('jobs.rerun')}</button>
               {/if}
               {#if j.log}
                 <button onclick={() => (openLog = openLog === j.id ? null : j.id)} class="text-xs text-primary-600 hover:underline">{openLog === j.id ? $_('jobs.hideLog') : $_('jobs.showLog')}</button>

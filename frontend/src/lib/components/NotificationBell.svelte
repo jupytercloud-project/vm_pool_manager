@@ -28,6 +28,7 @@
     if (p === '/api/moodle/attrib-vm') return $_('notif.attribVm');
     if (p === '/api/moodle/push-grades') return $_('notif.pushGrades');
     if (p === '/api/moodle/ssh-key') return $_('notif.sshKey');
+    if (p.startsWith('/jobs/')) return $_('notif.jobDone') + ' (' + (p.split('/')[2] || '') + ')';
     if (p.startsWith('/api/nbgrader/')) return $_('notif.nbgrader') + ' (' + (p.split('/').pop() || '') + ')';
     if (l.method === 'DELETE') return $_('notif.deletion');
     if (l.method === 'POST' || l.method === 'PUT' || l.method === 'PATCH') return $_('notif.genericChange');

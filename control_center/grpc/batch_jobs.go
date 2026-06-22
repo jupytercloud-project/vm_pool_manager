@@ -104,3 +104,36 @@ func handleBatchJobCancel(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSONMoodle(w, http.StatusOK, map[string]any{"ok": true})
 }
+
+// POST /api/jobs/rerun?id=N — relance un job terminé (reprise) : recrée un job
+// en file avec les mêmes paramètres (script, pool, priorité, auto-stop).
+func handleBatchJobRerun(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONMoodle(w, http.StatusMethodNotAllowed, map[string]string{"error": "POST requis"})
+		return
+	}
+	id, _ := identityFrom(r.Context())
+	jid, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	if jid <= 0 {
+		writeJSONMoodle(w, http.StatusBadRequest, map[string]string{"error": "id requis"})
+		return
+	}
+	var src models.BatchJob
+	q := config.Database.Where("id = ?", jid)
+	if id.Role != RoleAdmin {
+		q = q.Where("owner_email = ?", id.Email)
+	}
+	if err := q.First(&src).Error; err != nil {
+		writeJSONMoodle(w, http.StatusNotFound, map[string]string{"error": "job introuvable"})
+		return
+	}
+	job := models.BatchJob{
+		OwnerEmail: src.OwnerEmail, Name: src.Name, PoolID: src.PoolID,
+		Script: src.Script, Priority: src.Priority, AutoStop: src.AutoStop, Status: "queued",
+	}
+	if err := config.Database.Create(&job).Error; err != nil {
+		writeJSONMoodle(w, http.StatusInternalServerError, map[string]string{"error": "relance échouée"})
+		return
+	}
+	writeJSONMoodle(w, http.StatusOK, map[string]any{"ok": true, "job": job})
+}
