@@ -15,8 +15,14 @@
         }
     }
 
-    # ---------- Jupyter proxy ----------
+    # ---------- Jupyter / VS Code proxies ----------
     handle /api/jupyter-proxy/* {
+        reverse_proxy localhost:50055 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    handle /api/vscode-proxy/* {
         reverse_proxy localhost:50055 {
             header_up X-Forwarded-Proto https
         }

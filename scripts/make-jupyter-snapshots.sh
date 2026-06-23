@@ -86,14 +86,20 @@ c.CourseDirectory.root = '/home/jovyan/nbgrader'
 c.Exchange.root = '/home/jovyan/nbgrader/exchange'
 NBCFG
 chown -R 1000:1000 /home/vmuser/nbgrader /home/vmuser/nbgrader_config.py
+# base_url Jupyter calé sur l'UUID de la VM → sert derrière /api/jupyter-proxy/{uuid}/
+# (le control center proxifie sous ce préfixe ; sans base_url Jupyter répondrait 404).
+# Récupéré sans jq (pas garanti sur l'hôte).
+VM_UUID=$(curl -s http://169.254.169.254/openstack/latest/meta_data.json | tr ',' '\n' | grep -m1 '"uuid"' | sed -E 's/.*"uuid"[: ]+"([^"]+)".*/\1/')
+JBASE="/api/jupyter-proxy/${VM_UUID}/"
 sudo docker rm -f jupyter 2>/dev/null || true
 sudo docker run -d --restart=always --name jupyter \
   -p 8888:8888 \
+  -e JBASE="$JBASE" \
   -v /home/vmuser/nbgrader:/home/jovyan/nbgrader \
   -v /home/vmuser/nbgrader_config.py:/home/jovyan/nbgrader_config.py \
   -v /home/vmuser:/home/jovyan/work \
   ${nbgrader_tag} \
-  bash -lc 'pip install -U packaging >/dev/null 2>&1 || true; exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token="" --ServerApp.password="" --ServerApp.allow_origin="*"'
+  bash -lc 'pip install -U packaging >/dev/null 2>&1 || true; exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token="" --ServerApp.password="" --ServerApp.allow_origin="*" --ServerApp.allow_remote_access=True --ServerApp.disable_check_xsrf=True --ServerApp.base_url="$JBASE"'
 # VS Code (code-server) à côté de Jupyter, sur le port 8080, montant le même
 # /home/vmuser -> mêmes fichiers que Jupyter (qui le voit dans /home/jovyan/work).
 # --auth none : cohérent avec Jupyter lancé sans token (contrôle = frontière réseau).
@@ -107,6 +113,17 @@ sudo docker run -d --restart=always --name codeserver \
   -v /home/vmuser:/home/coder/project \
   registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/codercom/code-server:latest \
   -lc 'code-server --install-extension ms-python.python --install-extension ms-toolsai.jupyter || true; exec code-server --auth none --cert --bind-addr 0.0.0.0:8443 /home/coder/project'
+# 2ᵉ instance code-server EN LECTURE SEULE sur 8444, pour le partage « lecture » entre
+# élèves (le proxy y route les invités en mode read). Le projet est monté ':ro' : c'est
+# un verrou AU NIVEAU OS — ni l'éditeur ni le terminal ne peuvent modifier les fichiers,
+# contrairement à un simple réglage VS Code contournable. files.readonlyInclude rend en
+# plus l'éditeur explicitement en lecture seule (meilleure UX).
+sudo docker rm -f codeserver-ro 2>/dev/null || true
+sudo docker run -d --restart=always --name codeserver-ro \
+  --network host --entrypoint /bin/bash \
+  -v /home/vmuser:/home/coder/project:ro \
+  registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/codercom/code-server:latest \
+  -lc 'mkdir -p ~/.local/share/code-server/User; printf "{\"files.readonlyInclude\":{\"**/*\":true}}" > ~/.local/share/code-server/User/settings.json; exec code-server --auth none --cert --bind-addr 0.0.0.0:8444 /home/coder/project'
 SCRIPT
 )
   if [ -n "$POSTGRES_DSN" ] && command -v psql &>/dev/null; then

@@ -1,12 +1,7 @@
 package grpc
 
 import (
-	"control_center/config"
-	"control_center/models"
-	"fmt"
-	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 )
@@ -18,61 +13,36 @@ func decodePathSegment(s string) string {
 	return s
 }
 
-// handleJupyterProxy proxies all requests (HTTP + WebSocket) to a JupyterLab VM.
-// URL format: /api/jupyter-proxy/{pool_id}/{user_id}/{...rest}
+// appProxyHandler renvoie le handler de reverse-proxy applicatif pour un type donné
+// ("jupyter" → JupyterLab 8888, "vscode" → code-server 8443/8444).
 //
-// This solves the mixed-content problem: the browser uses HTTPS (via Caddy),
-// which forwards to the control center, which forwards HTTP to the private VM.
-func handleJupyterProxy(w http.ResponseWriter, r *http.Request) {
-	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/api/jupyter-proxy/"), "/", 3)
-	if len(parts) < 2 {
-		http.Error(w, "usage: /api/jupyter-proxy/{pool_id}/{user_id}/...", http.StatusBadRequest)
-		return
+// URL : /api/{kind}-proxy/{vm_uuid}/{...rest}
+//
+// Le segment de chemin est l'UUID de la VM (URL-safe) — c'est aussi le base_url calé
+// côté VM au boot. L'accès n'est PAS ouvert par le simple fait d'être authentifié : il
+// exige une ProxySession valide (cookie HttpOnly posé par POST /api/proxy-session après
+// contrôle d'accès + résolution de la VM côté serveur). C'est ce qui permet à l'iframe,
+// aux liens et aux WebSockets de passer sans porter le Bearer token JS, tout en gardant
+// les VMs non exposées et l'accès maîtrisé (rôle ou grant).
+func appProxyHandler(kind string) http.HandlerFunc {
+	prefix := "/api/" + kind + "-proxy/"
+	return func(w http.ResponseWriter, r *http.Request) {
+		rest := strings.TrimPrefix(r.URL.Path, prefix)
+		vmID := decodePathSegment(rest)
+		if i := strings.IndexByte(vmID, '/'); i >= 0 {
+			vmID = vmID[:i]
+		}
+		if vmID == "" {
+			http.Error(w, "usage: "+prefix+"{vm_uuid}/...", http.StatusBadRequest)
+			return
+		}
+
+		sess, err := lookupProxySession(r, kind, vmID)
+		if err != nil {
+			// 401 → le front sait qu'il doit (re)demander une session via /api/proxy-session.
+			http.Error(w, "session de proxy requise: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+		serveAppProxy(w, r, sess)
 	}
-	poolID := decodePathSegment(parts[0])
-	userID := decodePathSegment(parts[1])
-
-	var server models.Server
-	if err := config.Database.
-		Where("serverpool_id = ? AND user_id = ?", poolID, userID).
-		First(&server).Error; err != nil {
-		http.Error(w, "VM not found for pool "+poolID, http.StatusNotFound)
-		return
-	}
-	if server.IP_Address == "" {
-		http.Error(w, "VM has no IP address yet", http.StatusServiceUnavailable)
-		return
-	}
-
-	var pool models.Serverpool
-	port := 8888
-	if err := config.Database.Where("serverpool_id = ? AND user_id = ?", poolID, userID).First(&pool).Error; err == nil && pool.AppPort > 0 {
-		port = pool.AppPort
-	}
-
-	targetBase, _ := url.Parse(fmt.Sprintf("http://%s:%d", server.IP_Address, port))
-
-	proxy := httputil.NewSingleHostReverseProxy(targetBase)
-	// Remove headers that prevent iframe embedding
-	proxy.ModifyResponse = func(resp *http.Response) error {
-		resp.Header.Del("X-Frame-Options")
-		resp.Header.Del("Content-Security-Policy")
-		return nil
-	}
-	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		log.Printf("[jupyter-proxy] %s/%s → %s error: %v", poolID, userID, targetBase.Host, err)
-		http.Error(w, "JupyterLab unreachable: "+err.Error(), http.StatusBadGateway)
-	}
-
-	// Rewrite path: do not strip the prefix so it matches JupyterLab's base_url
-	r2 := r.Clone(r.Context())
-	r2.URL.Scheme = targetBase.Scheme
-	r2.URL.Host = targetBase.Host
-	r2.Host = targetBase.Host
-
-	// JupyterLab checks Origin — set it to match the target so it accepts the request
-	r2.Header.Set("Origin", targetBase.String())
-	r2.Header.Set("X-Forwarded-Proto", "http")
-
-	proxy.ServeHTTP(w, r2)
 }

@@ -161,6 +161,16 @@ func httpAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// Les reverse-proxies applicatifs s'authentifient par leur COOKIE de session de
+		// proxy (l'iframe / les WebSockets ne peuvent pas porter le Bearer JS). Le
+		// middleware les laisse passer ; le handler exige et valide la ProxySession.
+		// L'émission de cette session (/api/proxy-session, /api/vscode-grant/join) reste,
+		// elle, protégée par le Bearer via le chemin normal ci-dessous.
+		if strings.HasPrefix(path, "/api/jupyter-proxy/") || strings.HasPrefix(path, "/api/vscode-proxy/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		id, ok := resolveIdentity(r)
 		if !ok {
 			httpJSONError(w, http.StatusUnauthorized, "authentification requise")

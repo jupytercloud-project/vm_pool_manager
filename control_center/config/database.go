@@ -80,6 +80,8 @@ func Start_DB(ctx context.Context) {
 		&models.VMUsage{},
 		&models.PoolPreset{},
 		&models.BatchJob{},
+		&models.ProxySession{},
+		&models.VscodeGrant{},
 	)
 
 	syncSequences(Database)

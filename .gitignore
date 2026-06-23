@@ -84,6 +84,7 @@ monitoring/loki/data/
 monitoring/docker-compose.override.yml
 
 example/
+soutenance/
 
 # Doc — éléments personnels / non publiés (on garde les .md numérotés)
 doc/rapport-stage.md

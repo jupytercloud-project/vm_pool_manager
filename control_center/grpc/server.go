@@ -150,7 +150,10 @@ func Start_grpc(ctx context.Context) {
 	mux.HandleFunc("/api/github/login", handleGitHubLogin)              // redirection OAuth → brut
 	mux.HandleFunc("/auth/github/callback", handleGitHubCallback)       // redirection OAuth → brut
 	mux.HandleFunc("/api/nbgrader/export-csv", handleNbgraderExportCSV) // CSV download → handler brut
-	mux.HandleFunc("/api/jupyter-proxy/", handleJupyterProxy)
+	// Reverse-proxies applicatifs par session (cookie HttpOnly) : JupyterLab + code-server.
+	mux.HandleFunc("/api/jupyter-proxy/", appProxyHandler("jupyter"))
+	mux.HandleFunc("/api/vscode-proxy/", appProxyHandler("vscode"))
+	registerProxySessionRoutes(mux) // /api/proxy-session, /api/vscode-grant(/join)
 	mux.HandleFunc("/vm-registrar", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "vm-registrar")
 	})

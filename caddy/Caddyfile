@@ -23,6 +23,12 @@
         }
     }
 
+    handle /api/vscode-proxy/* {
+        reverse_proxy host.docker.internal:50055 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
     handle /api/* {
         reverse_proxy host.docker.internal:50055
     }

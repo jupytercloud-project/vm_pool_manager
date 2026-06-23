@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
   import { apiFetch } from '$lib/api';
+  import { openProxySession } from '$lib/proxy';
   import { authStore, serverPools } from '$lib/store';
   import { browser } from '$app/environment';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -66,21 +67,34 @@
   async function loadJupyterURL() {
     if (!selectedPool) return;
     try {
-      const res = await apiFetch(
-        `/api/nbgrader/jupyter-url?pool_id=${encodeURIComponent(selectedPool.name)}&user_id=${encodeURIComponent(selectedPool.userId)}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        jupyterURL = data.url ?? '';
-        jupyterDirectURL = (data.directUrl ?? '') + '/lab';
-        // Direct VM URL for new-tab links (no proxy base_url configured).
-        formgraderBaseURL = (data.directUrl ?? '').replace(/\/$/, '').replace(/%40/g, '@');
-      }
-    } catch { jupyterURL = ''; }
+      // Tout passe par le proxy HTTPS (la VM instructeur n'est jamais exposée en direct).
+      // On ouvre une session de proxy (pose le cookie) ; le base_url Jupyter de la VM est
+      // calé sur /api/jupyter-proxy/{pool}/{owner}/, donc lab + formgrader + submissions
+      // fonctionnent tous sous cette base.
+      const { url } = await openProxySession('jupyter', selectedPool.name, selectedPool.userId, 'instructor');
+      jupyterURL = url;
+      jupyterDirectURL = url + 'lab';
+      formgraderBaseURL = url.replace(/\/$/, '');
+    } catch { jupyterURL = ''; jupyterDirectURL = ''; formgraderBaseURL = ''; }
   }
 
   function openFormgrader() {
     if (formgraderBaseURL) window.open(`${formgraderBaseURL}/formgrader`, '_blank', 'noopener');
+  }
+
+  // Prof : ouvrir le VS Code d'un élève (écriture) — pour revoir/corriger son code.
+  // Autorisé par le rôle staff + supervision du pool (pas de mot de passe nécessaire).
+  let vscodeError = $state('');
+  let openingStudent = $state('');
+  async function openStudentVsCode(student: string) {
+    if (!selectedPool) return;
+    openingStudent = student; vscodeError = '';
+    try {
+      const { url } = await openProxySession('vscode', selectedPool.name, selectedPool.userId, student, 'write');
+      window.open(url, '_blank', 'noopener');
+    } catch (e: any) {
+      vscodeError = `${student}: ${e?.message || 'VS Code indisponible'}`;
+    } finally { openingStudent = ''; }
   }
 
   // Aggregate stats for the dashboard (right panel).
@@ -556,12 +570,19 @@
                     {#if grade.status === 'needs_manual_grade'}
                       <span class="hidden md:inline text-[10px] text-amber-600 dark:text-amber-400 shrink-0">{$_('grading.needsReview')}</span>
                     {/if}
+                    <button onclick={() => openStudentVsCode(grade.student)} disabled={openingStudent === grade.student}
+                      title={$_('grading.openStudentVsCode')}
+                      class="btn btn-secondary px-3 py-1.5 text-xs gap-1 shrink-0 disabled:opacity-60">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+                      VS Code
+                    </button>
                     <button onclick={() => openManualGrading(grade.student)} class="btn btn-secondary px-3 py-1.5 text-xs gap-1 shrink-0">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                       {$_('grading.gradeAction')}
                     </button>
                   </div>
                 {/each}
+                {#if vscodeError}<p class="text-xs text-red-600 px-4 py-2">{vscodeError}</p>{/if}
               </div>
             </div>
           {:else}

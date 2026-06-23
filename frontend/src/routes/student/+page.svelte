@@ -1,6 +1,7 @@
 <script lang="ts">
   import { returnPoolsWithKey, attribVMinPool } from "$lib/grpc/attribVMService/attribVMService";
   import { apiFetch } from '$lib/api';
+  import { openProxySession, joinVscode, shareVscode, openInNewTab, type ProxyMode } from '$lib/proxy';
   import { githubStore, disconnectGitHub } from '$lib/store/githubStore';
   import { moodleStudentStore, disconnectMoodleStudent } from '$lib/store/moodleStudentStore';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -36,6 +37,54 @@
   const CODE_SERVER_PORT = 8443;
   let codeReady = $state(false);
   let codeProbeInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Ouverture des apps via le proxy HTTPS (jamais l'IP directe). On demande une session
+  // de proxy (pose un cookie) puis on ouvre l'URL renvoyée dans un nouvel onglet.
+  let openingApp = $state("");      // "jupyter" | "vscode" pendant l'ouverture
+  let proxyError = $state("");
+  async function openApp(kind: 'jupyter' | 'vscode') {
+    if (!selectedPool) return;
+    openingApp = kind; proxyError = "";
+    try {
+      const { url } = await openProxySession(kind, selectedPool.pool_id, selectedPool.user_id, 'self');
+      openInNewTab(url);
+    } catch (e: any) {
+      proxyError = e?.message || $_('studentDash.proxyError');
+    } finally { openingApp = ""; }
+  }
+
+  // Partage de VS Code entre élèves (grant : mode + mot de passe + expiration).
+  let showShare = $state(false);
+  let shareMode = $state<ProxyMode>('read');
+  let sharePassword = $state("");
+  let shareTtl = $state(24);
+  let shareMsg = $state(""); let shareErr = $state(false); let sharing = $state(false);
+  async function doShare() {
+    if (!selectedPool || sharePassword.length < 4) { shareErr = true; shareMsg = $_('studentDash.sharePwdShort'); return; }
+    sharing = true; shareMsg = ""; shareErr = false;
+    try {
+      await shareVscode(selectedPool.pool_id, selectedPool.user_id, shareMode, sharePassword, shareTtl);
+      shareErr = false;
+      shareMsg = $_('studentDash.shareOk');
+    } catch (e: any) { shareErr = true; shareMsg = e?.message || $_('studentDash.shareError'); }
+    finally { sharing = false; }
+  }
+
+  // Rejoindre le VS Code d'un binôme (cible + mot de passe).
+  let showJoin = $state(false);
+  let joinTarget = $state(""); let joinPassword = $state("");
+  let joinMsg = $state(""); let joinErr = $state(false); let joining = $state(false);
+  async function doJoin() {
+    if (!selectedPool || !joinTarget || !joinPassword) { joinErr = true; joinMsg = $_('studentDash.joinMissing'); return; }
+    joining = true; joinMsg = ""; joinErr = false;
+    try {
+      const { url, mode } = await joinVscode(selectedPool.pool_id, selectedPool.user_id, joinTarget.trim(), joinPassword);
+      joinErr = false;
+      joinMsg = mode === 'read' ? $_('studentDash.joinOkRead') : $_('studentDash.joinOkWrite');
+      openInNewTab(url);
+    } catch (e: any) { joinErr = true; joinMsg = e?.message || $_('studentDash.joinError'); }
+    finally { joining = false; }
+  }
 
   let githubLoading = $state(false);
 
@@ -544,36 +593,100 @@
 
       {#if vmAppPort > 0}
         {#if appReady}
-          <!-- JupyterLab -->
-          <a
-            href="http://{vmIp}:{vmAppPort}/lab"
-            target="_blank"
-            rel="noopener noreferrer"
+          <!-- JupyterLab — via le proxy HTTPS (la VM n'est jamais exposée en direct) -->
+          <button
+            onclick={() => openApp('jupyter')}
+            disabled={openingApp === 'jupyter'}
             class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-base
-              bg-amber-500 hover:bg-amber-400 text-white transition-all shadow-sm hover:shadow-md"
+              bg-amber-500 hover:bg-amber-400 text-white transition-all shadow-sm hover:shadow-md disabled:opacity-60"
           >
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-            </svg>
+            {#if openingApp === 'jupyter'}
+              <span class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full shrink-0"
+                style="animation: spinnerGlow 0.8s linear infinite;"></span>
+            {:else}
+              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+              </svg>
+            {/if}
             {$_('studentDash.openJupyterLab')}
-          </a>
+          </button>
           <!-- VS Code (code-server) — même environnement/fichiers que Jupyter,
                lancé au runtime sur {CODE_SERVER_PORT}. Affiché dès qu'il répond. -->
           {#if codeReady}
-            <a
-              href="https://{vmIp}:{CODE_SERVER_PORT}/"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onclick={() => openApp('vscode')}
+              disabled={openingApp === 'vscode'}
               class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-base
-                bg-sky-600 hover:bg-sky-500 text-white transition-all shadow-sm hover:shadow-md"
+                bg-sky-600 hover:bg-sky-500 text-white transition-all shadow-sm hover:shadow-md disabled:opacity-60"
             >
-              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
-              </svg>
+              {#if openingApp === 'vscode'}
+                <span class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full shrink-0"
+                  style="animation: spinnerGlow 0.8s linear infinite;"></span>
+              {:else}
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+                </svg>
+              {/if}
               {$_('studentDash.openVsCode')}
-            </a>
+            </button>
+
+            <!-- Collaboration : partager mon VS Code / rejoindre un binôme -->
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick={() => { showShare = !showShare; showJoin = false; }}
+                class="flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm
+                  bg-white border border-sky-300 text-sky-700 hover:bg-sky-50 transition-all">
+                {$_('studentDash.shareMyVsCode')}
+              </button>
+              <button onclick={() => { showJoin = !showJoin; showShare = false; }}
+                class="flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm
+                  bg-white border border-sky-300 text-sky-700 hover:bg-sky-50 transition-all">
+                {$_('studentDash.joinPartner')}
+              </button>
+            </div>
+
+            {#if showShare}
+              <div class="rounded-xl border border-sky-200 bg-sky-50/60 p-4 space-y-3">
+                <p class="text-sm font-semibold text-sky-800">{$_('studentDash.shareMyVsCode')}</p>
+                <div class="flex gap-2">
+                  <label class="flex items-center gap-1.5 text-sm">
+                    <input type="radio" bind:group={shareMode} value="read" /> {$_('studentDash.modeRead')}
+                  </label>
+                  <label class="flex items-center gap-1.5 text-sm">
+                    <input type="radio" bind:group={shareMode} value="write" /> {$_('studentDash.modeWrite')}
+                  </label>
+                </div>
+                <input type="password" bind:value={sharePassword} placeholder={$_('studentDash.sharePwdPlaceholder')}
+                  class="w-full px-3 py-2 rounded-lg border border-sky-300 text-sm" />
+                <div class="flex items-center gap-2 text-sm">
+                  <span>{$_('studentDash.shareTtl')}</span>
+                  <input type="number" min="1" max="168" bind:value={shareTtl}
+                    class="w-20 px-2 py-1 rounded-lg border border-sky-300 text-sm" /> h
+                </div>
+                <button onclick={doShare} disabled={sharing}
+                  class="w-full py-2.5 rounded-xl font-semibold text-sm bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-60">
+                  {$_('studentDash.shareGenerate')}
+                </button>
+                {#if shareMsg}<p class="text-xs {shareErr ? 'text-red-600' : 'text-green-600'}">{shareMsg}</p>{/if}
+                <p class="text-xs text-neutral-500">{$_('studentDash.shareHint')}</p>
+              </div>
+            {/if}
+
+            {#if showJoin}
+              <div class="rounded-xl border border-sky-200 bg-sky-50/60 p-4 space-y-3">
+                <p class="text-sm font-semibold text-sky-800">{$_('studentDash.joinPartner')}</p>
+                <input type="text" bind:value={joinTarget} placeholder={$_('studentDash.joinTargetPlaceholder')}
+                  class="w-full px-3 py-2 rounded-lg border border-sky-300 text-sm" />
+                <input type="password" bind:value={joinPassword} placeholder={$_('studentDash.joinPwdPlaceholder')}
+                  class="w-full px-3 py-2 rounded-lg border border-sky-300 text-sm" />
+                <button onclick={doJoin} disabled={joining}
+                  class="w-full py-2.5 rounded-xl font-semibold text-sm bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-60">
+                  {$_('studentDash.joinOpen')}
+                </button>
+                {#if joinMsg}<p class="text-xs {joinErr ? 'text-red-600' : 'text-green-600'}">{joinMsg}</p>{/if}
+              </div>
+            {/if}
           {:else}
             <div class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-base
               bg-neutral-200 text-neutral-500 cursor-not-allowed select-none">
@@ -581,6 +694,9 @@
                 style="animation: spinnerGlow 0.8s linear infinite;"></span>
               {$_('studentDash.startingVsCode')}
             </div>
+          {/if}
+          {#if proxyError}
+            <p class="text-xs text-center text-red-600">{proxyError}</p>
           {/if}
           <!-- Jupyter Classic — needed for nbgrader "Assignments" tab -->
           <!-- Submit Button -->
