@@ -161,8 +161,9 @@ func Start_grpc(ctx context.Context) {
 	// Toutes les routes REST passent par le middleware d'authentification (JWT OIDC ou
 	// session Moodle/GitHub) avec contrôle de rôle ; le gRPC-Web garde sa propre auth.
 	// otelhttp instrumente les routes REST (spans HTTP nommés méthode + chemin).
+	authed := httpAuthMiddleware(mux)
 	authedMux := otelhttp.NewHandler(
-		httpAuthMiddleware(mux), "rest",
+		authed, "rest",
 		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
 			return r.Method + " " + r.URL.Path
 		}),
@@ -171,6 +172,14 @@ func Start_grpc(ctx context.Context) {
 		Addr: ":50055",
 		// withRecovery : un panic dans un handler renvoie un 500 propre au lieu de couper la connexion.
 		Handler: withRecovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Reverse-proxies applicatifs : l'upgrade WebSocket (code-server, Jupyter) exige un
+			// ResponseWriter http.Hijacker. otelhttp enveloppe le writer et CASSE le Hijacker
+			// (→ WebSocket close 1006). On route donc ces chemins HORS otelhttp.
+			if strings.HasPrefix(r.URL.Path, "/api/jupyter-proxy/") ||
+				strings.HasPrefix(r.URL.Path, "/api/vscode-proxy/") {
+				authed.ServeHTTP(w, r)
+				return
+			}
 			if strings.HasPrefix(r.URL.Path, "/api/") ||
 				strings.HasPrefix(r.URL.Path, "/auth/") ||
 				r.URL.Path == "/vm-registrar" ||

@@ -125,8 +125,29 @@ func serveAppProxy(w http.ResponseWriter, r *http.Request, sess *models.ProxySes
 	// Jupyter vérifie l'Origin ; on l'aligne sur la cible pour qu'il accepte.
 	r2.Header.Set("Origin", targetBase.String())
 	r2.Header.Set("X-Forwarded-Proto", "https")
+	// Caddy ajoute X-Forwarded-Host/Forwarded (= domaine public). code-server compare l'Origin
+	// du WebSocket à cet hôte → mismatch avec l'Origin posé ci-dessus (la VM) → 403 sur le WS
+	// (workbench "WebSocket close 1006"). On retire ces en-têtes : code-server retombe sur le
+	// Host (la VM), cohérent avec l'Origin → handshake 101.
+	r2.Header.Del("X-Forwarded-Host")
+	r2.Header.Del("X-Forwarded-Port")
+	r2.Header.Del("Forwarded")
 	// Ne jamais transmettre nos cookies de session de proxy à la VM.
 	r2.Header.Del("Cookie")
+
+	// code-server est servi à la RACINE (pas de base-path comme Jupyter) : on retire le
+	// préfixe /api/vscode-proxy/{uuid} avant de transmettre. Ses assets et redirections sont
+	// relatifs (./_static, ./?folder=…) → ils se résolvent correctement sous le préfixe côté
+	// navigateur. (Jupyter, lui, a un base_url calé sur le préfixe → on ne touche pas.)
+	if sess.Kind == "vscode" {
+		prefix := "/api/vscode-proxy/" + sess.VMID
+		p := strings.TrimPrefix(r2.URL.Path, prefix)
+		if p == "" || p[0] != '/' {
+			p = "/" + p
+		}
+		r2.URL.Path = p
+		r2.URL.RawPath = ""
+	}
 
 	proxy.ServeHTTP(w, r2)
 }

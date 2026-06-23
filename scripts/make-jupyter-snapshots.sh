@@ -124,6 +124,11 @@ sudo docker run -d --restart=always --name codeserver-ro \
   -v /home/vmuser:/home/coder/project:ro \
   registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/codercom/code-server:latest \
   -lc 'mkdir -p ~/.local/share/code-server/User; printf "{\"files.readonlyInclude\":{\"**/*\":true}}" > ~/.local/share/code-server/User/settings.json; exec code-server --auth none --cert --bind-addr 0.0.0.0:8444 /home/coder/project'
+# Patch nbgrader formgrader : ses liens "/tree", "/notebooks", "/edit" sont codés à la racine
+# (fonction linkTo de utils.js) → 404 derrière /api/jupyter-proxy/{uuid}/. On les préfixe par
+# base_url (déjà injecté dans la page). cf. scripts/add-formgrader-baseurl.sql pour les VMs existantes.
+for i in $(seq 1 30); do sudo docker exec jupyter true 2>/dev/null && break; sleep 2; done
+sudo docker exec -u root jupyter bash -lc 'f=$(find / -path "*formgrader/static/js/utils.js" 2>/dev/null | head -1); [ -n "$f" ] && sed -i "s#notebook: \"/notebooks/\"#notebook: base_url + \"/notebooks/\"#; s#file: \"/edit/\"#file: base_url + \"/edit/\"#; s#directory: \"/tree/\"#directory: base_url + \"/tree/\"#" "$f"' || true
 SCRIPT
 )
   if [ -n "$POSTGRES_DSN" ] && command -v psql &>/dev/null; then
