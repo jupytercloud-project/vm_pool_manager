@@ -622,6 +622,8 @@ export default {
     "colStudent": "Student",
     "colState": "State",
     "colLastActivity": "Last activity",
+    "colAccess": "Access",
+    "openVsCode": "Open student's VS Code (read + write)",
     "notLaunched": "VM not launched yet",
     "onNotebook": "Active (notebook)",
     "connected": "Connected (SSH)",

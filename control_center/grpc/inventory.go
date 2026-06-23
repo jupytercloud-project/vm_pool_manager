@@ -4,6 +4,7 @@ import (
 	"control_center/config"
 	"control_center/internal/guacamole"
 	"control_center/models"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -310,6 +311,25 @@ func probeAppPort(vm *models.VMInstance) {
 	if err := json.NewDecoder(resp.Body).Decode(&st); err == nil {
 		if st.Connections > 0 || st.Kernels > 0 {
 			vm.ActivityStatus = "active"
+		}
+	}
+
+	// Si pas déjà actif via Jupyter, regarder code-server (VS Code) : /healthz renvoie
+	// "alive" tant qu'une session est connectée (heartbeat alimenté par les WebSockets),
+	// "expired" sinon. Permet de compter « connecté à VS Code » comme actif.
+	if vm.ActivityStatus != "active" {
+		tlsClient := http.Client{
+			Timeout:   800 * time.Millisecond,
+			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+		}
+		if hr, err := tlsClient.Get(fmt.Sprintf("https://%s:%d/healthz", vm.IP, portCodeServerRW)); err == nil {
+			defer hr.Body.Close()
+			var h struct {
+				Status string `json:"status"`
+			}
+			if json.NewDecoder(hr.Body).Decode(&h) == nil && h.Status == "alive" {
+				vm.ActivityStatus = "active"
+			}
 		}
 	}
 }

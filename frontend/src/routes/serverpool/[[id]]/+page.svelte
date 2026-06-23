@@ -8,6 +8,7 @@ import type { ServerPool, Server, CreatePoolRequest, DeletePoolRequest, RebuildS
 import { authStore, serverPools, servers, configs, images, flavors, networks } from '$lib/store';
 import { simpleMode } from '$lib/store/uiStore';
 import { displayName } from '$lib/displayName';
+import { openProxySession, openInNewTab } from '$lib/proxy';
 import { onMount } from 'svelte';
 import { page } from '$app/state';
 import { _ } from 'svelte-i18n';
@@ -61,6 +62,19 @@ let progressOpen = $state(false);
 let progressLoading = $state(false);
 let progressRows = $state<ProgressRow[]>([]);
 let progressStats = $state<{ enrolled: number; launched: number; active: number }>({ enrolled: 0, launched: 0, active: 0 });
+
+// Prof : ouvrir le VS Code d'un élève en lecture+écriture (accès staff, sans mot de passe).
+let openingVscode = $state('');
+let vscodeErr = $state('');
+async function openStudentVsCode(sp: ServerPool, student: string) {
+  openingVscode = student; vscodeErr = '';
+  try {
+    const { url } = await openProxySession('vscode', sp.name, sp.userId, student, 'write');
+    openInNewTab(url);
+  } catch (e: any) {
+    vscodeErr = `${student}: ${e?.message || 'VS Code'}`;
+  } finally { openingVscode = ''; }
+}
 
 async function loadProgress(sp: ServerPool) {
   progressLoading = true;
@@ -559,6 +573,7 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
                         <th class="px-3 py-2 font-semibold">{$_('progress.colStudent')}</th>
                         <th class="px-3 py-2 font-semibold">{$_('progress.colState')}</th>
                         <th class="px-3 py-2 font-semibold text-right">{$_('progress.colLastActivity')}</th>
+                        <th class="px-3 py-2 font-semibold text-right">{$_('progress.colAccess')}</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -575,11 +590,29 @@ function computeNextSchedule(dayOfWeek: number, time: string): Date {
                             </span>
                           </td>
                           <td class="px-3 py-2 text-right text-xs text-neutral-400">{row.has_vm ? progressRelative(row.last_active) : '—'}</td>
+                          <td class="px-3 py-2 text-right">
+                            {#if row.has_vm}
+                              <button onclick={() => openStudentVsCode(selectedPool, row.name)} disabled={openingVscode === row.name}
+                                title={$_('progress.openVsCode')}
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium
+                                  bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-60">
+                                {#if openingVscode === row.name}
+                                  <span class="w-3 h-3 border-2 border-white/40 border-t-white rounded-full" style="animation: spinnerGlow 0.7s linear infinite;"></span>
+                                {:else}
+                                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+                                {/if}
+                                VS Code
+                              </button>
+                            {:else}
+                              <span class="text-xs text-neutral-300 dark:text-neutral-600">—</span>
+                            {/if}
+                          </td>
                         </tr>
                       {/each}
                     </tbody>
                   </table>
                 </div>
+                {#if vscodeErr}<p class="text-xs text-red-500 dark:text-red-400 mt-2">{vscodeErr}</p>{/if}
               {/if}
             {/if}
           </div>
