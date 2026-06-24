@@ -107,12 +107,15 @@ sudo docker run -d --restart=always --name jupyter \
 sudo docker rm -f codeserver 2>/dev/null || true
 # --network host : code-server peut joindre le serveur Jupyter (localhost:8888)
 # pour exécuter les notebooks avec le MÊME environnement/libs que JupyterLab.
-# Extensions Python+Jupyter installées au démarrage (depuis Open VSX).
+# Extensions Python+Jupyter+Open Collaboration Tools (depuis Open VSX). L'extension OCT +
+# oct.serverUrl pointent vers le serveur de collaboration temps réel dédié (colabVscodeInfra)
+# → co-édition (curseurs, CRDT) via cette VM centrale, pas sur la VM étudiante.
+sudo docker rm -f codeserver 2>/dev/null || true
 sudo docker run -d --restart=always --name codeserver \
   --network host --entrypoint /bin/bash \
   -v /home/vmuser:/home/coder/project \
   registry.virtualdata.cloud.idcs.polytechnique.fr/docker-hub-proxy/codercom/code-server:latest \
-  -lc 'code-server --install-extension ms-python.python --install-extension ms-toolsai.jupyter || true; exec code-server --auth none --cert --bind-addr 0.0.0.0:8443 /home/coder/project'
+  -lc 'mkdir -p ~/.local/share/code-server/User; printf "{\"oct.serverUrl\":\"http://157.136.249.81:8100/\",\"oct.alwaysAskToOverrideServerUrl\":false}" > ~/.local/share/code-server/User/settings.json; code-server --install-extension ms-python.python --install-extension ms-toolsai.jupyter --install-extension typefox.open-collaboration-tools || true; exec code-server --auth none --cert --bind-addr 0.0.0.0:8443 /home/coder/project'
 # 2ᵉ instance code-server EN LECTURE SEULE sur 8444, pour le partage « lecture » entre
 # élèves (le proxy y route les invités en mode read). Le projet est monté ':ro' : c'est
 # un verrou AU NIVEAU OS — ni l'éditeur ni le terminal ne peuvent modifier les fichiers,
