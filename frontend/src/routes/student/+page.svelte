@@ -633,64 +633,59 @@
             </button>
 
             <!-- Collaboration : partager mon VS Code / rejoindre un binôme -->
-            {@const inputCls = "w-full px-3 py-2.5 rounded-lg text-sm bg-white dark:bg-[#0a1422] border border-neutral-300 dark:border-[#1e3a5f] text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition"}
-            <div class="grid grid-cols-2 gap-2">
-              <button onclick={() => { showShare = !showShare; showJoin = false; }}
-                class="flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm border transition-all
-                  {showShare ? 'bg-sky-600 border-sky-600 text-white' : 'bg-transparent border-neutral-300 dark:border-[#1e3a5f] text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-white/5'}">
-                {$_('studentDash.shareMyVsCode')}
-              </button>
-              <button onclick={() => { showJoin = !showJoin; showShare = false; }}
-                class="flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm border transition-all
-                  {showJoin ? 'bg-sky-600 border-sky-600 text-white' : 'bg-transparent border-neutral-300 dark:border-[#1e3a5f] text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-white/5'}">
-                {$_('studentDash.joinPartner')}
-              </button>
+            {@const inputCls = "w-full px-3 py-2.5 rounded-lg text-sm bg-white dark:bg-white/[0.04] border border-neutral-200 dark:border-white/10 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition"}
+            {@const segCls = (on: boolean) => `py-1.5 rounded-md text-[13px] font-medium transition-all ${on ? 'bg-white dark:bg-sky-600 text-sky-700 dark:text-white shadow-sm' : 'text-neutral-500 dark:text-neutral-400'}`}
+            <div class="pt-1">
+              <p class="px-0.5 mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">{$_('studentDash.collaboration')}</p>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick={() => { showShare = !showShare; showJoin = false; }}
+                  class="py-2 rounded-lg text-sm font-medium border transition-all
+                    {showShare ? 'bg-sky-600 border-sky-600 text-white shadow-sm' : 'bg-white dark:bg-white/[0.03] border-neutral-200 dark:border-white/10 text-neutral-600 dark:text-neutral-300 hover:border-sky-400 dark:hover:border-sky-500/50'}">
+                  {$_('studentDash.shareMyVsCode')}
+                </button>
+                <button onclick={() => { showJoin = !showJoin; showShare = false; }}
+                  class="py-2 rounded-lg text-sm font-medium border transition-all
+                    {showJoin ? 'bg-sky-600 border-sky-600 text-white shadow-sm' : 'bg-white dark:bg-white/[0.03] border-neutral-200 dark:border-white/10 text-neutral-600 dark:text-neutral-300 hover:border-sky-400 dark:hover:border-sky-500/50'}">
+                  {$_('studentDash.joinPartner')}
+                </button>
+              </div>
+
+              {#if showShare}
+                <div class="mt-2 rounded-xl border border-neutral-200 dark:border-white/10 p-3.5 space-y-3">
+                  <div class="grid grid-cols-2 gap-1 p-1 rounded-lg bg-neutral-100 dark:bg-white/5">
+                    <button type="button" onclick={() => shareMode = 'read'} class={segCls(shareMode === 'read')}>{$_('studentDash.modeRead')}</button>
+                    <button type="button" onclick={() => shareMode = 'write'} class={segCls(shareMode === 'write')}>{$_('studentDash.modeWrite')}</button>
+                  </div>
+                  <input type="password" bind:value={sharePassword} placeholder={$_('studentDash.sharePwdPlaceholder')} class={inputCls} />
+                  <div class="flex items-center justify-between text-[13px] text-neutral-500 dark:text-neutral-400">
+                    <span>{$_('studentDash.shareTtl')}</span>
+                    <div class="flex items-center gap-1.5">
+                      <input type="number" min="1" max="168" bind:value={shareTtl}
+                        class="w-16 px-2 py-1.5 rounded-lg text-sm text-center bg-white dark:bg-white/[0.04] border border-neutral-200 dark:border-white/10 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40" />
+                      <span>h</span>
+                    </div>
+                  </div>
+                  <button onclick={doShare} disabled={sharing}
+                    class="w-full py-2.5 rounded-lg font-semibold text-sm bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-60">
+                    {$_('studentDash.shareGenerate')}
+                  </button>
+                  {#if shareMsg}<p class="text-xs {shareErr ? 'text-red-500 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}">{shareMsg}</p>{/if}
+                  <p class="text-[11px] leading-relaxed text-neutral-400 dark:text-neutral-500">{$_('studentDash.shareHint')}</p>
+                </div>
+              {/if}
+
+              {#if showJoin}
+                <div class="mt-2 rounded-xl border border-neutral-200 dark:border-white/10 p-3.5 space-y-3">
+                  <input type="text" bind:value={joinTarget} placeholder={$_('studentDash.joinTargetPlaceholder')} class={inputCls} />
+                  <input type="password" bind:value={joinPassword} placeholder={$_('studentDash.joinPwdPlaceholder')} class={inputCls} />
+                  <button onclick={doJoin} disabled={joining}
+                    class="w-full py-2.5 rounded-lg font-semibold text-sm bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-60">
+                    {$_('studentDash.joinOpen')}
+                  </button>
+                  {#if joinMsg}<p class="text-xs {joinErr ? 'text-red-500 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}">{joinMsg}</p>{/if}
+                </div>
+              {/if}
             </div>
-
-            {#if showShare}
-              <div class="rounded-2xl border border-neutral-200 dark:border-[#1e3a5f] bg-neutral-50 dark:bg-[#0c1a2e] p-4 space-y-3.5">
-                <p class="text-sm font-semibold text-neutral-800 dark:text-sky-200">{$_('studentDash.shareMyVsCode')}</p>
-                <!-- sélecteur segmenté lecture / écriture -->
-                <div class="grid grid-cols-2 gap-1 p-1 rounded-lg bg-neutral-200/70 dark:bg-black/30">
-                  <button type="button" onclick={() => shareMode = 'read'}
-                    class="py-1.5 rounded-md text-sm font-medium transition-all
-                      {shareMode === 'read' ? 'bg-white dark:bg-sky-600 text-sky-700 dark:text-white shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}">
-                    {$_('studentDash.modeRead')}
-                  </button>
-                  <button type="button" onclick={() => shareMode = 'write'}
-                    class="py-1.5 rounded-md text-sm font-medium transition-all
-                      {shareMode === 'write' ? 'bg-white dark:bg-sky-600 text-sky-700 dark:text-white shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}">
-                    {$_('studentDash.modeWrite')}
-                  </button>
-                </div>
-                <input type="password" bind:value={sharePassword} placeholder={$_('studentDash.sharePwdPlaceholder')} class={inputCls} />
-                <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                  <span>{$_('studentDash.shareTtl')}</span>
-                  <input type="number" min="1" max="168" bind:value={shareTtl}
-                    class="w-20 px-2.5 py-1.5 rounded-lg text-sm bg-white dark:bg-[#0a1422] border border-neutral-300 dark:border-[#1e3a5f] text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50" />
-                  <span>h</span>
-                </div>
-                <button onclick={doShare} disabled={sharing}
-                  class="w-full py-2.5 rounded-xl font-semibold text-sm bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-60">
-                  {$_('studentDash.shareGenerate')}
-                </button>
-                {#if shareMsg}<p class="text-xs {shareErr ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}">{shareMsg}</p>{/if}
-                <p class="text-xs text-neutral-500 dark:text-neutral-500 leading-relaxed">{$_('studentDash.shareHint')}</p>
-              </div>
-            {/if}
-
-            {#if showJoin}
-              <div class="rounded-2xl border border-neutral-200 dark:border-[#1e3a5f] bg-neutral-50 dark:bg-[#0c1a2e] p-4 space-y-3.5">
-                <p class="text-sm font-semibold text-neutral-800 dark:text-sky-200">{$_('studentDash.joinPartner')}</p>
-                <input type="text" bind:value={joinTarget} placeholder={$_('studentDash.joinTargetPlaceholder')} class={inputCls} />
-                <input type="password" bind:value={joinPassword} placeholder={$_('studentDash.joinPwdPlaceholder')} class={inputCls} />
-                <button onclick={doJoin} disabled={joining}
-                  class="w-full py-2.5 rounded-xl font-semibold text-sm bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-60">
-                  {$_('studentDash.joinOpen')}
-                </button>
-                {#if joinMsg}<p class="text-xs {joinErr ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}">{joinMsg}</p>{/if}
-              </div>
-            {/if}
           {:else}
             <div class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-base
               bg-neutral-200 text-neutral-500 cursor-not-allowed select-none">
