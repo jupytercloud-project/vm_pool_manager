@@ -3,13 +3,16 @@ package attribvm
 import (
 	"context"
 	"control_center/frontcontrolpb"
+	"control_center/internal/metrics"
 	"control_center/internal/rclone"
 	"control_center/internal/sshinject"
 	"control_center/models"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -85,7 +88,16 @@ func (s *Service) ReturnPoolWithKey(
 func (s *Service) AttribVMinPool(
 	ctx context.Context,
 	req *frontcontrolpb.AttribVMinPoolRequest,
-) (*frontcontrolpb.AttribVMinPoolResponse, error) {
+) (resp *frontcontrolpb.AttribVMinPoolResponse, err error) {
+	// Métrique : succès si la réponse finale est Success=true, sinon échec (toutes les
+	// sorties « business » renvoient une réponse Success=false).
+	defer func() {
+		if resp != nil && resp.Success {
+			metrics.RecordAttribution("success")
+		} else {
+			metrics.RecordAttribution("fail")
+		}
+	}()
 	// NOTE: business-logic failures are returned as a normal response with
 	// Success=false and a nil gRPC error. Returning a gRPC error here produces a
 	// "trailers-only" response that the Caddy grpc_web module mis-encodes
@@ -105,7 +117,7 @@ func (s *Service) AttribVMinPool(
 	}
 
 	var student models.Student
-	err := s.DB.
+	err = s.DB.
 		Joins("JOIN list_students ON list_students.id = students.list_id").
 		Joins("JOIN serverpools ON serverpools.id = list_students.pool_id").
 		Where("split_part(students.ssh_key, ' ', 1) || ' ' || split_part(students.ssh_key, ' ', 2) = split_part(?, ' ', 1) || ' ' || split_part(?, ' ', 2) AND serverpools.serverpool_id = ? AND serverpools.user_id = ?", req.GetPubkey(), req.GetPubkey(), req.GetServerpoolId(), req.GetUserId()).
@@ -345,10 +357,16 @@ func (s *Service) installSSHKey(server *models.Server, student *models.Student) 
 func cmdInit(student models.Student) string {
 	studentUsername := sshinject.UsernameFromEmail(student.Name)
 
+	// SÉCURITÉ : la clé SSH (et surtout son champ commentaire, libre) ne doit JAMAIS être
+	// interpolée telle quelle dans le shell — un commentaire piégé (`"; curl … | sudo bash; "`)
+	// donnerait une RCE root sur la VM. On la transmet en base64 (alphabet sans métacaractère
+	// shell) et on la décode côté VM. studentUsername est déjà assaini par UsernameFromEmail.
+	keyB64 := base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(student.SshKey)))
+
 	cmd := fmt.Sprintf(`
 set -e
 USERNAME="%s"
-PUBKEY="%s"
+PUBKEY="$(printf '%%s' '%s' | base64 -d)"
 if ! id "$USERNAME" >/dev/null 2>&1; then
 	sudo useradd -m -s /bin/bash "$USERNAME"
 fi
@@ -367,6 +385,6 @@ if ! sudo grep -qxF "$PUBKEY" "$AUTH"; then
 fi
 
 sudo chown -R "$USERNAME:$USERNAME" "$SSH"
-`, studentUsername, student.SshKey)
+`, studentUsername, keyB64)
 	return cmd
 }

@@ -40,6 +40,7 @@ datasources:
   # (vm_instances, serverpools, students, github_sessions…).
   - name: CloudPoolManager PostgreSQL
     type: postgres
+    uid: cpm-postgres
     access: proxy
     url: ${CPM_PG_HOST}:5432
     database: ${CPM_PG_DB}
@@ -47,5 +48,7 @@ datasources:
     secureJsonData:
       password: ${CPM_PG_PASSWORD}
     jsonData:
-      sslmode: disable
+      # SÉCURITÉ : TLS exigé vers PostgreSQL (chiffrement en transit). Si le serveur PG n'a pas
+      # TLS activé, le configurer plutôt que de repasser à "disable".
+      sslmode: require
       postgresVersion: 1500

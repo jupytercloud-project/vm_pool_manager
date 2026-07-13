@@ -80,20 +80,24 @@ func Start_grpc(ctx context.Context) {
 		log.Fatalf("Erreur lors de l'ecoute du port : %v", err)
 	}
 
-	// Public gRPC methods that don't require authentication
+	// Public gRPC methods that don't require authentication.
+	// SÉCURITÉ : CreateUser a été retiré (registration ouverte → création d'un compte GLAuth/LDAP
+	// utilisable pour se connecter via Dex). La création de comptes passe désormais par un
+	// principal authentifié non-étudiant (cf. sensitiveGRPCMethods). AuthenticateUser reste public
+	// (login local legacy) : le token qu'il émet n'est pas un JWT OIDC et n'ouvre aucun accès.
 	publicMethods := []string{
 		"/frontcontrol.AttribVMService/AttribVMinPool",
 		"/frontcontrol.AttribVMService/ReturnPoolWithKey",
 		"/frontcontrol.AuthService/AuthenticateUser",
-		"/frontcontrol.AuthService/CreateUser",
 	}
 
 	s := grpc.NewServer(
 		// Traces/métriques gRPC OTel (no-op si la télémétrie est désactivée).
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		// recovery en premier (outermost) : attrape les panics des autres intercepteurs et des handlers.
-		grpc.ChainUnaryInterceptor(recoveryUnaryInterceptor, oidcmw.UnaryInterceptor(publicMethods)),
-		grpc.ChainStreamInterceptor(recoveryStreamInterceptor, oidcmw.StreamInterceptor(publicMethods)),
+		// Puis authentification OIDC, puis autorisation par méthode (authz* lit les claims injectés).
+		grpc.ChainUnaryInterceptor(recoveryUnaryInterceptor, oidcmw.UnaryInterceptor(publicMethods), authzUnaryInterceptor),
+		grpc.ChainStreamInterceptor(recoveryStreamInterceptor, oidcmw.StreamInterceptor(publicMethods), authzStreamInterceptor),
 	)
 
 	conn, err := grpc.NewClient("localhost:50052",
@@ -133,9 +137,13 @@ func Start_grpc(ctx context.Context) {
 		}
 	}()
 
-	// gRPC-Web + REST API server on port 50055
+	// gRPC-Web + REST API server on port 50055.
+	// SÉCURITÉ : allowlist d'origines configurable via CORS_ALLOWED_ORIGINS (liste séparée par
+	// des virgules). Les appels gRPC-Web portent le Bearer en en-tête (résistants au CSRF), mais
+	// restreindre l'origine ajoute une défense en profondeur. Non défini → comportement
+	// historique (toutes origines) avec avertissement au démarrage : à renseigner en prod.
 	wrappedGrpc := grpcweb.WrapServer(s,
-		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
+		grpcweb.WithOriginFunc(grpcWebOriginAllowed),
 	)
 
 	registerMetrics()

@@ -51,8 +51,31 @@ function dexBase(): string {
   return `${window.location.origin}/dex`;
 }
 
-// PKCE with 'plain' method — avoids crypto.subtle which is blocked on HTTP
-export function startOIDCLogin() {
+// base64url sans padding (format attendu pour un code_challenge PKCE S256).
+function base64urlFromBytes(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// SÉCURITÉ : on dérive le code_challenge en S256 (SHA-256 du verifier) dès que crypto.subtle
+// est disponible (contexte sécurisé : HTTPS ou localhost) — la prod est servie en HTTPS via
+// Caddy. Repli sur 'plain' UNIQUEMENT si crypto.subtle est absent (dev en HTTP simple).
+// 'plain' transmet le verifier en clair dans l'URL d'autorisation (interceptable) ; S256 ne
+// transmet que son empreinte → l'interception de l'URL ne permet pas de rejouer le code.
+async function deriveCodeChallenge(verifier: string): Promise<{ challenge: string; method: string }> {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+      return { challenge: base64urlFromBytes(new Uint8Array(digest)), method: 'S256' };
+    } catch {
+      /* contexte non sécurisé → repli plain */
+    }
+  }
+  return { challenge: verifier, method: 'plain' };
+}
+
+export async function startOIDCLogin() {
   const state = randomString();
   const codeVerifier = randomString();
 
@@ -60,6 +83,7 @@ export function startOIDCLogin() {
   sessionStorage.setItem('oidc_code_verifier', codeVerifier);
 
   const redirectUri = window.location.origin + '/auth/callback';
+  const { challenge, method } = await deriveCodeChallenge(codeVerifier);
 
   const url = new URL(dexBase() + '/auth');
   url.searchParams.set('response_type', 'code');
@@ -67,8 +91,8 @@ export function startOIDCLogin() {
   url.searchParams.set('redirect_uri', redirectUri);
   url.searchParams.set('scope', 'openid email profile groups offline_access');
   url.searchParams.set('state', state);
-  url.searchParams.set('code_challenge', codeVerifier);
-  url.searchParams.set('code_challenge_method', 'plain');
+  url.searchParams.set('code_challenge', challenge);
+  url.searchParams.set('code_challenge_method', method);
 
   window.location.href = url.toString();
 }

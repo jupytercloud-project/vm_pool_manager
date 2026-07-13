@@ -86,10 +86,39 @@ var adminHTTPPrefixes = []string{
 	"/api/pool/",   // métadonnées des pools (libellé, étiquettes)
 	"/api/github/students",
 	"/api/image-proposals",
-	"/api/usage",   // consommation & coûts (équipe pédagogique)
-	"/api/pricing", // tarifs unitaires (estimateur)
-	"/api/storage", // stockage alloué & quotas
-	"/api/jobs",    // jobs batch (calcul/recherche)
+	"/api/inventory", // SÉCURITÉ : inventaire global (toutes VMs/IP/élèves/URLs) → staff seulement
+}
+
+// researcherHTTPPrefixes : routes du self-service CHERCHEUR (calcul/recherche), aussi ouvertes au
+// staff. Les handlers concernés bornent déjà les données au propriétaire (owner_email / user_id)
+// pour un non-admin, et vérifient l'appartenance du pool/serveur → un chercheur n'agit que sur SES
+// ressources. Un étudiant reste exclu.
+var researcherHTTPPrefixes = []string{
+	"/api/jobs",    // jobs batch (liste/soumission/sweep/annulation/rerun) — scopé owner_email
+	"/api/usage",   // consommation & coûts — scopé user_id (ses pools)
+	"/api/storage", // stockage alloué & quotas — scopé user_id
+	"/api/pricing", // tarifs unitaires (estimateur de coût) — non sensible
+}
+
+// researcherExactPaths : chemins précis (et non préfixes) ouverts au chercheur. /api/vm/action
+// (start/stop/suspend/resume/reboot) est carve-out du préfixe admin /api/vm/ : le handler vérifie
+// que le serveur appartient à l'appelant. rebuild/resize restent staff-only.
+var researcherExactPaths = map[string]bool{
+	"/api/vm/action": true,
+}
+
+// isResearcherPath : route accessible au chercheur (self-service calcul). Vérifiée AVANT
+// isAdminPath pour que /api/vm/action prime sur le préfixe admin /api/vm/.
+func isResearcherPath(p string) bool {
+	if researcherExactPaths[p] {
+		return true
+	}
+	for _, pre := range researcherHTTPPrefixes {
+		if strings.HasPrefix(p, pre) {
+			return true
+		}
+	}
+	return false
 }
 
 func isAdminPath(p string) bool {
@@ -133,7 +162,9 @@ func resolveIdentity(r *http.Request) (httpIdentity, bool) {
 	// 2. Session Moodle (élève ou admin site).
 	var ms models.MoodleSession
 	if err := config.Database.Where("id = ?", tok).First(&ms).Error; err == nil {
-		if time.Since(ms.CreatedAt) <= 24*time.Hour {
+		// SÉCURITÉ : session bornée à 12 h (couvre une journée de TP/examen) au lieu de 24 h —
+		// limite la fenêtre d'exploitation d'un session-id volé.
+		if time.Since(ms.CreatedAt) <= 12*time.Hour {
 			role := resolveRole(ms.Email, ms.Role == "admin")
 			return httpIdentity{Email: ms.Email, IsAdmin: role == RoleAdmin, Role: role, Via: "moodle"}, ms.Email != ""
 		}
@@ -180,7 +211,14 @@ func httpAuthMiddleware(next http.Handler) http.Handler {
 			httpJSONError(w, http.StatusForbidden, "réservé aux administrateurs")
 			return
 		}
-		if isAdminPath(path) && !isStaff(id.Role) {
+		// Routes du self-service chercheur (calcul) : ouvertes au staff ET au chercheur, jamais à
+		// l'étudiant. Vérifié AVANT isAdminPath pour que /api/vm/action prime sur /api/vm/.
+		if isResearcherPath(path) {
+			if !isStaff(id.Role) && id.Role != RoleChercheur {
+				httpJSONError(w, http.StatusForbidden, "réservé à l'équipe pédagogique et aux chercheurs")
+				return
+			}
+		} else if isAdminPath(path) && !isStaff(id.Role) {
 			httpJSONError(w, http.StatusForbidden, "réservé à l'équipe pédagogique")
 			return
 		}

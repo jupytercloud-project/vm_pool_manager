@@ -52,7 +52,7 @@ users:
 func registrarCloudConfig(pgDSN string, healthPort int, controlCenterURL string, downloadBaseURL string) string {
 	return fmt.Sprintf(`#!/bin/bash
 
-# ─── vm-registrar agent setup (runs in background to not block cloud-init) ───
+# --- vm-registrar agent setup (runs in background to not block cloud-init) ---
 (
 REGISTRAR_DIR="/etc/registrar"
 REGISTRAR_BIN="/usr/local/bin/vm-registrar"
@@ -72,10 +72,14 @@ ENVEOF
 chmod 600 ${REGISTRAR_DIR}/registrar.env
 
 # Download pre-compiled vm-registrar (hard 60s total timeout)
+# SECURITY: this binary runs as root on the VM, so TLS verification is mandatory (a MITM
+# serving a fake binary would be root RCE on the whole fleet). We dropped -k /
+# --no-check-certificate: the download URL MUST present a valid certificate.
+# NOTE: keep this script ASCII-only -- non-ASCII bytes break cloud-init's shellscript handler.
 DOWNLOAD_URL="%s"
 if [ -n "$DOWNLOAD_URL" ]; then
-  timeout 60 curl -fsSLk --max-time 30 ${DOWNLOAD_URL}/vm-registrar -o ${REGISTRAR_BIN} || \
-  timeout 60 wget -qO ${REGISTRAR_BIN} --no-check-certificate --timeout=30 --tries=1 ${DOWNLOAD_URL}/vm-registrar || true
+  timeout 60 curl -fsSL --max-time 30 ${DOWNLOAD_URL}/vm-registrar -o ${REGISTRAR_BIN} || \
+  timeout 60 wget -qO ${REGISTRAR_BIN} --timeout=30 --tries=1 ${DOWNLOAD_URL}/vm-registrar || true
 fi
 [ -f ${REGISTRAR_BIN} ] && chmod +x ${REGISTRAR_BIN} || echo "[registrar] download skipped"
 
@@ -101,7 +105,7 @@ systemctl daemon-reload
 systemctl enable vm-registrar
 systemctl start vm-registrar
 
-# ─── ssh-monitor agent setup ───────────────────────────────
+# --- ssh-monitor agent setup ---
 cat > /usr/local/bin/ssh-monitor.sh << 'MOF'
 #!/bin/bash
 while true; do
@@ -113,6 +117,11 @@ while true; do
   fi
   HOST=$(hostname)
   if [ -n "$REGISTRAR_CC_URL" ]; then
+    # NOTE: -k tolerated here -- write-only activity beacon (connected/idle status) to the
+    # control center, often reached by IP with a self-signed cert. MITM impact = forge an
+    # activity status (no RCE, no data leak). OPS: expose CC via a domain with a valid cert,
+    # then drop -k. Unlike the binary download above, where TLS is enforced.
+    # (Keep ASCII-only: non-ASCII breaks cloud-init's shellscript handler.)
     curl -sfk -X POST "${REGISTRAR_CC_URL}/api/vm-activity" \
       -H "Content-Type: application/json" \
       -d "{\"hostname\":\"${HOST}\",\"status\":\"${STATUS}\"}" > /dev/null 2>&1 || true

@@ -1,0 +1,19 @@
+{
+  "_comment": "Gabarit d'offre Marketplace Waldur de type OpenStack.Tenant. Créer via l'UI Admin",
+  "_comment2": "ou l'API ; les secret_options ne sont JAMAIS committés (valeurs depuis waldur/.env).",
+  "type": "OpenStack.Tenant",
+  "name": "OpenStack — Institut Polytechnique",
+  "category": "Private cloud (VPC)",
+  "secret_options": {
+    "backend_url": "https://<keystone>:5000/v3",
+    "username": "<application_credential_id>",
+    "password": "<application_credential_secret>",
+    "tenant_name": "admin",
+    "domain": "Default",
+    "external_network_id": "<uuid-reseau-externe>"
+  },
+  "plugin_options": {
+    "auto_approve_in_service_provider_projects": false,
+    "manage_availability_zones": true
+  }
+}

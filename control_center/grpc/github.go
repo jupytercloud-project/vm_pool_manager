@@ -81,8 +81,11 @@ func registerGitHubHuma(api huma.API) {
 }
 
 func randomState() string {
-	b := make([]byte, 16)
-	rand.Read(b)
+	b := make([]byte, 16) // 128 bits d'entropie : suffisant pour un state/session id non devinable
+	if _, err := rand.Read(b); err != nil {
+		// SÉCURITÉ : échouer fermé — sinon state/session_id prévisible (zéros).
+		panic("crypto/rand indisponible: " + err.Error())
+	}
 	return hex.EncodeToString(b)
 }
 

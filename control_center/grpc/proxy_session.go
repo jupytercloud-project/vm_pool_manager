@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"control_center/config"
+	"control_center/internal/metrics"
 	"control_center/models"
 )
 
@@ -24,7 +25,10 @@ const proxySessionTTL = 8 * time.Hour
 // randomToken génère un identifiant opaque non devinable (valeur de cookie).
 func randomToken() string {
 	b := make([]byte, 32)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// SÉCURITÉ : échouer fermé — un buffer non rempli donnerait un token prévisible (zéros).
+		panic("crypto/rand indisponible: " + err.Error())
+	}
 	return hex.EncodeToString(b)
 }
 
@@ -50,6 +54,7 @@ func mintProxySession(w http.ResponseWriter, email, kind, poolID, ownerID string
 		ExpiresAt:  time.Now().Add(proxySessionTTL),
 	}
 	config.Database.Create(&sess)
+	metrics.RecordProxySession(kind)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     proxyCookieName(kind),
@@ -57,7 +62,10 @@ func mintProxySession(w http.ResponseWriter, email, kind, poolID, ownerID string
 		Path:     proxyCookiePath(kind),
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		// SÉCURITÉ : Strict (et non Lax) — le cookie seul authentifie le proxy ; Lax laisserait
+		// une navigation cross-site de premier niveau l'envoyer (CSRF sur l'app proxifiée).
+		// L'app ouvre ces vues en same-site (onglet/iframe même origine), donc Strict convient.
+		SameSite: http.SameSiteStrictMode,
 		MaxAge:   int(proxySessionTTL.Seconds()),
 	})
 
@@ -108,9 +116,11 @@ func serveAppProxy(w http.ResponseWriter, r *http.Request, sess *models.ProxySes
 		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
-		// Permettre l'embarquement en iframe (même origine HTTPS via Caddy).
-		resp.Header.Del("X-Frame-Options")
-		resp.Header.Del("Content-Security-Policy")
+		// SÉCURITÉ : autoriser l'iframe SAME-ORIGIN (l'app l'embarque via Caddy) tout en
+		// bloquant le framing cross-origin (anti-clickjacking). On REMPLACE les en-têtes des
+		// apps proxifiées (au lieu de juste les supprimer) par une politique restreinte.
+		resp.Header.Set("X-Frame-Options", "SAMEORIGIN")
+		resp.Header.Set("Content-Security-Policy", "frame-ancestors 'self'")
 		return nil
 	}
 	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {

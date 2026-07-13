@@ -89,10 +89,9 @@ func (s *Service) AuthenticateUser(
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		// Fallback: accept plaintext passwords from before migration
-		if user.Password != req.Password {
-			return &frontcontrolpb.AuthenticateUserResponse{Success: false}, fmt.Errorf("invalid password")
-		}
+		// SÉCURITÉ : pas de fallback mot de passe en clair (un mot de passe stocké non hashé
+		// ne doit jamais être accepté). Seul le hash bcrypt fait foi.
+		return &frontcontrolpb.AuthenticateUserResponse{Success: false}, fmt.Errorf("invalid password")
 	}
 
 	token := fmt.Sprintf("%s:%s:%d", user.Role, user.Email, user.ID)

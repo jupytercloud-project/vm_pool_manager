@@ -78,6 +78,7 @@ images/
 
 # Observabilité — secrets & données locales
 monitoring/.env
+monitoring/alertmanager/alertmanager.yml
 monitoring/grafana/data/
 monitoring/prometheus/data/
 monitoring/loki/data/

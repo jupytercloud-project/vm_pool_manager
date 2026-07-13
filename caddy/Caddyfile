@@ -3,8 +3,28 @@
     order grpc_web before reverse_proxy
 }
 
+# En-têtes de l'application frontend (CSP + anti-clickjacking), réutilisés sur les pages app.
+(frontend_headers) {
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ws: wss:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"
+    }
+}
+
 :443 {
     tls /etc/caddy/cert.pem /etc/caddy/key.pem
+
+    # ---------- En-têtes de sécurité GLOBAUX (toutes réponses) ----------
+    # HSTS (activé en prod derrière un cert valide), anti-MIME-sniffing, referrer, permissions.
+    # La CSP et X-Frame-Options restent par-handle (app/dex distincts ; /api/*-proxy/* posent
+    # leur propre CSP côté Go).
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        -Server
+    }
 
     # ---------- gRPC-Web ----------
     handle_path /rpc/* {
@@ -30,10 +50,18 @@
     }
 
     handle /api/* {
+        # Anti-cache de données potentiellement sensibles.
+        header Cache-Control "no-store"
         reverse_proxy host.docker.internal:50055
     }
 
+    # SÉCURITÉ : /metrics non joignable publiquement (scraping interne via localhost:50055).
+    handle /metrics {
+        respond "Not found" 404
+    }
+
     handle /auth/callback {
+        import frontend_headers
         reverse_proxy host.docker.internal:5173
     }
 
@@ -45,8 +73,22 @@
         reverse_proxy host.docker.internal:50055
     }
 
+    # SÉCURITÉ : bloque l'open-redirect / href contrôlable via le paramètre 'back' de Dex.
+    # Un 'back' légitime est vide ; on rejette toute valeur contenant ':' ou '//'.
+    @dex_openredirect {
+        path /dex/auth/*
+        expression {http.request.uri.query.back}.contains(":") || {http.request.uri.query.back}.contains("//")
+    }
+    handle @dex_openredirect {
+        respond "Invalid back parameter" 400
+    }
+
     # ---------- Dex OIDC (proxied so any IP works) ----------
     handle /dex/* {
+        header {
+            X-Frame-Options "SAMEORIGIN"
+            Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
+        }
         reverse_proxy host.docker.internal:5556
     }
 
@@ -63,6 +105,7 @@
 
     # ---------- Frontend ----------
     handle {
+        import frontend_headers
         reverse_proxy host.docker.internal:5173
     }
 }

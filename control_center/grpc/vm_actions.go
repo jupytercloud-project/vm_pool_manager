@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"control_center/config"
+	"control_center/internal/metrics"
 	"control_center/models"
 	"control_center/pb"
 
@@ -36,6 +37,10 @@ func registerVMHuma(api huma.API) {
 		if strings.TrimSpace(in.Body.ServerID) == "" || !validVMActions[action] {
 			return nil, huma.Error400BadRequest("server_id et action valides requis (start|stop|suspend|resume|reboot)")
 		}
+		// Anti-IDOR : un chercheur ne pilote que les VMs de SES pools (staff : toutes).
+		if !serverOwnedByCallerOrStaff(ctx, in.Body.ServerID) {
+			return nil, huma.Error403Forbidden("cette VM ne vous appartient pas")
+		}
 		id, _ := identityFrom(ctx)
 
 		conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
@@ -58,8 +63,10 @@ func registerVMHuma(api huma.API) {
 			if err != nil {
 				msg = err.Error()
 			}
+			metrics.RecordVMAction(action, "error")
 			return nil, huma.Error502BadGateway(msg)
 		}
+		metrics.RecordVMAction(action, "success")
 		invalidatePowerStates() // refléter le nouvel état au prochain inventaire
 
 		// Réarmer le compteur d'activité à la reprise pour éviter une re-suspension immédiate.

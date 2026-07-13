@@ -1,0 +1,149 @@
+# Règles d'alerte CloudPoolManager — évaluées par Prometheus, routées par Alertmanager (SMTP).
+# Sévérité portée par le label `severity` (critical|warning|info) → routage e-mail.
+groups:
+  # ---------------------------------------------------------------- Santé des services
+  - name: platform-health
+    rules:
+      - alert: ControlCenterDown
+        expr: up{job="control-center"} == 0
+        for: 3m
+        labels: { severity: critical }
+        annotations:
+          summary: "Control Center injoignable"
+          description: "Le endpoint /metrics du Control Center ne répond plus depuis 3 min (job control-center)."
+
+      - alert: OpenStackMicroserviceDown
+        expr: up{job="openstack-microservice"} == 0
+        for: 3m
+        labels: { severity: critical }
+        annotations:
+          summary: "Microservice OpenStack injoignable"
+          description: "Le microservice de provisioning ne répond plus depuis 3 min (job openstack-microservice)."
+
+      - alert: MonitoringTargetDown
+        expr: up{job=~"otel-collector|node-exporter|cadvisor|alertmanager"} == 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Cible de monitoring absente : {{ $labels.job }}"
+          description: "La cible {{ $labels.job }} ({{ $labels.instance }}) est down depuis 5 min."
+
+  # ---------------------------------------------------------------- Provisioning / OpenStack
+  - name: provisioning
+    rules:
+      - alert: VMProvisioningFailures
+        expr: increase(cpm_vm_provision_total{result="failed"}[15m]) > 2
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Échecs de provisioning de VM"
+          description: "{{ $value | printf \"%.0f\" }} créations de VM ont échoué sur les 15 dernières minutes."
+
+      - alert: SlowVMProvisioning
+        expr: histogram_quantile(0.9, sum(rate(cpm_vm_provision_duration_seconds_bucket[30m])) by (le)) > 300
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Provisioning de VM lent"
+          description: "Le p90 de la durée de boot dépasse 300 s sur 30 min."
+
+      - alert: OpenStackAPIErrors
+        expr: increase(cpm_openstack_errors_total[15m]) > 3
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Erreurs API OpenStack : {{ $labels.operation }}"
+          description: "{{ $value | printf \"%.0f\" }} erreurs OpenStack ({{ $labels.operation }}) sur 15 min."
+
+      - alert: ServersInErrorState
+        expr: sum(cpm_servers{status=~"(?i)error"}) > 0
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "VMs en état ERROR"
+          description: "{{ $value | printf \"%.0f\" }} VM(s) sont en état ERROR depuis 10 min."
+
+  # ---------------------------------------------------------------- Attribution / jobs
+  - name: usage-flows
+    rules:
+      - alert: AttributionFailures
+        expr: increase(cpm_vm_attribution_total{result="fail"}[15m]) > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Échecs d'attribution de VM"
+          description: "{{ $value | printf \"%.0f\" }} attributions ont échoué sur 15 min (étudiants sans VM ?)."
+
+      - alert: BatchJobFailures
+        expr: increase(cpm_batch_jobs_processed_total{result="failed"}[30m]) > 3
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Échecs de jobs batch"
+          description: "{{ $value | printf \"%.0f\" }} jobs batch ont échoué sur 30 min."
+
+  # ---------------------------------------------------------------- Registrar / inventaire
+  - name: fleet
+    rules:
+      - alert: StaleRegistrarVMs
+        expr: cpm_vm_registrar_stale > 0
+        for: 30m
+        labels: { severity: warning }
+        annotations:
+          summary: "VMs sans heartbeat registrar"
+          description: "{{ $value | printf \"%.0f\" }} VM(s) n'ont plus envoyé de heartbeat depuis > 30 min (VM bloquée / registrar KO)."
+
+  # ---------------------------------------------------------------- Coûts / quotas (accounting)
+  - name: accounting
+    rules:
+      - alert: StorageOverQuota
+        expr: cpm_storage_quota_gb > 0 and cpm_storage_allocated_gb > cpm_storage_quota_gb
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Quota de stockage dépassé"
+          description: "Stockage alloué {{ $value | printf \"%.0f\" }} Go > quota configuré."
+
+      # Seuil de coût mensuel — AJUSTER la valeur (devise configurée) selon le budget.
+      - alert: MonthlyCostHigh
+        expr: cpm_month_cost > 500
+        for: 1h
+        labels: { severity: info }
+        annotations:
+          summary: "Coût mensuel élevé"
+          description: "Le coût estimé cumulé du mois dépasse le seuil (valeur actuelle {{ $value | printf \"%.0f\" }})."
+
+  # ---------------------------------------------------------------- Hôte (node-exporter)
+  - name: host
+    rules:
+      - alert: HostDiskAlmostFull
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes) < 0.10
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Disque presque plein sur {{ $labels.instance }}"
+          description: "Moins de 10 % libres sur {{ $labels.mountpoint }} ({{ $labels.instance }})."
+
+      - alert: HostDiskCritical
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes) < 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Disque critique sur {{ $labels.instance }}"
+          description: "Moins de 5 % libres sur {{ $labels.mountpoint }} ({{ $labels.instance }})."
+
+      - alert: HostHighMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.90
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Mémoire saturée sur {{ $labels.instance }}"
+          description: "Utilisation mémoire > 90 % depuis 10 min sur {{ $labels.instance }}."
+
+      - alert: HostHighLoad
+        expr: node_load15 > 2 * count without(cpu, mode) (node_cpu_seconds_total{mode="idle"})
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Charge élevée sur {{ $labels.instance }}"
+          description: "load15 > 2× le nombre de vCPU depuis 15 min sur {{ $labels.instance }}."

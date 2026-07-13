@@ -1,0 +1,113 @@
+{
+  "uid": "cpm-platform-health",
+  "title": "CloudPoolManager — Santé plateforme",
+  "tags": ["cloudpoolmanager"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Control Center",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "up{job=\"control-center\"}", "refId": "A", "instant": true } ],
+      "fieldConfig": { "defaults": { "mappings": [ { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } } ], "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Microservice OpenStack",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "up{job=\"openstack-microservice\"}", "refId": "A", "instant": true } ],
+      "fieldConfig": { "defaults": { "mappings": [ { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } } ], "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 3, "type": "stat", "title": "VMs en ERROR",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "sum(cpm_servers{status=~\"(?i)error\"}) or vector(0)", "refId": "A", "instant": true } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 4, "type": "stat", "title": "VMs sans heartbeat (>30 min)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_vm_registrar_stale", "refId": "A", "instant": true } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Provisioning de VM (taux /5 min, par résultat)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "sum by (result) (rate(cpm_vm_provision_total[5m]))", "refId": "A", "legendFormat": "{{result}}" } ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 20, "lineWidth": 2 } } }
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Durée de provisioning (p50 / p90, s)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum(rate(cpm_vm_provision_duration_seconds_bucket[30m])) by (le))", "refId": "A", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.9, sum(rate(cpm_vm_provision_duration_seconds_bucket[30m])) by (le))", "refId": "B", "legendFormat": "p90" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } }
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Erreurs API OpenStack (increase /15 min)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "sum by (operation) (increase(cpm_openstack_errors_total[15m]))", "refId": "A", "legendFormat": "{{operation}}" } ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 20 } } }
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Attribution de VM (taux /15 min, par résultat)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "sum by (result) (rate(cpm_vm_attribution_total[15m]))", "refId": "A", "legendFormat": "{{result}}" } ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 20 } } }
+    },
+    {
+      "id": 9, "type": "bargauge", "title": "Jobs batch par statut",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_batch_jobs", "refId": "A", "legendFormat": "{{status}}", "instant": true } ],
+      "options": { "orientation": "horizontal", "displayMode": "gradient" }
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "Sessions de proxy ouvertes (taux /15 min)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "sum by (kind) (rate(cpm_proxy_sessions_total[15m]))", "refId": "A", "legendFormat": "{{kind}}" } ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 20 } } }
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "VMs par statut",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_servers", "refId": "A", "legendFormat": "{{status}}" } ],
+      "fieldConfig": { "defaults": { "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 30 } } }
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Hôte obs — CPU / mémoire (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [
+        { "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))", "refId": "A", "legendFormat": "CPU {{instance}}" },
+        { "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))", "refId": "B", "legendFormat": "Mém {{instance}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100, "custom": { "fillOpacity": 15 } } }
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Hôte obs — disque libre (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "100 * (node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs\"} / node_filesystem_size_bytes)", "refId": "A", "legendFormat": "{{mountpoint}}" } ],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100, "custom": { "lineWidth": 2 }, "thresholds": { "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 10 }, { "color": "green", "value": 20 } ] } } }
+    }
+  ]
+}

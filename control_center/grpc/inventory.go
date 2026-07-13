@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"control_center/config"
 	"control_center/internal/guacamole"
 	"control_center/models"
@@ -354,6 +355,97 @@ func serverUserID(srv models.Server) string {
 	return ""
 }
 
+// isKnownVMIP indique si l'IP correspond à une VM réellement enregistrée (pool ou
+// inventaire). Empêche d'utiliser un endpoint qui prend une IP comme oracle de scan
+// SSRF vers une IP arbitraire (interne ou externe).
+func isKnownVMIP(ip string) bool {
+	var n int64
+	config.Database.Model(&models.Server{}).Where("ip_address = ?", ip).Count(&n)
+	if n > 0 {
+		return true
+	}
+	config.Database.Model(&models.VMInstance{}).Where("ip = ?", ip).Count(&n)
+	return n > 0
+}
+
+// ipBelongsToCaller : autorise l'appelant authentifié à agir sur l'IP fournie.
+//   - staff (prof/TA/admin) : toute VM CONNUE (jamais une IP arbitraire → anti-SSRF) ;
+//   - étudiant : uniquement la VM qui lui est attribuée (jointure login ↔ ligne student).
+//
+// Sert d'anti-IDOR/SSRF aux endpoints qui prennent une IP en paramètre (app-status,
+// guac-url, nbgrader/submit) : un étudiant ne peut ni sonder ni agir sur la VM d'autrui.
+func ipBelongsToCaller(ctx context.Context, ip string) bool {
+	if net.ParseIP(ip) == nil {
+		return false
+	}
+	id, ok := identityFrom(ctx)
+	if !ok {
+		return false
+	}
+	if isStaff(id.Role) {
+		return isKnownVMIP(ip)
+	}
+	email := strings.TrimSpace(id.Email)
+	if email == "" {
+		return false
+	}
+	// Étudiant : VM attribuée (jointure login ↔ ligne student).
+	var n int64
+	config.Database.Model(&models.Student{}).
+		Where("ip = ? AND (LOWER(name) = LOWER(?) OR LOWER(moodle_email) = LOWER(?))", ip, email, email).
+		Count(&n)
+	if n > 0 {
+		return true
+	}
+	// Chercheur/propriétaire : VM d'un pool dont il est propriétaire (servers.user_id).
+	config.Database.Model(&models.Server{}).
+		Where("ip_address = ? AND LOWER(user_id) = LOWER(?)", ip, email).Count(&n)
+	return n > 0
+}
+
+// poolOwnedByCallerOrStaff : true si l'appelant est staff, ou si le pool (serverpool_id) lui
+// appartient. Anti-IDOR pour les actions self-service du chercheur (soumission de jobs, etc.) :
+// un chercheur ne peut agir que sur SES propres pools.
+func poolOwnedByCallerOrStaff(ctx context.Context, poolID string) bool {
+	id, ok := identityFrom(ctx)
+	if !ok {
+		return false
+	}
+	if isStaff(id.Role) {
+		return true
+	}
+	email := strings.TrimSpace(id.Email)
+	poolID = strings.TrimSpace(poolID)
+	if email == "" || poolID == "" {
+		return false
+	}
+	var n int64
+	config.Database.Model(&models.Serverpool{}).
+		Where("serverpool_id = ? AND LOWER(user_id) = LOWER(?)", poolID, email).Count(&n)
+	return n > 0
+}
+
+// serverOwnedByCallerOrStaff : true si l'appelant est staff, ou si le serveur (id) appartient à
+// un pool dont il est propriétaire. Anti-IDOR pour le pilotage (start/stop) d'une VM.
+func serverOwnedByCallerOrStaff(ctx context.Context, serverID string) bool {
+	id, ok := identityFrom(ctx)
+	if !ok {
+		return false
+	}
+	if isStaff(id.Role) {
+		return true
+	}
+	email := strings.TrimSpace(id.Email)
+	serverID = strings.TrimSpace(serverID)
+	if email == "" || serverID == "" {
+		return false
+	}
+	var n int64
+	config.Database.Model(&models.Server{}).
+		Where("id = ? AND LOWER(user_id) = LOWER(?)", serverID, email).Count(&n)
+	return n > 0
+}
+
 // handleGuacURL returns the Guacamole client URL for a VM given its IP.
 func handleGuacURL(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -363,6 +455,11 @@ func handleGuacURL(w http.ResponseWriter, r *http.Request) {
 	ip := r.URL.Query().Get("ip")
 	if ip == "" {
 		http.Error(w, "missing ip parameter", http.StatusBadRequest)
+		return
+	}
+	// Anti-IDOR : un étudiant ne peut obtenir l'URL Guacamole que de SA VM.
+	if !ipBelongsToCaller(r.Context(), ip) {
+		http.Error(w, "accès refusé à cette VM", http.StatusForbidden)
 		return
 	}
 	if guacClient == nil {
@@ -400,6 +497,12 @@ func handleAppStatus(w http.ResponseWriter, r *http.Request) {
 	port := r.URL.Query().Get("port")
 	if ip == "" || port == "" {
 		http.Error(w, "missing ip or port", http.StatusBadRequest)
+		return
+	}
+	// Anti-SSRF/IDOR : on ne sonde un port TCP que sur une VM appartenant à l'appelant
+	// (étudiant → sa VM ; staff → VM connue). Jamais une IP/port arbitraire.
+	if !ipBelongsToCaller(r.Context(), ip) {
+		http.Error(w, "accès refusé à cette VM", http.StatusForbidden)
 		return
 	}
 	conn, err := net.DialTimeout("tcp", ip+":"+port, 2*time.Second)

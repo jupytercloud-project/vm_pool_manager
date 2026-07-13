@@ -1,0 +1,73 @@
+{
+  "uid": "cpm-costs",
+  "title": "CloudPoolManager — Coûts & comptabilité",
+  "tags": ["cloudpoolmanager", "accounting"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-30d", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Coût estimé — mois en cours",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_month_cost", "refId": "A", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "currencyEUR", "decimals": 2, "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 300 }, { "color": "red", "value": 500 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Heures-VM — mois en cours",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_month_vm_hours", "refId": "A", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "h", "decimals": 0 } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 3, "type": "gauge", "title": "Stockage alloué vs quota (Go)",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_storage_allocated_gb", "refId": "A", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "decgbytes", "min": 0, "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 150 }, { "color": "red", "value": 200 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdMarkers": true }
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Coût cumulé du mois (évolution)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_month_cost", "refId": "A", "legendFormat": "coût cumulé" } ],
+      "fieldConfig": { "defaults": { "unit": "currencyEUR", "custom": { "fillOpacity": 20, "lineWidth": 2 } } }
+    },
+    {
+      "id": 5, "type": "bargauge", "title": "Coût du mois par pool",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_pool_month_cost", "refId": "A", "legendFormat": "{{pool}} ({{owner}})", "instant": true } ],
+      "fieldConfig": { "defaults": { "unit": "currencyEUR" } },
+      "options": { "orientation": "horizontal", "displayMode": "gradient" }
+    },
+    {
+      "id": 6, "type": "table", "title": "Comptabilité par utilisateur — mois en cours (heures-VM & coût estimé)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 12 },
+      "datasource": { "type": "postgres", "uid": "cpm-postgres" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT user_id AS \"Utilisateur\", count(DISTINCT vm_id) AS \"VMs\", round(sum(seconds)/3600.0, 1) AS \"Heures-VM\", round((sum(seconds/3600.0 * vcpus) * 0.012 + sum(seconds/3600.0 * ram_mb/1024.0) * 0.006)::numeric, 2) AS \"Coût estimé (EUR)\" FROM vm_usage WHERE year_month = to_char(now(), 'YYYY-MM') GROUP BY user_id ORDER BY 4 DESC"
+        }
+      ],
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "Coût estimé (EUR)" }, "properties": [ { "id": "unit", "value": "currencyEUR" } ] } ] }
+    },
+    {
+      "id": 7, "type": "bargauge", "title": "Étudiants par pool (utilisation)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "cpm-prometheus" },
+      "targets": [ { "expr": "cpm_pool_students", "refId": "A", "legendFormat": "{{pool}} ({{owner}})", "instant": true } ],
+      "options": { "orientation": "horizontal", "displayMode": "gradient" }
+    }
+  ]
+}

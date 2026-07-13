@@ -18,8 +18,11 @@ via GitHub et accèdent à leur VM (terminal web Guacamole, SSH, ou JupyterLab).
 | 6 | [Notation nbgrader](07-nbgrader-notation.md) | Créer → distribuer → collecter → noter (auto + manuel) |
 | 7 | [Snapshots & images](08-snapshots-images.md) | Construction des images Jupyter/nbgrader |
 | 8 | [Développement & exploitation](09-developpement-exploitation.md) | `dev.sh`, `.env`, services, dépannage |
-| 9 | [Observabilité](10-observabilite.md) | Grafana + Prometheus + Loki : métriques d'usage, logs, dashboards |
+| 9 | [Observabilité](10-observabilite.md) | Prometheus + Grafana + Loki + Tempo + **Alertmanager/SMTP** : métriques, alertes, dashboards |
 | 10 | [Intégration Moodle](11-moodle.md) | Import élèves, connexion Moodle (sans clé SSH), remontée des notes |
+| 11 | [Interface chercheur](12-interface-chercheur.md) | Self-service calcul : environnements, jobs batch, conso — gating par rôle |
+| 12 | [Sécurité](13-securite.md) | Durcissement, réponse à l'audit, gating & anti-IDOR, exposition télémétrie |
+| 13 | [Waldur](14-waldur.md) | Intégration de Waldur (accounting / marketplace / allocations) sur OpenStack |
 
 ## Vue d'ensemble (30 secondes)
 

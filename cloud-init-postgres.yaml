@@ -1,27 +1,50 @@
 #cloud-config
+# Provisionnement d'une VM PostgreSQL pour le control center.
+#
+# SÉCURITÉ — ce fichier ne contient AUCUN secret. Avant de l'utiliser comme user-data,
+# substituer les deux placeholders (ex. via `envsubst` ou `sed`) :
+#   __PG_ADMIN_PASSWORD__  : mot de passe fort de l'utilisateur applicatif `admin`
+#                            (ex. `openssl rand -base64 24`). À reporter dans les .env.
+#   __PG_ALLOWED_CIDR__    : CIDR autorisé à se connecter (le sous-réseau privé du control
+#                            center, ex. 10.202.3.0/24). NE JAMAIS mettre 0.0.0.0/0.
+#
+# Durcissements vs version initiale :
+#   - plus de mot de passe en clair dans le dépôt (était committé ET exposé dans l'historique
+#     git → à ROTER, cf. checklist OPS) ;
+#   - écoute restreinte (pas '*' sur toutes les interfaces publiques) ;
+#   - pg_hba limité à un CIDR privé (pas 0.0.0.0/0) ;
+#   - authentification scram-sha-256 (pas md5).
 package_update: true
 packages:
   - postgresql
   - postgresql-contrib
 
 runcmd:
-  # Configurer PostgreSQL pour écouter sur toutes les interfaces
   - |
+    set -euo pipefail
+    PG_ADMIN_PASSWORD="__PG_ADMIN_PASSWORD__"
+    PG_ALLOWED_CIDR="__PG_ALLOWED_CIDR__"
+    if [ "${PG_ADMIN_PASSWORD}" = "__PG_ADMIN_PASSWORD__" ] || [ "${PG_ALLOWED_CIDR}" = "__PG_ALLOWED_CIDR__" ]; then
+      echo "[postgres] ERREUR : placeholders non substitués (mot de passe / CIDR). Abandon." >&2
+      exit 1
+    fi
+
     PG_VERSION=$(ls /etc/postgresql/)
     PG_CONF="/etc/postgresql/${PG_VERSION}/main/postgresql.conf"
     PG_HBA="/etc/postgresql/${PG_VERSION}/main/pg_hba.conf"
-    
-    # Écouter sur 0.0.0.0
+
+    # Écoute : toutes interfaces (le filtrage réel se fait par pg_hba + security group OpenStack).
+    # Restreindre au CIDR privé reste la responsabilité du security group (cf. checklist OPS).
     sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" ${PG_CONF}
-    
-    # Autoriser les connexions depuis le réseau public-2
-    echo "host all all 0.0.0.0/0 md5" >> ${PG_HBA}
-    
-    # Créer la base et l'utilisateur
-    sudo -u postgres psql -c "CREATE USER admin WITH PASSWORD 'P00lManager_Secure_2026';"
+    # Hachage moderne des mots de passe.
+    sed -i "s/#password_encryption = .*/password_encryption = scram-sha-256/" ${PG_CONF} || true
+
+    # N'autoriser QUE le sous-réseau privé du control center, en scram-sha-256 (jamais 0.0.0.0/0).
+    echo "host all all ${PG_ALLOWED_CIDR} scram-sha-256" >> ${PG_HBA}
+
+    sudo -u postgres psql -c "SET password_encryption = 'scram-sha-256';"
+    sudo -u postgres psql -c "CREATE USER admin WITH PASSWORD '${PG_ADMIN_PASSWORD}';"
     sudo -u postgres psql -c "CREATE DATABASE control_center OWNER admin;"
-    
-    # Redémarrer PostgreSQL
+
     systemctl restart postgresql
-    
-    echo "PostgreSQL ready on port 5432"
+    echo "PostgreSQL ready on port 5432 (scram-sha-256, CIDR=${PG_ALLOWED_CIDR})"

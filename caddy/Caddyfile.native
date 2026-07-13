@@ -2,8 +2,25 @@
     order grpc_web before reverse_proxy
 }
 
+# En-têtes de l'application frontend (CSP + anti-clickjacking), réutilisés sur les pages app.
+(frontend_headers) {
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ws: wss:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"
+    }
+}
+
 :443 {
     tls /Users/maelan.jahier/Documents/vm-pool-managers/caddy/cert.pem /Users/maelan.jahier/Documents/vm-pool-managers/caddy/key.pem
+
+    # ---------- En-têtes de sécurité GLOBAUX (toutes réponses) ----------
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        -Server
+    }
 
     # ---------- gRPC-Web ----------
     handle_path /rpc/* {
@@ -30,15 +47,18 @@
 
     # ---------- REST API + GitHub OAuth ----------
     handle /api/* {
+        header Cache-Control "no-store"
         reverse_proxy localhost:50055
     }
 
-    # ---------- Métriques Prometheus (scrape par la VM d'observabilité) ----------
+    # SÉCURITÉ : /metrics non joignable publiquement. Le scraping d'observabilité doit se faire
+    # en INTERNE (localhost:50055/metrics), jamais via le reverse-proxy public.
     handle /metrics {
-        reverse_proxy localhost:50055
+        respond "Not found" 404
     }
 
     handle /auth/callback {
+        import frontend_headers
         reverse_proxy localhost:5173
     }
 
@@ -50,8 +70,21 @@
         reverse_proxy localhost:50055
     }
 
+    # SÉCURITÉ : bloque l'open-redirect / href contrôlable via le paramètre 'back' de Dex.
+    @dex_openredirect {
+        path /dex/auth/*
+        expression {http.request.uri.query.back}.contains(":") || {http.request.uri.query.back}.contains("//")
+    }
+    handle @dex_openredirect {
+        respond "Invalid back parameter" 400
+    }
+
     # ---------- Dex OIDC ----------
     handle /dex/* {
+        header {
+            X-Frame-Options "SAMEORIGIN"
+            Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
+        }
         reverse_proxy localhost:5556
     }
 
@@ -66,6 +99,7 @@
 
     # ---------- Frontend ----------
     handle {
+        import frontend_headers
         reverse_proxy localhost:5173
     }
 }

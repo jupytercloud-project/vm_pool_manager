@@ -125,8 +125,8 @@ func createVscodeGrant(w http.ResponseWriter, r *http.Request, id httpIdentity) 
 		http.Error(w, "pool_id et owner_id requis", http.StatusBadRequest)
 		return
 	}
-	if len(body.Password) < 4 {
-		http.Error(w, "mot de passe trop court (min 4 caractères)", http.StatusBadRequest)
+	if len(body.Password) < 12 {
+		http.Error(w, "mot de passe trop court (min 12 caractères)", http.StatusBadRequest)
 		return
 	}
 	editor := "jupyter"

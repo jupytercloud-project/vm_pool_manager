@@ -64,7 +64,7 @@
   let shareMsg = $state(""); let shareErr = $state(false); let sharing = $state(false);
   let shareUrl = $state("");
   async function doShare() {
-    if (!selectedPool || sharePassword.length < 4) { shareErr = true; shareMsg = $_('studentDash.sharePwdShort'); return; }
+    if (!selectedPool || sharePassword.length < 12) { shareErr = true; shareMsg = $_('studentDash.sharePwdShort'); return; }
     sharing = true; shareMsg = ""; shareErr = false; shareUrl = "";
     try {
       const r = await shareVscode(selectedPool.pool_id, selectedPool.user_id, shareMode, sharePassword, shareTtl, collabEditor);

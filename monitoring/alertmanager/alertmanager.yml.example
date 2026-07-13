@@ -1,0 +1,43 @@
+# Modèle Alertmanager — copier en `alertmanager.yml` puis renseigner SMTP + destinataires.
+#   cp alertmanager.yml.example alertmanager.yml
+# `alertmanager.yml` est GITIGNORÉ (contient des identifiants SMTP) — ne jamais le committer.
+#
+# À renseigner (Alertmanager ne substitue pas les variables d'env) :
+#   - smtp_smarthost / smtp_from / smtp_auth_username / smtp_auth_password  → relais SMTP réel
+#   - les adresses `to:` des receivers                                       → destinataires (TBD)
+# Valeurs suggérées dans monitoring/.env.example.
+
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: "SMTP_HOST:587"
+  smtp_from: "cloudpoolmanager@polytechnique.edu"
+  smtp_auth_username: "SMTP_USER"
+  smtp_auth_password: "SMTP_PASSWORD"
+  smtp_require_tls: true
+
+route:
+  receiver: email-default
+  group_by: ["alertname", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity="critical"']
+      receiver: email-critical
+      group_wait: 10s
+      repeat_interval: 1h
+
+receivers:
+  - name: email-default
+    email_configs:
+      - to: "equipe-infra@example.org"     # À DÉFINIR (warning/info)
+        send_resolved: true
+  - name: email-critical
+    email_configs:
+      - to: "astreinte@example.org"        # À DÉFINIR (critique)
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers: ['severity="critical"']
+    target_matchers: ['severity="warning"']
+    equal: ["alertname", "instance"]

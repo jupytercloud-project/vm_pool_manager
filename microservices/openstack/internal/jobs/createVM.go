@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"PoolManagerVM/backend/config"
+	"PoolManagerVM/backend/internal/metrics"
 	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/utils"
 	"context"
@@ -69,7 +70,16 @@ func resolveImageRef(ctx context.Context, imageRef, nameHint string) (string, er
 	return "", fmt.Errorf("image ref %q / name %q not found in student project (OS_CLOUD) — build or share the snapshot in that project", imageRef, nameHint)
 }
 
-func CreateVM(workerID int, job models.Job) error {
+func CreateVM(workerID int, job models.Job) (err error) {
+	// Métriques : issue (success|failed) + durée du provisioning (création → ACTIVE).
+	start := time.Now()
+	defer func() {
+		if err != nil {
+			metrics.RecordProvision("failed", 0)
+		} else {
+			metrics.RecordProvision("success", time.Since(start).Seconds())
+		}
+	}()
 
 	metadata := map[string]string{}
 	if metaStr, ok := job.Data["Metadata"]; ok && metaStr != "" {
@@ -148,6 +158,7 @@ func CreateVM(workerID int, job models.Job) error {
 	resolvedImage, err := resolveImageRef(context.Background(), serv.ImageRef, job.Data["config_id"])
 	if err != nil {
 		log.Printf("[Worker %d] image resolution failed: %v", workerID, err)
+		metrics.RecordOpenStackError("image")
 		DecrementPending(uint(paramID))
 		return fmt.Errorf("resolve image: %w", err)
 	}
@@ -176,6 +187,7 @@ func CreateVM(workerID int, job models.Job) error {
 		models.ComputeClient, createOptsExt, nil).Extract()
 	if err != nil {
 		log.Println("failed to create VM:", err)
+		metrics.RecordOpenStackError("create")
 		DecrementPending(uint(paramID))
 		return fmt.Errorf("failed to create VM: %w", err)
 	}
@@ -184,6 +196,7 @@ func CreateVM(workerID int, job models.Job) error {
 		current, err := servers.Get(context.Background(),
 			models.ComputeClient, server.ID).Extract()
 		if err != nil {
+			metrics.RecordOpenStackError("get")
 			DecrementPending(uint(paramID))
 			return fmt.Errorf("failed to get server status: %w", err)
 		}

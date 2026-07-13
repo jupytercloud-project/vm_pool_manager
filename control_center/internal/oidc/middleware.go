@@ -192,14 +192,22 @@ func ParseToken(tokenStr string) (jwt.MapClaims, error) {
 	}
 	claims := jwt.MapClaims{}
 	// WithValidMethods (RS256) ferme l'alg-confusion (un token alg=HS256 abuserait la clé
-	// RSA publique comme secret HMAC). NB : l'issuer n'est PAS imposé ici car OIDC_ISSUER
-	// (défaut localhost) ne correspond pas toujours à l'issuer réel annoncé par Dex
-	// (IP machine) ; l'activer casserait la connexion. À durcir quand OIDC_ISSUER sera aligné.
-	_, err := jwt.ParseWithClaims(tokenStr, claims, keyFunc,
+	// RSA publique comme secret HMAC).
+	// WithIssuer : l'`iss` du token DOIT correspondre à OIDC_ISSUER. Empêche qu'un JWT signé
+	// par un autre émetteur (autre Dex, IdP tiers) soit accepté tant que sa signature passe le
+	// JWKS. OIDC_ISSUER est aligné sur l'issuer annoncé par Dex (vérifié dans auth/dex.yaml).
+	// WithAudience (opt-in) : si OIDC_AUDIENCE est défini, l'`aud` doit le contenir (le token a
+	// bien été émis POUR cette application, pas réutilisé depuis un autre client Dex).
+	opts := []jwt.ParserOption{
 		jwt.WithIssuedAt(),
 		jwt.WithExpirationRequired(),
 		jwt.WithValidMethods([]string{"RS256"}),
-	)
+		jwt.WithIssuer(issuerURL()),
+	}
+	if aud := os.Getenv("OIDC_AUDIENCE"); aud != "" {
+		opts = append(opts, jwt.WithAudience(aud))
+	}
+	_, err := jwt.ParseWithClaims(tokenStr, claims, keyFunc, opts...)
 	if err != nil {
 		return nil, err
 	}

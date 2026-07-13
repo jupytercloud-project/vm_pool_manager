@@ -4,6 +4,7 @@ import (
 	"PoolManagerVM/backend/config"
 	ss "PoolManagerVM/backend/grpc"
 	"PoolManagerVM/backend/internal"
+	"PoolManagerVM/backend/internal/metrics"
 	"PoolManagerVM/backend/internal/telemetry"
 	"PoolManagerVM/backend/internal/worker"
 	"PoolManagerVM/backend/models"
@@ -33,6 +34,9 @@ func main() {
 
 	// creating context to stop cleanly
 	ctx, cancel := context.WithCancel(context.Background())
+
+	// Endpoint Prometheus /metrics (provisioning, erreurs OpenStack). No-op si port pris.
+	metrics.Serve()
 
 	//starting database
 	config.Start_DB()

@@ -1,0 +1,53 @@
+{{/* Templates d'e-mail CloudPoolManager — clairs, en français, sans jargon. */}}
+
+{{/* Sujet : état + résumé lisible */}}
+{{ define "cpm.subject" -}}
+[CloudPoolManager] {{ if eq .Status "firing" }}Alerte{{ else }}Rétabli{{ end }} : {{ if .CommonAnnotations.summary }}{{ .CommonAnnotations.summary }}{{ else }}{{ .CommonLabels.alertname }}{{ end }}
+{{- end }}
+
+{{/* Traduit la gravité en français */}}
+{{ define "cpm.gravite" -}}
+{{ if eq . "critical" }}Critique{{ else if eq . "warning" }}Avertissement{{ else if eq . "info" }}Information{{ else }}{{ . }}{{ end }}
+{{- end }}
+
+{{/* Corps HTML */}}
+{{ define "cpm.html" -}}
+<!doctype html>
+<html>
+<body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1d1d1f;">
+  <div style="max-width:560px;margin:0 auto;padding:24px;">
+    <div style="background:{{ if eq .Status "firing" }}#c0392b{{ else }}#15803d{{ end }};color:#fff;border-radius:12px;padding:18px 20px;">
+      <div style="font-size:13px;opacity:.85;letter-spacing:.5px;text-transform:uppercase;">CloudPoolManager · IDCS</div>
+      <div style="font-size:20px;font-weight:700;margin-top:4px;">
+        {{ if eq .Status "firing" }}Un problème est survenu{{ else }}Problème résolu{{ end }}
+      </div>
+    </div>
+
+    {{ range .Alerts }}
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px 20px;margin-top:14px;">
+      <div style="font-size:17px;font-weight:700;">{{ if .Annotations.summary }}{{ .Annotations.summary }}{{ else }}{{ .Labels.alertname }}{{ end }}</div>
+      {{ if .Annotations.description }}<div style="color:#495057;margin-top:6px;line-height:1.5;">{{ .Annotations.description }}</div>{{ end }}
+      <table style="width:100%;margin-top:14px;font-size:14px;border-collapse:collapse;">
+        <tr>
+          <td style="color:#6c757d;padding:4px 0;width:120px;">Gravité</td>
+          <td style="font-weight:600;">{{ template "cpm.gravite" .Labels.severity }}</td>
+        </tr>
+        <tr>
+          <td style="color:#6c757d;padding:4px 0;">Composant</td>
+          <td>{{ if .Labels.service }}{{ .Labels.service }}{{ else }}{{ .Labels.job }}{{ end }}{{ if .Labels.instance }} <span style="color:#6c757d;">({{ .Labels.instance }})</span>{{ end }}</td>
+        </tr>
+        <tr>
+          <td style="color:#6c757d;padding:4px 0;">{{ if eq .Status "resolved" }}Rétabli à{{ else }}Depuis{{ end }}</td>
+          <td>{{ if eq .Status "resolved" }}{{ .EndsAt.Format "02/01/2006 15:04" }}{{ else }}{{ .StartsAt.Format "02/01/2006 15:04" }}{{ end }}</td>
+        </tr>
+      </table>
+    </div>
+    {{ end }}
+
+    <div style="color:#9ca3af;font-size:12px;margin-top:16px;text-align:center;">
+      Alerte automatique · CloudPoolManager — École Polytechnique · IDCS
+    </div>
+  </div>
+</body>
+</html>
+{{- end }}

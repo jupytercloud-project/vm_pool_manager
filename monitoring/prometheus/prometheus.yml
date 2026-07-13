@@ -1,24 +1,58 @@
 global:
   scrape_interval: 30s
   scrape_timeout: 10s
+  external_labels:
+    stack: cloudpoolmanager
+
+# Règles d'alerte (santé services, provisioning, quotas, OpenStack, hôte…).
+rule_files:
+  - /etc/prometheus/rules/*.rules.yml
+
+# Envoi des alertes déclenchées à Alertmanager (qui les route par e-mail SMTP).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
 
 scrape_configs:
-  # Métriques d'usage du Control Center (/metrics, exposées via Caddy en HTTPS).
-  # ⚠️ Remplacer le host par l'IP/domaine public du Control Center si besoin.
+  # Métriques du Control Center. SÉCURITÉ : /metrics est BLOQUÉ côté Caddy public (404, cf.
+  # audit Acunetix) → on scrape le port REST INTERNE :50055 en direct (jamais via le domaine).
+  # Adapter l'IP à l'adresse interne du Control Center joignable depuis la VM d'observabilité.
   - job_name: control-center
-    scheme: https
-    tls_config:
-      insecure_skip_verify: true   # certificat Caddy auto-signé
     metrics_path: /metrics
     static_configs:
-      - targets: ["129.104.125.190"]
+      - targets: ["129.104.125.190:50055"]
         labels:
           service: control-center
+
+  # Microservice OpenStack — endpoint /metrics dédié (port METRICS_PORT, défaut 50053).
+  # Scrapé en direct (pas via Caddy) → adapter l'IP interne du microservice.
+  - job_name: openstack-microservice
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["129.104.125.190:50053"]
+        labels:
+          service: openstack-microservice
 
   # Métriques OTel (control center + microservice) réexposées par le Collector.
   - job_name: otel-collector
     static_configs:
       - targets: ["otel-collector:8889"]
+
+  # Métriques hôte de la VM d'observabilité.
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Métriques par conteneur.
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Alertmanager (santé).
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["alertmanager:9093"]
 
   # Prometheus lui-même (santé de la stack).
   - job_name: prometheus

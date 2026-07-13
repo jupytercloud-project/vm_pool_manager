@@ -49,14 +49,54 @@ flowchart LR
 
 ## Ce qu'on mesure
 
-- **Métriques** (Prometheus, depuis `/metrics` du Control Center) : `cpm_pools_total`,
-  `cpm_servers{status}`, `cpm_vms_active`, `cpm_students_total`, `cpm_github_sessions_24h`,
-  `cpm_pool_students{pool,owner}`. Prometheus les historise → **heures de pointe**, occupation.
-- **Données métier** (datasource PostgreSQL lecture seule) : requêtes directes sur
-  `vm_instances`, `serverpools`, `students`, `github_sessions`…
-- **Logs** (Loki + Promtail) : logs des services (`.devlogs/*.log`).
+**Métriques d'état** (Control Center `/metrics`, requêtées en base à chaque scrape) :
+`cpm_pools_total`, `cpm_servers{status}`, `cpm_vms_active`, `cpm_students_total`,
+`cpm_github_sessions_24h`, `cpm_pool_students{pool,owner}`, `cpm_batch_jobs{status}`,
+`cpm_vm_instances_total`, `cpm_vm_registrar_stale`, `cpm_month_cost`, `cpm_month_vm_hours`,
+`cpm_pool_month_cost{pool,owner}`, `cpm_storage_allocated_gb`, `cpm_storage_quota_gb`.
 
-Dashboard fourni : **CloudPoolManager — Usage** (provisionné automatiquement).
+**Métriques d'événement** (compteurs/histogrammes) :
+- Control Center : `cpm_vm_attribution_total{result}`, `cpm_proxy_sessions_total{kind}`,
+  `cpm_batch_jobs_processed_total{result}`, `cpm_batch_job_duration_seconds`,
+  `cpm_vm_action_total{action,result}`.
+- Microservice OpenStack (nouveau `/metrics` dédié, port `METRICS_PORT` défaut `:50053`) :
+  `cpm_vm_provision_total{result}`, `cpm_vm_provision_duration_seconds`,
+  `cpm_openstack_errors_total{operation}`.
+
+**Infra** : `node-exporter` (hôte) + `cAdvisor` (conteneurs) ajoutés à la stack.
+**Traces/logs** : OTel → Tempo (traces) + Loki (logs), corrélés par `trace_id`.
+**Données métier** : datasource PostgreSQL lecture seule (dont `vm_usage` pour la comptabilité).
+
+Dashboards provisionnés automatiquement :
+- **CloudPoolManager — Usage** (occupation, pools, logs).
+- **CloudPoolManager — Santé plateforme** (services up/down, provisioning, jobs, erreurs
+  OpenStack, attribution, sessions proxy, hôte).
+- **CloudPoolManager — Coûts & comptabilité** (coût du mois, heures-VM, coût par pool,
+  stockage vs quota, **table de comptabilité par utilisateur** — inspiration Waldur).
+
+## Alerting (Alertmanager + e-mail SMTP)
+
+- **Alertmanager** (`:9093`) route les alertes déclenchées par Prometheus vers l'**e-mail**.
+- Règles : `prometheus/rules/alerts.rules.yml` (services down, échecs/lenteur de provisioning,
+  erreurs OpenStack, échecs d'attribution/jobs, VMs périmées ou en ERROR, dépassement de quota,
+  coût mensuel, disque/mémoire/charge hôte).
+- **SMTP à renseigner** dans `alertmanager/alertmanager.yml` (`smtp_*`) + les adresses `to:`
+  des receivers `email-default` (warning/info) et `email-critical` (critique). Valeurs
+  suggérées dans `.env.example` (Alertmanager ne substitue pas les variables d'env → recopier).
+- **Valider avant déploiement** :
+  ```bash
+  docker run --rm -v "$PWD/prometheus":/p prom/prometheus:v2.53.0 promtool check rules /p/rules/alerts.rules.yml
+  docker run --rm -v "$PWD/prometheus":/p prom/prometheus:v2.53.0 promtool check config /p/prometheus.yml
+  docker run --rm -v "$PWD/alertmanager":/a prom/alertmanager:v0.27.0 amtool check-config /a/alertmanager.yml
+  ```
+
+## Comptabilité (accounting, inspiration Waldur)
+
+Le socle « qui consomme quoi et combien » est en place : `vm_usage` (heures-VM pondérées
+vCPU/RAM par VM et par mois) + calcul de coût (`GET /api/usage`, tarifs `PRICE_*`), exposés
+en **métriques Prometheus** (`cpm_month_cost`, `cpm_pool_month_cost`) et en **table Grafana**
+par utilisateur/mois. Pistes pour se rapprocher de Waldur : persister des coûts par période
+clôturée (facturation), tarifs par flavor/projet, et une notion d'allocation/quota par projet.
 
 ## Déploiement local (machine de dev) — recommandé pour le dev
 
@@ -90,14 +130,17 @@ docker compose up -d        # docker-compose.override.yml (gitignoré) branche h
    ```
 5. Accès Grafana : `http://<IP-VM-infra>:3000` (admin / `GF_ADMIN_PASSWORD`).
 
-## Exposer `/metrics` du Control Center
+## Accès à `/metrics` (scrape INTERNE)
 
-Prometheus scrape `https://<control-center>/metrics`. Ajouter la route dans
-`caddy/Caddyfile.native` (déjà fait dans ce dépôt) :
-```
-handle /metrics { reverse_proxy localhost:50055 }
-```
-Adapter le `target` dans `prometheus/prometheus.yml` si l'IP diffère.
+⚠️ Depuis l'audit Acunetix, `/metrics` est **bloqué (404) côté Caddy public** (fuite d'info
+Prometheus). Prometheus ne doit donc **pas** passer par le domaine : il scrape les endpoints
+**internes**, joignables depuis la VM d'observabilité :
+- Control Center : `<ip-interne>:50055/metrics` (job `control-center`).
+- Microservice OpenStack : `<ip-interne>:50053/metrics` (job `openstack-microservice`,
+  variable `METRICS_PORT`).
+
+Adapter les `targets` dans `prometheus/prometheus.yml`. Ces ports ne doivent être ouverts
+qu'au réseau interne (security group), jamais exposés sur Internet.
 
 ## Logs (Promtail, sur la machine des services)
 

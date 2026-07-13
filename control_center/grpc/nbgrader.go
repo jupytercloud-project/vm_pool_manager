@@ -76,7 +76,7 @@ func registerNbgraderHuma(api huma.API) {
 		Assignment string `query:"assignment"`
 		StudentIP  string `query:"student_ip"`
 	}) (*AnyOutput, error) {
-		return handleNbgraderSubmit(in.PoolID, in.UserID, in.Assignment, in.StudentIP)
+		return handleNbgraderSubmit(ctx, in.PoolID, in.UserID, in.Assignment, in.StudentIP)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -512,7 +512,7 @@ func fetchNbgraderGrades(poolID, userID, assignment string) ([]NbgraderGrade, er
 }
 
 // POST /api/nbgrader/submit?pool_id=X&user_id=Y&assignment=Z&student_ip=W
-func handleNbgraderSubmit(poolID, userID, assignment, studentIP string) (*AnyOutput, error) {
+func handleNbgraderSubmit(ctx context.Context, poolID, userID, assignment, studentIP string) (*AnyOutput, error) {
 	if poolID == "" || userID == "" || studentIP == "" {
 		return nil, huma.Error400BadRequest("missing pool_id, user_id, or student_ip")
 	}
@@ -523,6 +523,12 @@ func handleNbgraderSubmit(poolID, userID, assignment, studentIP string) (*AnyOut
 	// qui correspond à une VM réellement enregistrée dans ce pool, jamais à une IP arbitraire.
 	if !ipBelongsToPool(studentIP, poolID) {
 		return nil, huma.Error403Forbidden("student_ip does not belong to this pool")
+	}
+	// Anti-IDOR : un étudiant ne peut figer QUE le travail de sa propre VM ; le staff peut
+	// soumettre pour n'importe quelle VM connue du pool (correction). Empêche un étudiant de
+	// geler (chmod a-w) le travail d'un camarade du même pool.
+	if !ipBelongsToCaller(ctx, studentIP) {
+		return nil, huma.Error403Forbidden("cette VM ne vous appartient pas")
 	}
 
 	keyPath := os.Getenv("SSH_PRIVATE_KEY_PATH")

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"control_center/config"
+	"control_center/internal/metrics"
 	"control_center/internal/sshinject"
 	"control_center/models"
 	"control_center/pb"
@@ -266,9 +267,14 @@ func finishJob(jobID uint, status string, code int, log, vmName string) {
 	config.Database.Model(&models.BatchJob{}).Where("id = ?", jobID).Updates(map[string]any{
 		"status": status, "exit_code": code, "log": log, "vm_name": vmName, "finished_at": now,
 	})
+	// Métriques : compteur par résultat + durée d'exécution (started_at → maintenant).
+	metrics.RecordBatchJob(status)
 	// Notification de fin (B5) : trace dans le journal d'audit (visible dans la cloche).
 	var j models.BatchJob
-	if config.Database.Select("owner_email", "name").Where("id = ?", jobID).First(&j).Error == nil {
+	if config.Database.Select("owner_email", "name", "started_at").Where("id = ?", jobID).First(&j).Error == nil {
+		if j.StartedAt != nil && !j.StartedAt.IsZero() {
+			metrics.ObserveBatchJobDuration(now.Sub(*j.StartedAt).Seconds())
+		}
 		config.Database.Create(&models.AuditLog{
 			Actor: j.OwnerEmail, Role: "system", Method: "JOB",
 			Path: "/jobs/" + status + "/" + j.Name, IP: "-",

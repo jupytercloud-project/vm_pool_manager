@@ -54,6 +54,11 @@ func registerJobsHuma(api huma.API) {
 		if strings.TrimSpace(req.PoolID) == "" || strings.TrimSpace(req.Script) == "" {
 			return nil, huma.Error400BadRequest("pool_id et script requis")
 		}
+		// Anti-IDOR : on ne soumet un job (exécution de script sur une VM du pool) que sur un
+		// pool dont on est propriétaire (staff : n'importe lequel).
+		if !poolOwnedByCallerOrStaff(ctx, req.PoolID) {
+			return nil, huma.Error403Forbidden("ce pool ne vous appartient pas")
+		}
 		autoStop := true
 		if req.AutoStop != nil {
 			autoStop = *req.AutoStop
@@ -107,6 +112,10 @@ func registerJobsHuma(api huma.API) {
 		}
 		if len(req.Values) > 100 {
 			return nil, huma.Error400BadRequest("100 valeurs maximum")
+		}
+		// Anti-IDOR : balayage uniquement sur un pool dont on est propriétaire (staff : tous).
+		if !poolOwnedByCallerOrStaff(ctx, req.PoolID) {
+			return nil, huma.Error403Forbidden("ce pool ne vous appartient pas")
 		}
 		autoStop := true
 		if req.AutoStop != nil {
