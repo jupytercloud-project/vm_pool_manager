@@ -7,7 +7,7 @@
 services:
   moodle-db:
     # Bitnami a déplacé les tags versionnés vers le namespace "bitnamilegacy" en 2025.
-    image: bitnamilegacy/mariadb:11.8.3
+    image: bitnamilegacy/mariadb:12.0.2
     container_name: moodle-db
     restart: unless-stopped
     environment:
