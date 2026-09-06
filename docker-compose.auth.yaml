@@ -10,7 +10,7 @@ services:
       - ./auth/glauth.cfg:/app/config/config.cfg:ro
 
   dex:
-    image: ghcr.io/dexidp/dex:v2.41.1
+    image: ghcr.io/dexidp/dex:v2.45.1
     container_name: dex
     restart: unless-stopped
     # Confiné à localhost : Dex n'est atteint que via Caddy (reverse proxy /dex). Jamais exposé directement.
