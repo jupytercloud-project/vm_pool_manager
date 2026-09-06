@@ -1,0 +1,85 @@
+# Nothing has ever checked this repository. Eleven dependency pull requests are
+# open against it with no check of any kind, so none of them can be merged on
+# evidence -- only on faith that a version bump is harmless.
+#
+# The tree is three separate Go modules (root, control_center,
+# microservices/openstack), each with its own go.mod, so each is built and
+# tested on its own. A single `go build ./...` at the root sees only the first.
+#
+# Every step below says what it proves. A step that cannot fail is not a check.
+
+name: ci
+
+# No `branches:` filter on pull_request, deliberately: a filtered trigger
+# reports "no checks" forever for any pull request not aimed at the default
+# branch, which is the blind spot this file exists to close.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [".", "control_center", "microservices/openstack"]
+    steps:
+      - uses: actions/checkout@v7
+
+      # go-version-file rather than a pinned version: the module says what it
+      # needs, and pinning here would drift from it silently -- the same way a
+      # toolchain version pinned beside a module version does.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      # 1. PROVES: the module compiles for the host.
+      #    DOES NOT PROVE: that it compiles for any other GOOS/GOARCH.
+      - name: build
+        working-directory: ${{ matrix.module }}
+        run: go build ./...
+
+      # 2. PROVES: vet finds none of the mistakes it knows about.
+      - name: vet
+        working-directory: ${{ matrix.module }}
+        run: go vet ./...
+
+      # 3. PROVES: the tests that exist pass, with the race detector on.
+      #    DOES NOT PROVE: that they cover anything in particular.
+      - name: test
+        working-directory: ${{ matrix.module }}
+        run: go test -race ./...
+
+      # 4. PROVES: go.mod and go.sum are what `go mod tidy` would write.
+      #    This is the check that catches a dependency bump landing a new
+      #    requirement without its sums -- the failure mode that turns an
+      #    unrelated build red with a message naming no file.
+      - name: go.mod and go.sum are tidy
+        working-directory: ${{ matrix.module }}
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      # 5. PROVES: every file is gofmt-clean, and names the ones that are not
+      #    rather than only failing.
+      - name: gofmt
+        working-directory: ${{ matrix.module }}
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
