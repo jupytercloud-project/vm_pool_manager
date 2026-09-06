@@ -79,4 +79,3 @@ func (j JSONStringMap) Value() (driver.Value, error) {
 	}
 	return json.Marshal(j)
 }
-
