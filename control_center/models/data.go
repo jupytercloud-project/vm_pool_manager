@@ -239,4 +239,3 @@ func (n *Network) ToFrontControlPb() *frontcontrolpb.Network {
 		Tags:                  n.Tags,
 	}
 }
-

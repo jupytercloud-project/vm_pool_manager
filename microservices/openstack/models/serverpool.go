@@ -21,10 +21,10 @@ type Serverpool struct {
 	MaxVM        int
 	PendingJobs  int
 	ListServ     []Server `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
-	ConfigID    string
-	NetworkUuid string
-	TimeStart   string
-	OffDays     string // CSV des jours de fermeture (ex. "saturday,sunday") : VMs éteintes (stop) ces jours-là
+	ConfigID     string
+	NetworkUuid  string
+	TimeStart    string
+	OffDays      string // CSV des jours de fermeture (ex. "saturday,sunday") : VMs éteintes (stop) ces jours-là
 }
 
 func (sp *Serverpool) ToMap() map[string]string {

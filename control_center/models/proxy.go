@@ -30,20 +30,20 @@ type ProxySession struct {
 //
 // Le prof n'a pas besoin de grant : son rôle (staff + supervision du pool) suffit.
 type VscodeGrant struct {
-	ID           uint      `gorm:"primaryKey;autoIncrement"`
-	PoolID       string    `gorm:"index"` // serverpool_id du pool partagé
-	OwnerID      string    // user_id propriétaire du pool
-	Target       string    `gorm:"index"` // identité (email) de l'élève qui partage SA VM
-	PasswordHash string    // bcrypt du mot de passe de partage
-	Mode         string    // "read" | "write"
-	Editor       string    // "jupyter" (session collab temps réel sur l'infra) | "vscode" (VS Code de l'hôte, par mot de passe)
+	ID           uint   `gorm:"primaryKey;autoIncrement"`
+	PoolID       string `gorm:"index"` // serverpool_id du pool partagé
+	OwnerID      string // user_id propriétaire du pool
+	Target       string `gorm:"index"` // identité (email) de l'élève qui partage SA VM
+	PasswordHash string // bcrypt du mot de passe de partage
+	Mode         string // "read" | "write"
+	Editor       string // "jupyter" (session collab temps réel sur l'infra) | "vscode" (VS Code de l'hôte, par mot de passe)
 	// Session de collaboration hébergée sur la VM infra dédiée (colabVscodeInfra) : un
 	// code-server qui monte les fichiers de l'hôte (sshfs). Hôte + invité écriture → port RW
 	// (éditeur partagé) ; invité lecture → port RO (montage :ro). La collaboration ne tourne
 	// donc PAS sur la VM étudiante mais sur la VM infra centrale.
-	CollabIP     string // IP de la VM infra
-	CollabPortRW int    // port code-server lecture+écriture
-	CollabPortRO int    // port code-server lecture seule
+	CollabIP     string    // IP de la VM infra
+	CollabPortRW int       // port code-server lecture+écriture
+	CollabPortRO int       // port code-server lecture seule
 	ExpiresAt    time.Time // expiration du partage
 	CreatedAt    time.Time `gorm:"autoCreateTime"`
 }
