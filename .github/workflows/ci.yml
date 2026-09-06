@@ -83,3 +83,39 @@ jobs:
             echo "$unformatted"
             exit 1
           fi
+
+  # The Go jobs above judge three modules and say nothing at all about
+  # frontend/, which is a SvelteKit application with 34 dependencies of its
+  # own. Most of the pull requests waiting on this repository change exactly
+  # that -- vite, typescript, eslint, prettier-plugin-svelte -- so without this
+  # job they would go green on a lane that never looked at what they touched.
+  # A check that is green for the wrong reason is worse than no check.
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # 1. PROVES: package.json and package-lock.json agree. `npm ci` refuses
+      #    when they do not, which is exactly how a dependency bump that
+      #    changed the manifest without regenerating the lockfile shows up.
+      #    This repository was in that state until the lockfile was
+      #    regenerated -- `npm ci` failed on main with EUSAGE.
+      - name: npm ci
+        run: npm ci
+
+      # 2. PROVES: the application still builds.
+      - name: build
+        run: npm run build
+
+      # 3. PROVES: svelte-check finds no type error.
+      - name: check
+        run: npm run check
