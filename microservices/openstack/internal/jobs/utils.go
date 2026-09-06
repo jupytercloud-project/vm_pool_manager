@@ -2,7 +2,6 @@ package jobs
 
 import "fmt"
 
-
 func baseUserConfig(sshKey string) string {
 	return fmt.Sprintf(`#cloud-config
 users:
@@ -44,7 +43,6 @@ users:
       - %s
 `, sshKey)
 }
-
 
 // registrarCloudConfig generates a cloud-init script that installs and starts
 // the vm-registrar agent on the VM. The agent will auto-register itself
