@@ -16,12 +16,12 @@ import (
 var httpClient = &http.Client{Timeout: 5 * time.Second}
 
 type Client struct {
-	baseURL    string
-	publicURL  string
-	adminUser  string
-	adminPass  string
-	sshUser    string
-	sshKeyPEM  string
+	baseURL   string
+	publicURL string
+	adminUser string
+	adminPass string
+	sshUser   string
+	sshKeyPEM string
 
 	tokenMu      sync.Mutex
 	cachedToken  string
