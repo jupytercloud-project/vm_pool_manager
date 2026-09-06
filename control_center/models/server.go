@@ -20,7 +20,7 @@ type Server struct {
 	Metadata       JSONStringMap   `gorm:"type:text"`
 	ServerpoolID   string
 	UserID         string
-	Reattrib bool `gorm:"default:false; not null"`
+	Reattrib       bool `gorm:"default:false; not null"`
 	Progress       int  `gorm:"default:0; not null"`
 	ConfigID       int
 	IP_Address     string
@@ -42,7 +42,7 @@ func (s *Server) ToMap() map[string]string {
 		"image_ref":     s.ImageRef,
 		"serverpool_id": s.ServerpoolID,
 		"user_id":       s.UserID,
-		"reattrib": fmt.Sprintf("%t", s.Reattrib),
+		"reattrib":      fmt.Sprintf("%t", s.Reattrib),
 		"progress":      fmt.Sprintf("%d", s.Progress),
 		"config_id":     fmt.Sprintf("%d", s.ConfigID),
 	}
@@ -138,4 +138,3 @@ func (s *Server) ToFrontControlPb() *frontcontrolpb.Server {
 		AddressedIp: s.IP_Address,
 	}
 }
-
