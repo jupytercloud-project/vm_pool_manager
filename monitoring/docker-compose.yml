@@ -112,7 +112,7 @@ services:
       - "127.0.0.1:8889:8889" # métriques (Prometheus les scrape par le réseau compose)
 
   grafana:
-    image: grafana/grafana:11.6.16
+    image: grafana/grafana:13.2.1
     container_name: grafana
     restart: unless-stopped
     depends_on:
