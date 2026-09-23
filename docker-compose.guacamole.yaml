@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
 
   guacamole-db:
-    image: mysql:8
+    image: mysql:26
     container_name: guacamole-db
     restart: unless-stopped
     environment:
