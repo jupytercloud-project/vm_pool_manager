@@ -10,7 +10,7 @@
 # via le serveur OCT. Auth simple (pseudo) activée côté serveur, sans OAuth.
 services:
   oct-server:
-    image: node:20-slim
+    image: node:24-slim
     container_name: oct-server
     restart: unless-stopped
     working_dir: /srv
