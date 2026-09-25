@@ -2,7 +2,7 @@ module github.com/cloud-pool-managers/vm-pool-managers
 
 go 1.26.2
 
-require github.com/charmbracelet/huh v1.0.0
+require github.com/charmbracelet/huh/v2 v2.0.3
 
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
