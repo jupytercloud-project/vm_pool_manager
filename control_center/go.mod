@@ -5,8 +5,8 @@ go 1.26.2
 require (
 	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/gophercloud/gophercloud/v2 v2.14.0
-	github.com/gophercloud/utils/v2 v2.0.0-20260824073324-42b9474d09d4
+	github.com/gophercloud/gophercloud/v2 v2.15.0
+	github.com/gophercloud/utils/v2 v2.0.0-20260922174841-b4759ea0529b
 	github.com/improbable-eng/grpc-web v0.15.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/joho/godotenv v1.5.1
@@ -24,9 +24,9 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.22.0
 	go.opentelemetry.io/otel/sdk/metric v1.46.0
 	golang.org/x/crypto v0.57.0
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
-	gorm.io/driver/postgres v1.6.2
+	gorm.io/driver/postgres v1.6.3
 	gorm.io/gorm v1.31.2
 	gorm.io/plugin/opentelemetry v0.1.16
 )
