@@ -97,7 +97,7 @@ services:
   # Point d'entrée OTLP : reçoit traces/métriques/logs des services Go et les
   # répartit vers Tempo (traces) / Prometheus (métriques) / Loki (logs).
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.161.0
+    image: otel/opentelemetry-collector-contrib:0.162.0
     container_name: otel-collector
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yml"]
