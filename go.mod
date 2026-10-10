@@ -1,6 +1,6 @@
 module github.com/cloud-pool-managers/vm-pool-managers
 
-go 1.27.1
+go 1.27.2
 
 require charm.land/huh/v2 v2.0.3
 
